@@ -1,0 +1,160 @@
+"use client";
+
+import Link from "next/link";
+import { Calendar, Megaphone, UserRound } from "lucide-react";
+import type { Database } from "@gather/lib";
+import { Card, CardTitle } from "../ui/card";
+
+type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
+type EventRow = Database["public"]["Tables"]["events"]["Row"];
+type AnnouncementRow = Database["public"]["Tables"]["announcements"]["Row"];
+
+type SearchResultsProps = {
+  query: string;
+  profiles: ProfileRow[];
+  events: EventRow[];
+  announcements: AnnouncementRow[];
+};
+
+export default function SearchResults({ query, profiles, events, announcements }: SearchResultsProps) {
+  return (
+    <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-3">
+      <Card className="h-full">
+        <div className="flex h-full flex-col">
+          <div className="flex items-center justify-between">
+            <CardTitle>Members</CardTitle>
+            <span className="text-xs text-[var(--gather-muted)]">{profiles.length} found</span>
+          </div>
+
+          <div className="mt-4 flex-1 space-y-3 text-sm">
+            {profiles.length === 0 ? (
+              <EmptyState
+                icon={UserRound}
+                title="No matching members"
+                body={query ? "Try searching by email or full name." : "Start with a name or email."}
+              />
+            ) : (
+              profiles.map((profile) => (
+                <div key={profile.id} className="flex items-center justify-between rounded-lg bg-base-100 p-3">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+                      {(profile.full_name || profile.email || "?").slice(0, 1).toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-[var(--gather-ink)]">{profile.full_name || profile.email}</p>
+                      <p className="text-xs text-[var(--gather-muted)]">{profile.email}</p>
+                    </div>
+                  </div>
+                  <span className="badge badge-outline text-xs">{profile.role}</span>
+                </div>
+              ))
+            )}
+          </div>
+
+          {profiles.length ? (
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Link href="/people" className="btn btn-outline btn-sm">
+                View Profile
+              </Link>
+              <Link href="/people" className="btn btn-ghost btn-sm">
+                Assign Role
+              </Link>
+            </div>
+          ) : null}
+        </div>
+      </Card>
+
+      <Card className="h-full">
+        <div className="flex h-full flex-col">
+          <div className="flex items-center justify-between">
+            <CardTitle>Events</CardTitle>
+            <span className="text-xs text-[var(--gather-muted)]">{events.length} found</span>
+          </div>
+
+          <div className="mt-4 flex-1 space-y-3 text-sm">
+            {events.length === 0 ? (
+              <EmptyState
+                icon={Calendar}
+                title="No matching events"
+                body='Try searching "Bible Study" or "Youth Night".'
+                actionLabel="Create Event"
+                actionHref="/events"
+              />
+            ) : (
+              events.map((event) => (
+                <div key={event.id} className="rounded-lg bg-base-100 p-3">
+                  <p className="font-semibold text-[var(--gather-ink)]">{event.title}</p>
+                  <p className="text-xs text-[var(--gather-muted)]">
+                    {event.start_at ? new Date(event.start_at).toLocaleString() : ""}
+                    {event.location ? ` - ${event.location}` : ""}
+                  </p>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </Card>
+
+      <Card className="h-full">
+        <div className="flex h-full flex-col">
+          <div className="flex items-center justify-between">
+            <CardTitle>Announcements</CardTitle>
+            <span className="text-xs text-[var(--gather-muted)]">{announcements.length} found</span>
+          </div>
+
+          <div className="mt-4 flex-1 space-y-3 text-sm">
+            {announcements.length === 0 ? (
+              <EmptyState
+                icon={Megaphone}
+                title="No announcements found"
+                body="Try searching recent titles."
+                actionLabel="Post Announcement"
+                actionHref="/announcements"
+              />
+            ) : (
+              announcements.map((announcement) => (
+                <div key={announcement.id} className="rounded-lg bg-base-100 p-3">
+                  <p className="font-semibold text-[var(--gather-ink)]">{announcement.title}</p>
+                  <p className="text-xs text-[var(--gather-muted)]">
+                    {announcement.publish_at ? new Date(announcement.publish_at).toLocaleString() : "Draft"}
+                  </p>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function EmptyState({
+  icon: Icon,
+  title,
+  body,
+  actionLabel,
+  actionHref
+}: {
+  icon: typeof UserRound;
+  title: string;
+  body: string;
+  actionLabel?: string;
+  actionHref?: string;
+}) {
+  return (
+    <div className="flex h-full flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-base-200 bg-base-100 p-6 text-center">
+      <div className="flex h-10 w-10 items-center justify-center rounded-full" style={{ background: 'var(--gather-primary-weak)', color: 'var(--gather-primary)' }}>
+        <Icon className="h-5 w-5" style={{ color: 'var(--gather-primary)' }} />
+      </div>
+      <div>
+        <p className="text-sm font-semibold text-[var(--gather-ink)]">{title}</p>
+        <p className="text-xs text-[var(--gather-muted)]">{body}</p>
+      </div>
+      {actionLabel && actionHref ? (
+        <Link href={actionHref} className="btn btn-outline btn-sm">
+          {actionLabel}
+        </Link>
+      ) : null}
+    </div>
+  );
+}
