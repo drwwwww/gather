@@ -1,7 +1,7 @@
 "use client";
 
-import { Button } from "../ui/button";
-import { Input } from "../ui/input";
+// DaisyUI migration: use className markup for all UI
+// DaisyUI migration: use className markup for all UI
 
 export type MemberTab = "ALL" | "SERVICE" | "ADMINS";
 
@@ -35,19 +35,30 @@ export default function MemberFilters({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
-        <Button size="sm" variant={activeTab === "ALL" ? "default" : "outline"} onClick={() => onTabChange("ALL")}>
+        <button
+          className={`btn btn-sm ${activeTab === "ALL" ? "btn-active btn-primary" : "btn-outline"}`}
+          onClick={() => onTabChange("ALL")}
+        >
           All ({counts.all})
-        </Button>
-        <Button size="sm" variant={activeTab === "SERVICE" ? "default" : "outline"} onClick={() => onTabChange("SERVICE")}>
+        </button>
+        <button
+          className={`btn btn-sm ${activeTab === "SERVICE" ? "btn-active btn-primary" : "btn-outline"}`}
+          onClick={() => onTabChange("SERVICE")}
+        >
           Service Team ({counts.service})
-        </Button>
-        <Button size="sm" variant={activeTab === "ADMINS" ? "default" : "outline"} onClick={() => onTabChange("ADMINS")}>
+        </button>
+        <button
+          className={`btn btn-sm ${activeTab === "ADMINS" ? "btn-active btn-primary" : "btn-outline"}`}
+          onClick={() => onTabChange("ADMINS")}
+        >
           Admins ({counts.admins})
-        </Button>
+        </button>
       </div>
 
       <div className="grid gap-3 md:grid-cols-[1.4fr_1fr_1fr_0.7fr]">
-        <Input
+        <input
+          type="text"
+          className="input input-bordered w-full"
           placeholder="Search name or email"
           value={searchTerm}
           onChange={(event) => onSearchChange(event.target.value)}

@@ -2,8 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "../../../components/ui/button";
-import { Input } from "../../../components/ui/input";
 import { churchOnboardingSchema } from "@gather/lib";
 import { supabase } from "../../../lib/supabaseClient";
 

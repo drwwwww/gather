@@ -1,8 +1,7 @@
 import type { Database } from "@gather/lib";
 import type { ReactNode } from "react";
-import { Badge } from "../ui/badge";
-import { Card, CardTitle } from "../ui/card";
-import { Input } from "../ui/input";
+// ...existing code...
+// ...existing code...
 import { formatServiceTimeLabel } from "../../lib/format";
 
 const statusTone: Record<string, "default" | "success" | "warning" | "neutral"> = {
@@ -34,16 +33,13 @@ export default function ServicePlanHeader({
   actions
 }: ServicePlanHeaderProps) {
   return (
-    <Card
-      style={{
-        background: 'var(--gather-surface)',
-        borderColor: 'var(--gather-border)',
-        color: 'var(--gather-ink)'
-      }}
+    <div
+      className="card bg-base-100 shadow-md p-4 rounded-xl"
+      // DaisyUI/Tailwind only; remove legacy CSS vars if not needed
     >
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <CardTitle>Service plan</CardTitle>
+          <div className="card-title text-lg font-semibold">Service plan</div>
           <p
             className="text-xs mt-1"
             style={{ color: 'var(--gather-muted)' }}
@@ -85,16 +81,11 @@ export default function ServicePlanHeader({
           >
             Service date
           </label>
-          <Input
+          <input
             type="date"
             value={serviceDate}
             onChange={(event) => onServiceDateChange(event.target.value)}
-            className="mt-2"
-            style={{
-              background: 'var(--gather-surface)',
-              borderColor: 'var(--gather-border)',
-              color: 'var(--gather-ink)'
-            }}
+            className="input input-bordered w-full mt-2"
           />
         </div>
         <div>
@@ -105,10 +96,19 @@ export default function ServicePlanHeader({
             Plan status
           </label>
           <div className="mt-3">
-            <Badge variant={statusTone[statusLabel] ?? "default"}>{statusLabel}</Badge>
+            <span className={
+              `badge ${
+                statusTone[statusLabel] === 'success' ? 'badge-success' :
+                statusTone[statusLabel] === 'warning' ? 'badge-warning' :
+                statusTone[statusLabel] === 'neutral' ? 'badge-neutral' :
+                'badge-ghost'
+              }`
+            }>
+              {statusLabel}
+            </span>
           </div>
         </div>
       </div>
-    </Card>
+    </div>
   );
 }

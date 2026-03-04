@@ -4,8 +4,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import AdminHeader from "../../../../components/admin/AdminHeader";
-import { Button } from "../../../../components/ui/button";
-import { Card } from "../../../../components/ui/card";
 import ServicePlanHeader from "../../../../components/servicePlans/ServicePlanHeader";
 import ServicePlanEmptyState from "../../../../components/servicePlans/ServicePlanEmptyState";
 import ServicePlanStepsEditor from "../../../../components/servicePlans/ServicePlanStepsEditor";
@@ -329,18 +327,18 @@ export default function ServicePlansPage() {
           onServiceDateChange={setServiceDate}
           actions={
             <>
-              <Button size="sm" variant="outline" onClick={handlePrint} disabled={!plan}>
+              <button className="btn btn-outline btn-sm" onClick={handlePrint} disabled={!plan}>
                 Print plan
-              </Button>
+              </button>
             </>
           }
         />
 
-        <Card>
+        <div className="card bg-base-100 shadow-md p-4 rounded-xl">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-sm font-semibold text-[var(--gather-ink)]">Generate from preset</p>
-              <p className="text-xs text-[var(--gather-muted)]">Presets keep your flow consistent.</p>
+              <p className="text-sm font-semibold text-base-content">Generate from preset</p>
+              <p className="text-xs text-base-content/60">Presets keep your flow consistent.</p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <select
@@ -363,7 +361,7 @@ export default function ServicePlansPage() {
               <CopyLastPlanButton onCopy={handleCopyLastPlan} disabled={loadingPlan || !serviceTimeId} />
             </div>
           </div>
-        </Card>
+        </div>
 
         {!plan ? (
           <ServicePlanEmptyState
@@ -388,7 +386,7 @@ export default function ServicePlansPage() {
 
       {toast ? (
         <div className="fixed right-6 top-6 z-50 rounded-xl bg-base-200 px-4 py-3 text-sm shadow">
-          <p className={toast.tone === "error" ? "text-error" : "text-[var(--gather-ink)]"}>{toast.message}</p>
+          <p className={toast.tone === "error" ? "text-error" : "text-base-content"}>{toast.message}</p>
         </div>
       ) : null}
     </>

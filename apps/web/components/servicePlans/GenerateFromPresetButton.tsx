@@ -1,6 +1,4 @@
 import { useState } from "react";
-import { Button } from "../ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../ui/dialog";
 
 export default function GenerateFromPresetButton({
   disabled,
@@ -23,32 +21,31 @@ export default function GenerateFromPresetButton({
 
   return (
     <>
-      <Button size="sm" onClick={handleClick} disabled={disabled}>
+      <button className="btn btn-primary btn-sm" onClick={handleClick} disabled={disabled}>
         Generate from preset
-      </Button>
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Replace current plan steps?</DialogTitle>
-            <DialogDescription>
-              This will replace the current steps with the selected preset.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={() => {
-                setOpen(false);
-                onGenerate();
-              }}
-            >
-              Replace steps
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      </button>
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="modal-box w-full max-w-md">
+            <h3 className="font-bold text-lg mb-2">Replace current plan steps?</h3>
+            <p className="mb-4">This will replace the current steps with the selected preset.</p>
+            <div className="modal-action flex gap-2 justify-end">
+              <button className="btn btn-outline" onClick={() => setOpen(false)}>
+                Cancel
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={() => {
+                  setOpen(false);
+                  onGenerate();
+                }}
+              >
+                Replace steps
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

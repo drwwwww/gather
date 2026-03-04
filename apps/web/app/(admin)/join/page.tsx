@@ -59,16 +59,16 @@ export default function JoinInstructionsPage() {
   if (loading) {
     return (
       <main className="mx-auto flex min-h-[50vh] max-w-2xl items-center justify-center px-6">
-        <p className="text-sm text-[var(--gather-muted)]">Preparing print view...</p>
+        <p className="text-sm text-base-content/60">Preparing print view...</p>
       </main>
     );
   }
 
   return (
     <main className="mx-auto max-w-2xl px-6 py-10">
-      <div className="rounded-2xl border border-primary/20 bg-[var(--gather-surface)] p-8 shadow-sm print:border-none print:shadow-none">
-        <h1 className="text-2xl font-semibold text-[var(--gather-ink)]">Join {info.church?.name ?? "Our Church"}</h1>
-        <p className="mt-2 text-sm text-[var(--gather-muted)]">
+      <div className="rounded-2xl border border-primary/20 bg-base-100 p-8 shadow-sm print:border-none print:shadow-none">
+        <h1 className="text-2xl font-semibold text-base-content">Join {info.church?.name ?? "Our Church"}</h1>
+        <p className="mt-2 text-sm text-base-content/60">
           Open the Gather app, tap Join Church, and enter the code below.
         </p>
 
@@ -82,11 +82,11 @@ export default function JoinInstructionsPage() {
           </div>
         ) : null}
 
-        <div className="mt-8 flex items-center justify-between text-xs text-[var(--gather-muted)] print:hidden">
+        <div className="mt-8 flex items-center justify-between text-xs text-base-content/60 print:hidden">
           <span>Share this code with your members.</span>
-          <Button size="sm" variant="outline" onClick={() => window.print()}>
+          <button className="btn btn-outline btn-sm" onClick={() => window.print()}>
             Print
-          </Button>
+          </button>
         </div>
       </div>
     </main>

@@ -1,8 +1,5 @@
 "use client";
 
-import { Button } from "../ui/button";
-import { Card, CardTitle } from "../ui/card";
-import { Input } from "../ui/input";
 import EventTemplates, { type EventTemplate } from "./EventTemplates";
 
 export type EventFormValues = {
@@ -41,38 +38,40 @@ export default function EventForm({
   const canSubmit = Boolean(values.title.trim()) && Boolean(values.startDate) && (values.allDay || Boolean(values.startTime));
 
   return (
-    <Card>
+    <div className="card bg-base-100 shadow-md p-4 rounded-xl">
       <div className="flex items-center justify-between">
-        <CardTitle>{isEditing ? "Edit Event" : "Create Event"}</CardTitle>
+        <div className="card-title text-lg font-semibold">{isEditing ? "Edit Event" : "Create Event"}</div>
         <span className="text-xs text-[var(--gather-muted)]">Keep it simple</span>
       </div>
       <div className="mt-4 space-y-4">
-        <Input
+        <input
+          type="text"
           placeholder="Event title"
           value={values.title}
           onChange={(event) => onChange({ title: event.target.value })}
+          className="input input-bordered w-full"
         />
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-2">
             <label className="text-xs text-[var(--gather-muted)]">Start date</label>
-            <Input type="date" value={values.startDate} onChange={(event) => onChange({ startDate: event.target.value })} />
+            <input type="date" value={values.startDate} onChange={(event) => onChange({ startDate: event.target.value })} className="input input-bordered w-full" />
           </div>
           {!values.allDay ? (
             <div className="space-y-2">
               <label className="text-xs text-[var(--gather-muted)]">Start time</label>
-              <Input type="time" value={values.startTime} onChange={(event) => onChange({ startTime: event.target.value })} />
+              <input type="time" value={values.startTime} onChange={(event) => onChange({ startTime: event.target.value })} className="input input-bordered w-full" />
             </div>
           ) : null}
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-2">
             <label className="text-xs text-[var(--gather-muted)]">End date</label>
-            <Input type="date" value={values.endDate} onChange={(event) => onChange({ endDate: event.target.value })} />
+            <input type="date" value={values.endDate} onChange={(event) => onChange({ endDate: event.target.value })} className="input input-bordered w-full" />
           </div>
           {!values.allDay ? (
             <div className="space-y-2">
               <label className="text-xs text-[var(--gather-muted)]">End time</label>
-              <Input type="time" value={values.endTime} onChange={(event) => onChange({ endTime: event.target.value })} />
+              <input type="time" value={values.endTime} onChange={(event) => onChange({ endTime: event.target.value })} className="input input-bordered w-full" />
             </div>
           ) : null}
         </div>
@@ -85,10 +84,12 @@ export default function EventForm({
           />
           All-day event
         </label>
-        <Input
+        <input
+          type="text"
           placeholder="Location"
           value={values.location}
           onChange={(event) => onChange({ location: event.target.value })}
+          className="input input-bordered w-full"
         />
         <textarea
           className="textarea textarea-bordered min-h-[140px] w-full"
@@ -113,9 +114,9 @@ export default function EventForm({
         <p className="text-xs text-[var(--gather-muted)]">Times shown in {timezoneLabel || "your local timezone"}.</p>
         {error ? <p className="text-sm text-error">{error}</p> : null}
         <div className="flex flex-wrap gap-2">
-          <Button onClick={onSubmit} disabled={!canSubmit}>Save Event</Button>
+          <button type="button" className="btn btn-primary" onClick={onSubmit} disabled={!canSubmit}>Save Event</button>
           {isEditing ? (
-            <Button variant="outline" onClick={onCancelEdit}>Cancel</Button>
+            <button type="button" className="btn btn-outline" onClick={onCancelEdit}>Cancel</button>
           ) : null}
         </div>
         <div>
@@ -125,6 +126,6 @@ export default function EventForm({
           </div>
         </div>
       </div>
-    </Card>
+    </div>
   );
 }

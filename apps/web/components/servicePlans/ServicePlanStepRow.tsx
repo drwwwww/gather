@@ -1,7 +1,5 @@
 import { useState } from "react";
 import type { Database, ServicePlanStatus } from "@gather/lib";
-import { Button } from "../ui/button";
-import { Input } from "../ui/input";
 
 export type PlanItemDraft = {
   id: string;
@@ -52,15 +50,27 @@ export default function ServicePlanStepRow({
           <span>Step {index + 1}</span>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button size="sm" variant="outline" onClick={() => onMove("up")}>
+          <button
+            type="button"
+            className="btn btn-outline btn-sm"
+            onClick={() => onMove("up")}
+          >
             Up
-          </Button>
-          <Button size="sm" variant="outline" onClick={() => onMove("down")}>
+          </button>
+          <button
+            type="button"
+            className="btn btn-outline btn-sm"
+            onClick={() => onMove("down")}
+          >
             Down
-          </Button>
-          <Button size="sm" variant="outline" onClick={onRemove}>
+          </button>
+          <button
+            type="button"
+            className="btn btn-outline btn-sm"
+            onClick={onRemove}
+          >
             Remove
-          </Button>
+          </button>
         </div>
       </div>
       <div className="mt-3 grid gap-3 lg:grid-cols-[2fr_1fr_1fr]">
@@ -71,10 +81,12 @@ export default function ServicePlanStepRow({
           >
             Title
           </label>
-          <Input
+          <input
+            type="text"
             value={item.title}
             onChange={(event) => onChange({ title: event.target.value })}
             autoFocus={autoFocus}
+            className="input input-bordered w-full"
           />
         </div>
         <div>
@@ -84,7 +96,7 @@ export default function ServicePlanStepRow({
           >
             Duration (min)
           </label>
-          <Input
+          <input
             type="number"
             min={0}
             value={item.duration_minutes ?? ""}
@@ -92,6 +104,7 @@ export default function ServicePlanStepRow({
               const value = event.target.value;
               onChange({ duration_minutes: value ? Number(value) : null });
             }}
+            className="input input-bordered w-full"
           />
         </div>
         <div>

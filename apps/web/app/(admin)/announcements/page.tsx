@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import AdminHeader from "../../../components/admin/AdminHeader";
-import { MotionContainer, MotionItem } from "../../../components/ui/motion";
 import { getCurrentContext } from "../../../lib/supabaseData";
 import { supabase } from "../../../lib/supabaseClient";
 import AnnouncementComposer from "../../../components/announcements/AnnouncementComposer";
@@ -205,14 +204,14 @@ export default function AnnouncementsPage() {
   };
 
   return (
-    <MotionContainer className="space-y-8">
-      <MotionItem>
+    <div className="space-y-8">
+      <div>
         <AdminHeader
           title="Announcements"
           subtitle="Compose and publish messages to the right audience."
         />
-      </MotionItem>
-      <MotionItem>
+      </div>
+      <div>
         <section className="grid gap-6 xl:grid-cols-[1.3fr_0.9fr]">
           <AnnouncementComposer
             title={title}
@@ -248,14 +247,14 @@ export default function AnnouncementsPage() {
             onTemplateSelect={handleTemplateSelect}
           />
         </section>
-      </MotionItem>
+      </div>
 
       {toast ? (
         <div className="fixed right-6 top-6 z-50 rounded-xl bg-base-200 px-4 py-3 text-sm shadow">
-          <p className={toast.tone === "error" ? "text-error" : "text-[var(--gather-ink)]"}>{toast.message}</p>
+          <p className={toast.tone === "error" ? "text-error" : "text-base-content"}>{toast.message}</p>
         </div>
       ) : null}
-    </MotionContainer>
+    </div>
   );
 }
 

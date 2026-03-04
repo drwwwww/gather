@@ -1,7 +1,5 @@
 "use client";
 
-import { Button } from "../ui/button";
-import { Card, CardTitle } from "../ui/card";
 
 type Attendee = {
   id: string;
@@ -21,10 +19,10 @@ export default function AttendeeListDialog({ open, attendees, onClose }: Attende
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-      <Card className="w-full max-w-xl">
+      <div className="card bg-base-100 shadow-md p-4 rounded-xl w-full max-w-xl">
         <div className="flex items-center justify-between">
-          <CardTitle>Attendees</CardTitle>
-          <Button size="sm" variant="outline" onClick={onClose}>Close</Button>
+          <div className="card-title text-lg font-semibold">Attendees</div>
+          <button type="button" className="btn btn-outline btn-sm" onClick={onClose}>Close</button>
         </div>
         <div className="mt-4 max-h-[360px] space-y-2 overflow-auto text-sm">
           {attendees.length === 0 ? (
@@ -39,7 +37,7 @@ export default function AttendeeListDialog({ open, attendees, onClose }: Attende
             ))
           )}
         </div>
-      </Card>
+      </div>
     </div>
   );
 }

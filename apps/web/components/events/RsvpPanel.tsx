@@ -1,8 +1,5 @@
 "use client";
 
-import { Badge } from "../ui/badge";
-import { Button } from "../ui/button";
-import { Card, CardTitle } from "../ui/card";
 
 type RsvpPanelProps = {
   selectedEventTitle: string | null;
@@ -11,7 +8,6 @@ type RsvpPanelProps = {
   no: number;
   onViewAttendees: () => void;
 };
-
 export default function RsvpPanel({
   selectedEventTitle,
   going,
@@ -20,9 +16,9 @@ export default function RsvpPanel({
   onViewAttendees
 }: RsvpPanelProps) {
   return (
-    <Card>
+    <div className="card bg-base-100 shadow-md p-4 rounded-xl">
       <div className="flex items-center justify-between">
-        <CardTitle>RSVP Breakdown</CardTitle>
+        <div className="card-title text-lg font-semibold">RSVP Breakdown</div>
         <span className="text-xs text-[var(--gather-muted)]">Per event</span>
       </div>
       <div className="mt-4 space-y-3 text-sm">
@@ -45,15 +41,14 @@ export default function RsvpPanel({
                 <p className="text-lg font-semibold text-[var(--gather-ink)]">{no}</p>
               </div>
             </div>
-            <div className="flex items-center justify-between">
-              <Badge variant="default">Total {going + maybe + no}</Badge>
-              <Button size="sm" variant="outline" onClick={onViewAttendees}>
-                View attendee list
-              </Button>
+            <div className="mt-4">
+              <button type="button" className="btn btn-outline btn-sm" onClick={onViewAttendees}>
+                View attendees
+              </button>
             </div>
           </>
         )}
       </div>
-    </Card>
+    </div>
   );
 }

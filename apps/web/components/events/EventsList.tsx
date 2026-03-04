@@ -1,8 +1,6 @@
 "use client";
 
-import { Badge } from "../ui/badge";
-import { Button } from "../ui/button";
-import { Card, CardTitle } from "../ui/card";
+// ...existing code...
 import { formatShortWeekdayDateTime } from "../../lib/format";
 import EventTemplates, { type EventTemplate } from "./EventTemplates";
 import type { Database } from "@gather/lib";
@@ -48,16 +46,24 @@ export default function EventsList({
   const list = activeTab === "UPCOMING" ? upcoming : past;
 
   return (
-    <Card>
+    <div className="card bg-base-100 shadow-md p-4 rounded-xl">
       <div className="flex items-center justify-between">
-        <CardTitle>Events</CardTitle>
+        <div className="card-title text-lg font-semibold">Events</div>
         <div className="flex items-center gap-2">
-          <Button size="sm" variant={activeTab === "UPCOMING" ? "default" : "outline"} onClick={() => onTabChange("UPCOMING")}>
-            Upcoming
-          </Button>
-          <Button size="sm" variant={activeTab === "PAST" ? "default" : "outline"} onClick={() => onTabChange("PAST")}>
-            Past
-          </Button>
+            <button
+              type="button"
+              className={`btn btn-sm ${activeTab === "UPCOMING" ? "btn-primary" : "btn-outline"}`}
+              onClick={() => onTabChange("UPCOMING")}
+            >
+              Upcoming
+            </button>
+            <button
+              type="button"
+              className={`btn btn-sm ${activeTab === "PAST" ? "btn-primary" : "btn-outline"}`}
+              onClick={() => onTabChange("PAST")}
+            >
+              Past
+            </button>
         </div>
       </div>
 
@@ -142,7 +148,7 @@ export default function EventsList({
           })
         )}
       </div>
-    </Card>
+    </div>
   );
 }
 

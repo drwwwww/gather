@@ -1,5 +1,3 @@
-import { Button } from "../ui/button";
-import { Card } from "../ui/card";
 import { presetTemplates, type PresetTemplate } from "../../lib/presets";
 
 export default function StarterTemplates({
@@ -8,7 +6,7 @@ export default function StarterTemplates({
   onSelect: (template: PresetTemplate) => void;
 }) {
   return (
-    <Card className="border-dashed">
+    <div className="card bg-base-100 shadow-md p-4 rounded-xl border-dashed">
       <div className="space-y-4 text-center">
         <div>
           <p className="text-sm text-[var(--gather-muted)]">No service presets yet.</p>
@@ -16,17 +14,17 @@ export default function StarterTemplates({
         </div>
         <div className="flex flex-wrap justify-center gap-2">
           {presetTemplates.map((template) => (
-            <Button
+            <button
               key={template.id}
-              variant="outline"
-              size="sm"
+              type="button"
               onClick={() => onSelect(template)}
+              className="btn btn-outline btn-sm min-w-[180px]"
             >
               {template.name}
-            </Button>
+            </button>
           ))}
         </div>
       </div>
-    </Card>
+    </div>
   );
 }

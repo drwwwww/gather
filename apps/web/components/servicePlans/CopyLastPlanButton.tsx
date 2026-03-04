@@ -1,4 +1,3 @@
-import { Button } from "../ui/button";
 
 export default function CopyLastPlanButton({
   disabled,
@@ -8,8 +7,8 @@ export default function CopyLastPlanButton({
   onCopy: () => void;
 }) {
   return (
-    <Button variant="outline" size="sm" onClick={onCopy} disabled={disabled}>
+    <button className="btn btn-outline btn-sm" onClick={onCopy} disabled={disabled}>
       Copy last plan
-    </Button>
+    </button>
   );
 }

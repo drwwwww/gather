@@ -1,13 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Database } from "@gather/lib";
-import { Badge } from "../ui/badge";
-import { Button } from "../ui/button";
-import { Input } from "../ui/input";
-import { AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../ui/dialog";
+// ...existing code...
+// ...existing code...
+// ...existing code...
+// ...existing code...
 import { formatDurationMinutes } from "../../lib/format";
 import PresetStepsEditor, { type PresetItemDraft } from "./PresetStepsEditor";
-import Rail from "../ui/Rail";
+// ...existing code...
 
 type ServicePreset = Database["public"]["Tables"]["service_presets"]["Row"];
 type PresetItemRow = Database["public"]["Tables"]["service_preset_items"]["Row"];
@@ -88,20 +87,20 @@ export default function PresetCard({
         </div>
         <div className="mt-4 flex flex-wrap items-center gap-2">
           {preset.is_default ? (
-            <Button size="sm" variant="outline" disabled>
+            <button className="btn btn-outline btn-sm" disabled>
               Default
-            </Button>
+            </button>
           ) : (
-            <Button size="sm" variant="outline" onClick={() => onSetDefault(preset.id)}>
+            <button className="btn btn-outline btn-sm" onClick={() => onSetDefault(preset.id)}>
               Set default
-            </Button>
+            </button>
           )}
-          <Button size="sm" variant="outline" onClick={() => onDuplicate(preset)}>
+          <button className="btn btn-outline btn-sm" onClick={() => onDuplicate(preset)}>
             Duplicate
-          </Button>
-          <Button size="sm" variant="outline" onClick={() => setDeleteOpen(true)}>
+          </button>
+          <button className="btn btn-outline btn-sm" onClick={() => setDeleteOpen(true)}>
             Delete
-          </Button>
+          </button>
         </div>
       </div>
 
@@ -109,7 +108,7 @@ export default function PresetCard({
         <div className="space-y-4">
           <div className="grid gap-2">
             <label className="text-xs uppercase tracking-[0.2em] text-[var(--gather-muted)]">Preset name</label>
-            <Input value={draftName} onChange={(event) => setDraftName(event.target.value)} />
+            <input value={draftName} onChange={(event) => setDraftName(event.target.value)} className="input input-bordered w-full" placeholder="Preset name" disabled={saving} />
           </div>
           <PresetStepsEditor
             items={draftItems}
@@ -118,36 +117,35 @@ export default function PresetCard({
           />
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-xs text-[var(--gather-muted)]">Changes save to the preset and update the preview.</p>
-            <Button size="sm" onClick={() => onSave(preset.id, draftName, draftItems)} disabled={saving}>
+            <button className="btn btn-primary btn-sm" onClick={() => onSave(preset.id, draftName, draftItems)} disabled={saving}>
               {saving ? "Saving..." : "Save changes"}
-            </Button>
+            </button>
           </div>
         </div>
       </AccordionContent>
 
-      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete preset?</DialogTitle>
-            <DialogDescription>
-              This removes the preset and its steps. You can not undo this action.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={() => {
-                setDeleteOpen(false);
-                onDelete(preset);
-              }}
-            >
-              Delete preset
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {deleteOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="modal-box w-full max-w-md">
+            <h3 className="font-bold text-lg mb-2">Delete preset?</h3>
+            <p className="mb-4">This removes the preset and its steps. You can not undo this action.</p>
+            <div className="modal-action flex gap-2 justify-end">
+              <button className="btn btn-outline" onClick={() => setDeleteOpen(false)}>
+                Cancel
+              </button>
+              <button
+                className="btn btn-error"
+                onClick={() => {
+                  setDeleteOpen(false);
+                  onDelete(preset);
+                }}
+              >
+                Delete preset
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       </AccordionItem>
     </Rail>
   );

@@ -1,8 +1,5 @@
 "use client";
 
-import { Badge } from "../ui/badge";
-import { Button } from "../ui/button";
-import { Card, CardTitle } from "../ui/card";
 import { formatRelativeTime, formatShortWeekdayDateTime } from "../../lib/format";
 import AnnouncementTemplates, { type AnnouncementTemplate } from "./AnnouncementTemplates";
 import type { Database } from "@gather/lib";
@@ -46,9 +43,9 @@ export default function RecentAnnouncementsList({
   onTemplateSelect
 }: RecentAnnouncementsListProps) {
   return (
-    <Card>
+    <div className="card bg-base-100 shadow-md p-4 rounded-xl">
       <div className="flex items-center justify-between">
-        <CardTitle>Recent Announcements</CardTitle>
+        <div className="card-title text-lg font-semibold">Recent Announcements</div>
         <span className="text-xs text-[var(--gather-muted)]">Latest activity</span>
       </div>
       <div className="mt-4 space-y-3 text-sm">
@@ -84,15 +81,19 @@ export default function RecentAnnouncementsList({
                   <div>
                     <p className="font-medium text-[var(--gather-ink)]">{announcement.title}</p>
                     <div className="mt-1 flex flex-wrap items-center gap-2">
-                      <Badge variant="default">{audienceLabels[announcement.audience] ?? announcement.audience}</Badge>
-                      <Badge variant={statusBadge[status]}>{status}</Badge>
+                      <span className="badge badge-outline">{audienceLabels[announcement.audience] ?? announcement.audience}</span>
+                      <span className={
+                        status === "PUBLISHED" ? "badge badge-success" :
+                        status === "SCHEDULED" ? "badge badge-warning" :
+                        status === "DRAFT" ? "badge badge-neutral" : "badge"
+                      }>{status}</span>
                     </div>
                     <p className="mt-2 text-xs text-[var(--gather-muted)]">{timeLabel}</p>
                   </div>
                   <div className="dropdown dropdown-end">
-                    <Button size="sm" variant="outline" onClick={(event) => event.stopPropagation()}>
+                    <button type="button" className="btn btn-outline btn-sm" onClick={(event) => event.stopPropagation()}>
                       ⋮
-                    </Button>
+                    </button>
                     <ul className="dropdown-content menu rounded-box w-40 bg-base-100 p-2 shadow">
                       <li>
                         <button type="button" onClick={(event) => {
@@ -138,7 +139,7 @@ export default function RecentAnnouncementsList({
           })
         )}
       </div>
-    </Card>
+    </div>
   );
 }
 

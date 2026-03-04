@@ -1,11 +1,11 @@
 "use client";
 
+
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { Database } from "@gather/lib";
-import { Button } from "../ui/button";
-import { Card, CardTitle } from "../ui/card";
-import { Input } from "../ui/input";
+
+import { Button } from "../../ui/button";
 
 type AssignmentRow = Database["public"]["Tables"]["volunteer_assignments"]["Row"];
 type RoleRow = Database["public"]["Tables"]["volunteer_roles"]["Row"];
@@ -33,11 +33,11 @@ type AssignmentsTableProps = {
   onCopyLast: () => void;
 };
 
-const statusStyles: Record<AssignmentStatus, { label: string; className: string }> = {
-  OPEN: { label: "OPEN", className: "badge badge-warning" },
-  ASSIGNED: { label: "PENDING", className: "badge badge-ghost" },
-  CONFIRMED: { label: "CONFIRMED", className: "badge badge-success" },
-  DECLINED: { label: "DECLINED", className: "badge badge-error" }
+const statusStyles: Record<AssignmentStatus, { label: string; variant: string }> = {
+  OPEN: { label: "OPEN", variant: "warning" },
+  ASSIGNED: { label: "PENDING", variant: "neutral" },
+  CONFIRMED: { label: "CONFIRMED", variant: "success" },
+  DECLINED: { label: "DECLINED", variant: "error" }
 };
 
 export default function AssignmentsTable({
@@ -62,12 +62,12 @@ export default function AssignmentsTable({
   const [notesDraft, setNotesDraft] = useState<Record<string, string>>({});
 
   const serviceProfiles = useMemo(
-    () => profiles.filter((profile) => profile.role === "SERVICE"),
+    () => (Array.isArray(profiles) ? profiles : []).filter((profile) => profile.role === "SERVICE"),
     [profiles]
   );
 
   const roleById = useMemo(() => {
-    return roles.reduce<Record<string, RoleRow>>((acc, role) => {
+    return (Array.isArray(roles) ? roles : []).reduce<Record<string, RoleRow>>((acc, role) => {
       acc[role.id] = role;
       return acc;
     }, {});
@@ -79,8 +79,8 @@ export default function AssignmentsTable({
     if (showPendingOnly) filters.push("ASSIGNED");
     if (showDeclinedOnly) filters.push("DECLINED");
 
-    return assignments.filter((assignment) => {
-      if (filters.length && !filters.includes(assignment.status as AssignmentStatus)) {
+    return (Array.isArray(assignments) ? assignments : []).filter((assignment) => {
+      if (Array.isArray(filters) && filters.length && !filters.includes(assignment.status as AssignmentStatus)) {
         return false;
       }
       if (!searchTerm.trim()) return true;
@@ -93,18 +93,18 @@ export default function AssignmentsTable({
   }, [assignments, showOpenOnly, showPendingOnly, showDeclinedOnly, searchTerm, roleById, profiles]);
 
   return (
-    <Card>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <CardTitle>Assignments</CardTitle>
-        <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--gather-muted)]">
-          <span>OPEN</span>
-          <span>ASSIGNED</span>
-          <span>CONFIRMED</span>
-          <span>DECLINED</span>
+    <div className="border rounded bg-white p-6 mb-8">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+        <div className="text-lg font-semibold text-[var(--ink)]">Assignments</div>
+        <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--muted)]">
+          <span className="px-2 py-1 rounded bg-gray-200 text-gray-800 text-xs">OPEN</span>
+          <span className="px-2 py-1 rounded bg-gray-200 text-gray-800 text-xs">PENDING</span>
+          <span className="px-2 py-1 rounded bg-gray-200 text-gray-800 text-xs">CONFIRMED</span>
+          <span className="px-2 py-1 rounded bg-gray-200 text-gray-800 text-xs">DECLINED</span>
         </div>
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
+      <div className="flex flex-wrap items-center gap-3 mb-4">
         <label className="flex items-center gap-2">
           <input
             type="checkbox"
@@ -112,7 +112,7 @@ export default function AssignmentsTable({
             checked={showOpenOnly}
             onChange={(event) => onToggleOpenOnly(event.target.checked)}
           />
-          Open only
+          <span className="text-sm">Open only</span>
         </label>
         <label className="flex items-center gap-2">
           <input
@@ -121,7 +121,7 @@ export default function AssignmentsTable({
             checked={showPendingOnly}
             onChange={(event) => onTogglePendingOnly(event.target.checked)}
           />
-          Pending only
+          <span className="text-sm">Pending only</span>
         </label>
         <label className="flex items-center gap-2">
           <input
@@ -130,52 +130,52 @@ export default function AssignmentsTable({
             checked={showDeclinedOnly}
             onChange={(event) => onToggleDeclinedOnly(event.target.checked)}
           />
-          Declined only
+          <span className="text-sm">Declined only</span>
         </label>
-        <div className="w-full max-w-xs">
-          <Input
-            placeholder="Search by role or volunteer"
-            value={searchTerm}
-            onChange={(event) => onSearchChange(event.target.value)}
-          />
-        </div>
+        <input
+          type="text"
+          className="input input-bordered input-sm w-full max-w-xs"
+          placeholder="Search by role or volunteer"
+          value={searchTerm}
+          onChange={(event) => onSearchChange(event.target.value)}
+        />
       </div>
 
-      {serviceProfiles.length === 0 ? (
-        <div className="mt-4 rounded-xl border border-dashed border-base-300 p-4 text-sm">
-          <p className="text-[var(--gather-muted)]">No service team members yet.</p>
-          <Button asChild size="sm" variant="outline" className="mt-3">
-            <Link href="/people">Add volunteers</Link>
-          </Button>
+      {Array.isArray(serviceProfiles) && serviceProfiles.length === 0 && (
+        <div className="flex flex-col items-center gap-2 p-6 mb-4">
+          <span>No service team members yet.</span>
+          <Link href="/people" className="w-full mt-2">
+            <Button variant="outline" size="sm" className="w-full">Add volunteers</Button>
+          </Link>
         </div>
-      ) : null}
+      )}
 
-      <div className="mt-4 overflow-hidden rounded-2xl bg-base-100">
-        <table className="table">
+      <div className="overflow-x-auto rounded-xl border border-[var(--border)]">
+        <table className="w-full text-sm">
           <thead>
             <tr>
-              <th>Role</th>
-              <th>Assigned to</th>
-              <th>Status</th>
-              <th>Notes</th>
-              <th>Actions</th>
+              <th className="bg-[var(--surface-2)]">Role</th>
+              <th className="bg-[var(--surface-2)]">Assigned to</th>
+              <th className="bg-[var(--surface-2)]">Status</th>
+              <th className="bg-[var(--surface-2)]">Notes</th>
+              <th className="bg-[var(--surface-2)]">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {filteredAssignments.length === 0 ? (
+            {Array.isArray(filteredAssignments) && filteredAssignments.length === 0 ? (
               <tr>
-                <td colSpan={5} className="text-center text-sm text-[var(--gather-muted)]">
-                  <div className="space-y-2">
-                    <p>No schedule yet for this date.</p>
-                    <div className="flex flex-wrap justify-center gap-2">
-                      <Button size="sm" onClick={onGenerateSchedule}>Generate schedule</Button>
-                      <Button size="sm" variant="outline" onClick={onCopyLast}>Copy last service</Button>
+                <td colSpan={5} className="text-center text-[var(--muted)] text-sm py-8">
+                  <div className="flex flex-col items-center gap-2">
+                    <span>No schedule yet for this date.</span>
+                    <div className="flex flex-wrap justify-center gap-2 mt-2">
+                      <Button variant="primary" size="sm" onClick={onGenerateSchedule}>Generate schedule</Button>
+                      <Button variant="outline" size="sm" onClick={onCopyLast}>Copy last service</Button>
                     </div>
                   </div>
                 </td>
               </tr>
             ) : (
-              filteredAssignments.map((assignment) => {
+              Array.isArray(filteredAssignments) && filteredAssignments.map((assignment) => {
                 const roleName = roleById[assignment.role_id]?.name ?? "Role";
                 const statusKey = assignment.status as AssignmentStatus;
                 const status = statusStyles[statusKey];
@@ -186,12 +186,12 @@ export default function AssignmentsTable({
                     <td>{roleName}</td>
                     <td>
                       <select
-                        className="select select-bordered select-sm"
+                        className="select select-bordered select-sm w-full"
                         value={assignedValue}
                         onChange={(event) => onAssign(assignment.id, event.target.value)}
                       >
                         <option value="">Unassigned</option>
-                        {serviceProfiles.map((profile) => (
+                        {Array.isArray(serviceProfiles) && serviceProfiles.map((profile) => (
                           <option key={profile.id} value={profile.id}>
                             {profile.full_name || profile.email || profile.id}
                           </option>
@@ -199,11 +199,12 @@ export default function AssignmentsTable({
                       </select>
                     </td>
                     <td>
-                      <span className={status.className}>{status.label}</span>
+                      <span className="px-2 py-1 rounded bg-gray-200 text-gray-800 text-xs">{status.label}</span>
                     </td>
                     <td>
-                      <Input
-                        className="input-sm"
+                      <input
+                        type="text"
+                        className="input input-sm w-full"
                         placeholder="Add notes"
                         value={noteValue}
                         onChange={(event) =>
@@ -214,15 +215,9 @@ export default function AssignmentsTable({
                     </td>
                     <td>
                       <div className="flex flex-wrap gap-2">
-                        <Button size="sm" variant="outline" onClick={() => onStatusChange(assignment.id, "CONFIRMED")}>
-                          Confirm
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={() => onStatusChange(assignment.id, "DECLINED")}>
-                          Decline
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={() => onUnassign(assignment.id)}>
-                          Clear
-                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => onStatusChange(assignment.id, "CONFIRMED")}>Confirm</Button>
+                        <Button variant="outline" size="sm" onClick={() => onStatusChange(assignment.id, "DECLINED")}>Decline</Button>
+                        <Button variant="error" size="sm" onClick={() => onUnassign(assignment.id)}>Unassign</Button>
                       </div>
                     </td>
                   </tr>
@@ -232,6 +227,6 @@ export default function AssignmentsTable({
           </tbody>
         </table>
       </div>
-    </Card>
+    </div>
   );
 }

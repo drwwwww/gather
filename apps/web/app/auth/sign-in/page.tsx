@@ -1,8 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "../../../components/ui/button";
-import { Input } from "../../../components/ui/input";
 import { supabase } from "../../../lib/supabaseClient";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -85,8 +83,20 @@ export default function SignInPage() {
           <p className="text-sm mb-4" style={{ color: '#7B735D' }}>Use your admin email and password.</p>
 
           <div className="space-y-4">
-            <Input placeholder="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-            <Input placeholder="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+            <input
+              type="email"
+              placeholder="Email"
+              className="input input-bordered w-full"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            <input
+              type="password"
+              placeholder="Password"
+              className="input input-bordered w-full"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
             {error ? <p className="text-sm text-error">{error}</p> : null}
             {error && errorDetails ? (
               <button
@@ -101,9 +111,15 @@ export default function SignInPage() {
             {showDetails && errorDetails ? (
               <p className="text-xs" style={{ color: '#7B735D' }}>{errorDetails}</p>
             ) : null}
-            <Button onClick={handleSignIn} disabled={loading} className="w-full rounded-[14px] py-3 px-4 font-semibold" style={{ background: '#F0CA8F', color: '#2B241C' }}>
+            <button
+              type="button"
+              onClick={handleSignIn}
+              disabled={loading}
+              className="w-full rounded-[14px] py-3 px-4 font-semibold"
+              style={{ background: '#F0CA8F', color: '#2B241C' }}
+            >
               {loading ? "Signing in..." : "Sign in"}
-            </Button>
+            </button>
           </div>
 
           <p className="mt-4 text-sm" style={{ color: '#7B735D' }}>

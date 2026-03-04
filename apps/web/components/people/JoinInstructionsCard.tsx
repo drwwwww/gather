@@ -1,7 +1,6 @@
 "use client";
 
-import { Button } from "../ui/button";
-import { Card, CardTitle } from "../ui/card";
+// DaisyUI migration: use className markup for all UI
 
 type JoinInstructionsCardProps = {
   churchSlug: string;
@@ -14,22 +13,22 @@ export default function JoinInstructionsCard({
   onOpenPrintable,
   error
 }: JoinInstructionsCardProps) {
-  return (
-    <Card>
-      <div className="flex items-center justify-between">
-        <CardTitle>Join Instructions</CardTitle>
-        <span className="text-xs text-[var(--gather-muted)]">Share with members</span>
-      </div>
-      <div className="mt-4 space-y-3 text-sm">
-        <p className="text-[var(--gather-muted)]">
-          Share this church code with members, then have them enter it in the Gather app.
-        </p>
-        <div className="rounded-xl bg-base-100 p-3 text-center text-lg font-semibold">
-          {churchSlug}
+    return (
+      <div className="card bg-base-100 shadow-md p-4 rounded-xl">
+        <div className="flex items-center justify-between">
+          <div className="card-title text-lg font-semibold">Join Instructions</div>
+          <span className="text-xs text-base-content/60">Share with members</span>
         </div>
-        <Button variant="outline" onClick={onOpenPrintable}>Open printable page</Button>
-        {error ? <p className="text-sm text-error">{error}</p> : null}
+        <div className="mt-4 space-y-3 text-sm">
+          <p className="text-base-content/60">
+            Share this church code with members, then have them enter it in the Gather app.
+          </p>
+          <div className="rounded-xl bg-base-100 p-3 text-center text-lg font-semibold">
+            {churchSlug}
+          </div>
+          <button className="btn btn-outline" onClick={onOpenPrintable}>Open printable page</button>
+          {error ? <p className="text-sm text-error">{error}</p> : null}
+        </div>
       </div>
-    </Card>
-  );
+    );
 }

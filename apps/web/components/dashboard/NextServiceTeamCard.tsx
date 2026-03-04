@@ -1,6 +1,7 @@
+
+
 import Link from "next/link";
-import { Card, CardTitle } from "../ui/card";
-import { Badge } from "../ui/badge";
+
 
 export type TeamRow = {
   id: string;
@@ -11,45 +12,39 @@ export type TeamRow = {
 
 export default function NextServiceTeamCard({ items }: { items: TeamRow[] }) {
   return (
-    <Card className="font-sans">
-      <div className="flex items-center justify-between font-sans">
-        <CardTitle>Next Service Team</CardTitle>
-        <Link href="/volunteers" className="btn btn-outline btn-sm font-sans">
-          View full schedule
+    <div className="border rounded bg-white p-6">
+      <div className="flex items-center justify-between mb-8">
+        <h2 className="text-lg font-medium text-[var(--ink)]">Next Service Team</h2>
+        <Link href="/volunteers">
+          <span className="px-2 py-1 rounded bg-gray-200 text-gray-800 text-xs">View full schedule</span>
         </Link>
       </div>
-
       {items.length === 0 ? (
-        <div
-          className="mt-4 rounded-xl border border-dashed p-6 text-center text-sm font-sans"
-          style={{ background: 'var(--gather-surface)', borderColor: 'var(--gather-border)', color: 'var(--gather-ink)' }}
-        >
-          <p className="font-semibold" style={{ color: 'var(--gather-ink)' }}>No assignments yet</p>
-          <p className="mt-2" style={{ color: 'var(--gather-muted)' }}>Generate this week's schedule to see your team.</p>
-          <Link href="/volunteers" className="btn btn-outline btn-sm mt-4 font-sans">
-            Generate schedule
+        <div className="flex flex-col items-center gap-2 p-6">
+          <span className="text-[var(--muted)]">No assignments yet. Generate this week's schedule to see your team.</span>
+          <Link href="/volunteers">
+            <span className="px-2 py-1 rounded bg-gray-200 text-gray-800 text-xs mt-2">Generate schedule</span>
           </Link>
         </div>
       ) : (
-        <div
-          className="mt-4 overflow-hidden rounded-xl border font-sans"
-          style={{ borderColor: 'var(--gather-border)', background: 'var(--gather-surface)' }}
-        >
-          <table className="table font-sans" style={{ color: 'var(--gather-ink)' }}>
+        <div className="overflow-hidden rounded-2xl border border-[var(--border)]">
+          <table className="w-full text-sm">
             <thead>
               <tr>
-                <th>Role</th>
-                <th>Assigned</th>
-                <th>Status</th>
+                <th className="text-xs text-[var(--muted)] font-medium uppercase tracking-wide">Role</th>
+                <th className="text-xs text-[var(--muted)] font-medium uppercase tracking-wide">Assigned</th>
+                <th className="text-xs text-[var(--muted)] font-medium uppercase tracking-wide">Status</th>
               </tr>
             </thead>
             <tbody>
               {items.map((row) => (
-                <tr key={row.id}>
+                <tr key={row.id} className="hover:bg-[var(--surface-2)] transition-colors">
                   <td>{row.role}</td>
                   <td>{row.assignee}</td>
                   <td>
-                    <Badge variant={statusVariant(row.status)}>{row.status}</Badge>
+                    <span className="px-2 py-1 rounded bg-gray-200 text-gray-800 text-xs">
+                      {row.status}
+                    </span>
                   </td>
                 </tr>
               ))}
@@ -57,7 +52,7 @@ export default function NextServiceTeamCard({ items }: { items: TeamRow[] }) {
           </table>
         </div>
       )}
-    </Card>
+    </div>
   );
 }
 

@@ -1,7 +1,3 @@
-import { Button } from "../ui/button";
-import { Card, CardTitle } from "../ui/card";
-import { Input } from "../ui/input";
-import { Badge } from "../ui/badge";
 
 export default function ProfileCard({
   name,
@@ -19,40 +15,47 @@ export default function ProfileCard({
   saveDisabled: boolean;
 }) {
   return (
-    <Card>
+    <div className="card bg-base-100 shadow-md p-4 rounded-xl">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <CardTitle>My Profile</CardTitle>
+          <h2 className="card-title text-lg font-bold">My Profile</h2>
           <p className="text-sm text-[var(--gather-muted)]">Update your name and view your role.</p>
         </div>
-        <Button size="sm" onClick={onSave} disabled={saveDisabled}>
+        <button
+          type="button"
+          className="btn btn-sm btn-primary"
+          onClick={onSave}
+          disabled={saveDisabled}
+        >
           Save
-        </Button>
+        </button>
       </div>
       <div className="mt-4 grid gap-3">
         <div className="grid gap-1">
           <p className="text-xs uppercase tracking-[0.2em] text-[var(--gather-muted)]">Name</p>
-          <Input
+          <input
+            type="text"
             placeholder="Full name"
+            className="input input-bordered w-full"
             value={name}
             onChange={(event) => onNameChange(event.target.value)}
           />
         </div>
         <div className="grid gap-1">
           <p className="text-xs uppercase tracking-[0.2em] text-[var(--gather-muted)]">Email</p>
-          <Input
-            placeholder="Email"
+          <input
             type="email"
+            placeholder="Email"
+            className="input input-bordered w-full bg-base-200/60 text-[var(--gather-muted)]"
             value={email}
             readOnly
-            className="bg-base-200/60 text-[var(--gather-muted)]"
           />
         </div>
       </div>
       <div className="mt-4 grid gap-2 text-sm text-[var(--gather-muted)]">
-        <Badge className="w-fit">Role: {roleLabel}</Badge>
+        <span className="badge w-fit">Role: {roleLabel}</span>
         <p>Your role determines what you can manage in this church.</p>
       </div>
-    </Card>
+    </div>
   );
 }

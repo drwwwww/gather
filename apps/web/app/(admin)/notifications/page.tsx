@@ -3,9 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import AdminHeader from "../../../components/admin/AdminHeader";
-import { Button } from "../../../components/ui/button";
-import { Card, CardTitle } from "../../../components/ui/card";
-import { Badge } from "../../../components/ui/badge";
+// DaisyUI migration: use className markup for all UI
 import { getCurrentContext } from "../../../lib/supabaseData";
 import { supabase } from "../../../lib/supabaseClient";
 import { formatRelativeTime, formatShortDate } from "../../../lib/format";
@@ -114,22 +112,25 @@ export default function NotificationsPage() {
         title="Notifications"
         subtitle="Track reminders and activity across the church."
         actions={
-          <Button size="sm" variant="outline" onClick={async () => {
-            const context = await getCurrentContext();
-            if (!context) return;
-            await markAllAsRead(context.profile.church_id, context.userId);
-          }} disabled={marking || unreadCount === 0}
+          <button
+            className="btn btn-outline btn-sm"
+            onClick={async () => {
+              const context = await getCurrentContext();
+              if (!context) return;
+              await markAllAsRead(context.profile.church_id, context.userId);
+            }}
+            disabled={marking || unreadCount === 0}
           >
             {marking ? "Marking..." : "Mark all as read"}
-          </Button>
+          </button>
         }
       />
 
-      <Card>
-        <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="card bg-base-100 border border-base-300 rounded-box p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
           <div>
-            <CardTitle>Recent notifications</CardTitle>
-            <p className="text-xs text-[var(--gather-muted)] mt-1">
+            <div className="card-title text-lg font-bold">Recent notifications</div>
+            <p className="text-xs text-base-content/60 mt-1">
               {unreadCount ? `${unreadCount} unread` : "All caught up."}
             </p>
           </div>
@@ -137,11 +138,11 @@ export default function NotificationsPage() {
 
         <div className="mt-4 space-y-3">
           {loading ? (
-            <p className="text-sm text-[var(--gather-muted)]">Loading notifications...</p>
+            <p className="text-sm text-base-content/60">Loading notifications...</p>
           ) : notifications.length === 0 ? (
             <div className="rounded-xl border border-dashed border-base-300 p-6 text-center">
-              <p className="text-sm text-[var(--gather-muted)]">No notifications yet.</p>
-              <p className="text-xs text-[var(--gather-muted)] mt-1">We will show reminders and updates here.</p>
+              <p className="text-sm text-base-content/60">No notifications yet.</p>
+              <p className="text-xs text-base-content/60 mt-1">We will show reminders and updates here.</p>
             </div>
           ) : (
             notifications.map((notification) => {
@@ -153,14 +154,16 @@ export default function NotificationsPage() {
                 >
                   <div className="space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="text-sm font-semibold text-[var(--gather-ink)]">{meta.title}</p>
-                      {!notification.read_at ? <Badge variant={meta.tone}>Unread</Badge> : null}
+                      <p className="text-sm font-semibold text-base-content">{meta.title}</p>
+                      {!notification.read_at ? (
+                        <span className={`badge badge-${meta.tone}`}>Unread</span>
+                      ) : null}
                     </div>
                     {meta.detail ? (
-                      <p className="text-xs text-[var(--gather-muted)]">{meta.detail}</p>
+                      <p className="text-xs text-base-content/60">{meta.detail}</p>
                     ) : null}
                   </div>
-                  <div className="text-xs text-[var(--gather-muted)]">
+                  <div className="text-xs text-base-content/60">
                     {notification.sent_at ? formatRelativeTime(notification.sent_at) : "Just now"}
                   </div>
                 </div>
@@ -169,7 +172,7 @@ export default function NotificationsPage() {
           )}
         </div>
         {error ? <p className="mt-3 text-sm text-error">{error}</p> : null}
-      </Card>
+      </div>
     </>
   );
 }

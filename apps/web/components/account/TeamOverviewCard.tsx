@@ -1,5 +1,3 @@
-import { Button } from "../ui/button";
-import { Card, CardTitle } from "../ui/card";
 
 export default function TeamOverviewCard({
   admins,
@@ -15,10 +13,10 @@ export default function TeamOverviewCard({
   onInviteMembers?: () => void;
 }) {
   return (
-    <Card>
+    <div className="card bg-base-100 shadow-md p-4 rounded-xl">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <CardTitle>Team Overview</CardTitle>
+          <div className="card-title text-lg font-semibold">Team Overview</div>
           <p className="text-sm text-[var(--gather-muted)]">Quick view of who is serving your church.</p>
         </div>
       </div>
@@ -37,13 +35,23 @@ export default function TeamOverviewCard({
         </div>
       </div>
       <div className="mt-4 flex flex-wrap gap-3">
-        <Button onClick={onManageMembers}>Manage members</Button>
+        <button
+          type="button"
+          className="btn btn-primary"
+          onClick={onManageMembers}
+        >
+          Manage members
+        </button>
         {onInviteMembers ? (
-          <Button variant="outline" onClick={onInviteMembers}>
+          <button
+            type="button"
+            className="btn btn-outline"
+            onClick={onInviteMembers}
+          >
             Invite members
-          </Button>
+          </button>
         ) : null}
       </div>
-    </Card>
+    </div>
   );
 }

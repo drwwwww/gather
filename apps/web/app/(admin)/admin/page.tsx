@@ -3,10 +3,10 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Button } from "../../../components/ui/button";
+
 import AppShell from "../../../components/layout/AppShell";
 import PageHeader from "../../../components/layout/PageHeader";
-import { MotionContainer, MotionItem } from "../../../components/ui/motion";
+
 import { Card } from "../../../components/ui/card";
 import { supabase } from "../../../lib/supabaseClient";
 import type { Database } from "@gather/lib";
@@ -250,103 +250,76 @@ export default function AdminEntryPage() {
 
   if (status === "restricted") {
     return (
-      <main className="mx-auto flex min-h-[60vh] max-w-3xl flex-col items-center justify-center gap-4 px-6" style={{ background: 'var(--gather-bg)' }}>
+      <main className="mx-auto flex min-h-[60vh] max-w-3xl flex-col items-center justify-center gap-4 px-6 bg-base-100">
         <h1 className="text-2xl font-semibold">Access restricted</h1>
-        <p className="text-sm" style={{ color: 'var(--muted)' }}>Your account is not an admin. Request access from your church admin.</p>
-        <Button
+        <p className="text-sm text-base-content/70">Your account is not an admin. Request access from your church admin.</p>
+        <button
           type="button"
-          size="sm"
-          variant="ghost"
+          className="btn btn-ghost btn-sm"
           onClick={async () => {
             await supabase?.auth.signOut();
             router.push("/login");
           }}
         >
           Sign out
-        </Button>
+        </button>
       </main>
     );
   }
 
   return (
     <AppShell>
-      <MotionContainer className="space-y-8">
-        <MotionItem>
-          <PageHeader
-            title={`Welcome back, ${displayName}`}
-            subtitle="Weekly operations overview."
-            actions={
-              <div className="flex flex-wrap gap-2">
-                <Button size="sm" variant="primary">
-                  <Link href="/announcements">Create announcement</Link>
-                </Button>
-                <Button size="sm" className="btn-gray">
-                  <Link href="/events">Create event</Link>
-                </Button>
-                <Button size="sm" variant="ghost">
-                  <Link href="/volunteers">Generate schedule</Link>
-                </Button>
-              </div>
-            }
-          />
-        </MotionItem>
-
-        <MotionItem>
-          <ThisWeekStrip
-            nextServiceLabel={thisWeekStrip.nextServiceLabel}
-            openSlots={thisWeekStrip.openSlots}
-            pendingConfirmations={thisWeekStrip.pendingConfirmations}
-            scheduledAnnouncements={thisWeekStrip.scheduledAnnouncements}
-            eventsThisWeek={thisWeekStrip.eventsThisWeek}
-          />
-        </MotionItem>
-
-        <MotionItem>
-          <KpiRow
-            members={kpis.members}
-            volunteers={kpis.volunteers}
-            rsvpsThisWeek={kpis.rsvpsThisWeek}
-          />
-        </MotionItem>
-
-        <MotionItem>
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
-            <div className="lg:col-span-8 space-y-8">
-              <MotionContainer className="space-y-8">
-                <MotionItem>
-                  <NextServiceTeamCard items={teamRows} />
-                </MotionItem>
-                <MotionItem>
-                  <PendingConfirmationsCard items={pendingRows} />
-                </MotionItem>
-                <MotionItem>
-                  <LatestAnnouncementsCard items={announcementPreviews} />
-                </MotionItem>
-              </MotionContainer>
+      <div className="space-y-8">
+        <PageHeader
+          title={`Welcome back, ${displayName}`}
+          subtitle="Weekly operations overview."
+          actions={
+            <div className="flex flex-wrap gap-2">
+              <Link href="/announcements" className="btn btn-primary btn-sm">Create announcement</Link>
+              <Link href="/events" className="btn btn-outline btn-sm">Create event</Link>
+              <Link href="/volunteers" className="btn btn-ghost btn-sm">Generate schedule</Link>
             </div>
+          }
+        />
 
-            <div className="lg:col-span-4 space-y-8">
-              <MotionContainer className="space-y-8" delay={0.06}>
-                <MotionItem>
-                  <UpcomingEventsCard items={eventPreviews} />
-                </MotionItem>
-                <MotionItem>
-                  <RecentActivityCard items={recentActivity} />
-                </MotionItem>
-                <MotionItem>
-                  <section className="rounded-xl p-5" style={{ background: 'var(--gather-surface)' }}>
-                    <p className="text-xs uppercase tracking-[0.2em]" style={{ color: 'var(--muted)' }}>Verse of the day</p>
-                    <blockquote className="mt-3 text-sm italic" style={{ color: 'var(--ink)' }}>
-                      "Let us not love with words or speech but with actions and in truth."
-                    </blockquote>
-                    <cite className="mt-2 block text-xs" style={{ color: 'var(--muted)' }}>- 1 John 3:18</cite>
-                  </section>
-                </MotionItem>
-              </MotionContainer>
+        <ThisWeekStrip
+          nextServiceLabel={thisWeekStrip.nextServiceLabel}
+          openSlots={thisWeekStrip.openSlots}
+          pendingConfirmations={thisWeekStrip.pendingConfirmations}
+          scheduledAnnouncements={thisWeekStrip.scheduledAnnouncements}
+          eventsThisWeek={thisWeekStrip.eventsThisWeek}
+        />
+
+        <KpiRow
+          members={kpis.members}
+          volunteers={kpis.volunteers}
+          rsvpsThisWeek={kpis.rsvpsThisWeek}
+        />
+
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
+          <div className="lg:col-span-8 space-y-8">
+            <div className="space-y-8">
+              <NextServiceTeamCard items={teamRows} />
+              <PendingConfirmationsCard items={pendingRows} />
+              <LatestAnnouncementsCard items={announcementPreviews} />
             </div>
           </div>
-        </MotionItem>
-      </MotionContainer>
+
+          <div className="lg:col-span-4 space-y-8">
+            <div className="space-y-8">
+              <UpcomingEventsCard items={eventPreviews} />
+              <RecentActivityCard items={recentActivity} />
+              <section className="rounded-xl p-5" style={{ background: 'var(--gather-surface)' }}>
+                <p className="text-xs uppercase tracking-[0.2em]" style={{ color: 'var(--muted)' }}>Verse of the day</p>
+                <blockquote className="mt-3 text-sm italic" style={{ color: 'var(--ink)' }}>
+                  "Let us not love with words or speech but with actions and in truth."
+                </blockquote>
+                <cite className="mt-2 block text-xs" style={{ color: 'var(--muted)' }}>- 1 John 3:18</cite>
+              </section>
+            </div>
+          </div>
+        </div>
+      </div>
     </AppShell>
   );
 }

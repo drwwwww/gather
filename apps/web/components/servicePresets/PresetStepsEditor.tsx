@@ -1,6 +1,6 @@
 import type { Database } from "@gather/lib";
 import { useMemo, useState } from "react";
-import { Card } from "../ui/card";
+// ...existing code...
 import StepList from "../runOfShow/StepList";
 import StepEditorToolbar from "../runOfShow/StepEditorToolbar";
 
@@ -90,7 +90,7 @@ export default function PresetStepsEditor({
   };
 
   return (
-    <Card className="rounded-2xl">
+    <div className="card bg-base-100 shadow-md p-4 rounded-2xl">
       <div className="space-y-4">
         <div>
           <p className="text-sm font-semibold text-[var(--gather-ink)]">Run-of-show steps</p>
@@ -118,6 +118,6 @@ export default function PresetStepsEditor({
           />
         )}
       </div>
-    </Card>
+    </div>
   );
 }

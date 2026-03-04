@@ -1,8 +1,6 @@
 import { useState } from "react";
 import type { Database, ServicePlanStatus } from "@gather/lib";
 import clsx from "clsx";
-import { Button } from "../ui/button";
-import { Input } from "../ui/input";
 import StepNumberBadge from "./StepNumberBadge";
 
 type RoleRow = Database["public"]["Tables"]["volunteer_roles"]["Row"];
@@ -63,9 +61,9 @@ export default function StepRow({
             <div className="text-xs uppercase tracking-[0.2em] text-[var(--gather-muted)]">Step</div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Button size="sm" variant="outline" onClick={() => onMove("up")}>Up</Button>
-            <Button size="sm" variant="outline" onClick={() => onMove("down")}>Down</Button>
-            <Button size="sm" variant="outline" onClick={onRemove}>Remove</Button>
+            <button className="btn btn-outline btn-sm" onClick={() => onMove("up")}>Up</button>
+            <button className="btn btn-outline btn-sm" onClick={() => onMove("down")}>Down</button>
+            <button className="btn btn-outline btn-sm" onClick={onRemove}>Remove</button>
           </div>
         </div>
         <div className="mt-3 grid gap-3 lg:grid-cols-[2fr_1fr_1fr]">
@@ -124,16 +122,16 @@ export default function StepRow({
               </select>
             </div>
             <div className="flex items-end">
-              <Button size="sm" variant="outline" onClick={() => setNotesOpen((prev) => !prev)}>
+              <button className="btn btn-outline btn-sm" onClick={() => setNotesOpen((prev) => !prev)}>
                 {notesOpen ? "Hide notes" : "Notes"}
-              </Button>
+              </button>
             </div>
           </div>
         ) : (
           <div className="mt-3 flex items-center justify-end">
-            <Button size="sm" variant="outline" onClick={() => setNotesOpen((prev) => !prev)}>
+            <button className="btn btn-outline btn-sm" onClick={() => setNotesOpen((prev) => !prev)}>
               {notesOpen ? "Hide notes" : "Notes"}
-            </Button>
+            </button>
           </div>
         )}
         {notesOpen ? (

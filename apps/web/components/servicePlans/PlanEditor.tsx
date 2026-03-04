@@ -2,9 +2,6 @@
 
 import { useState } from "react";
 import type { Database, ServicePlanStatus } from "@gather/lib";
-import { Button } from "../ui/button";
-import { Card, CardTitle } from "../ui/card";
-import { Input } from "../ui/input";
 
 type RoleRow = Database["public"]["Tables"]["volunteer_roles"]["Row"];
 
@@ -65,25 +62,14 @@ export default function PlanEditor({
 
   return (
     <div className="space-y-6">
-      <Card
-        style={{
-          background: 'var(--gather-surface)',
-          borderColor: 'var(--gather-border)',
-          color: 'var(--gather-ink)'
-        }}
-      >
+      <div className="card bg-base-100 shadow-md p-4 rounded-xl" style={{ background: 'var(--gather-surface)', borderColor: 'var(--gather-border)', color: 'var(--gather-ink)' }}>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex-1 min-w-[240px]">
-            <CardTitle>Plan details</CardTitle>
+            <div className="card-title text-lg font-semibold">Plan details</div>
             <div className="mt-3 space-y-3">
               <div>
-                <label
-                  className="text-xs uppercase tracking-widest"
-                  style={{ color: 'var(--gather-muted)' }}
-                >
-                  Title
-                </label>
-                <Input value={planTitle} onChange={(event) => onTitleChange(event.target.value)} />
+                <label className="text-xs uppercase tracking-widest" style={{ color: 'var(--gather-muted)' }}>Title</label>
+                <input type="text" value={planTitle} onChange={(event) => onTitleChange(event.target.value)} className="input input-bordered w-full" />
               </div>
               {basedOnPresetName ? (
                 <p className="text-xs" style={{ color: 'var(--gather-muted)' }}>
@@ -93,99 +79,43 @@ export default function PlanEditor({
             </div>
           </div>
           <div className="flex flex-col items-start gap-2">
-            <Button onClick={onSave} disabled={saving}>
+            <button type="button" onClick={onSave} disabled={saving} className="btn btn-primary">
               {saving ? "Saving..." : "Save plan"}
-            </Button>
+            </button>
             {error ? <p className="text-sm text-error">{error}</p> : null}
           </div>
         </div>
-      </Card>
+      </div>
 
-      <Card
-        style={{
-          background: 'var(--gather-surface)',
-          borderColor: 'var(--gather-border)',
-          color: 'var(--gather-ink)'
-        }}
-      >
+      <div className="card bg-base-100 shadow-md p-4 rounded-xl" style={{ background: 'var(--gather-surface)', borderColor: 'var(--gather-border)', color: 'var(--gather-ink)' }}>
         <div className="flex items-center justify-between">
-          <CardTitle>Service plan items</CardTitle>
-          <Button size="sm" onClick={onAddItem}>Add item</Button>
+          <div className="card-title text-lg font-semibold">Service plan items</div>
+          <button type="button" className="btn btn-outline btn-sm" onClick={onAddItem}>Add item</button>
         </div>
         <div className="mt-4 space-y-4">
           {items.length === 0 ? (
-            <div
-              className="rounded-xl border border-dashed p-6 text-center"
-              style={{
-                background: 'var(--gather-surface)',
-                borderColor: 'var(--gather-border)',
-                color: 'var(--gather-muted)'
-              }}
-            >
+            <div className="rounded-xl border border-dashed p-6 text-center" style={{ background: 'var(--gather-surface)', borderColor: 'var(--gather-border)', color: 'var(--gather-muted)' }}>
               <p className="text-sm">No steps yet.</p>
               <p className="mt-1 text-xs">Add a step to build your plan.</p>
             </div>
           ) : (
             items.map((item, index) => (
-              <div
-                key={item.id}
-                className="rounded-xl border p-4"
-                style={{
-                  background: 'var(--gather-surface)',
-                  borderColor: 'var(--gather-border)',
-                  color: 'var(--gather-ink)'
-                }}
-                draggable
-                onDragStart={() => setDragId(item.id)}
-                onDragOver={(event) => event.preventDefault()}
-                onDrop={() => moveItem(item.id)}
-              >
+              <div key={item.id} className="rounded-xl border p-4" style={{ background: 'var(--gather-surface)', borderColor: 'var(--gather-border)', color: 'var(--gather-ink)' }} draggable onDragStart={() => setDragId(item.id)} onDragOver={(event) => event.preventDefault()} onDrop={() => moveItem(item.id)}>
                 <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div
-                    className="flex items-center gap-2 text-xs uppercase tracking-widest"
-                    style={{ color: 'var(--gather-muted)' }}
-                  >
-                    <span
-                      className="rounded-full px-2 py-1"
-                      style={{ background: 'var(--gather-surface-2)', color: 'var(--gather-ink)' }}
-                    >
-                      Step {index + 1}
-                    </span>
+                  <div className="flex items-center gap-2 text-xs uppercase tracking-widest" style={{ color: 'var(--gather-muted)' }}>
+                    <span className="rounded-full px-2 py-1" style={{ background: 'var(--gather-surface-2)', color: 'var(--gather-ink)' }}>Step {index + 1}</span>
                     <span>Drag to reorder</span>
                   </div>
-                  <Button size="sm" variant="outline" onClick={() => onDeleteItem(item.id)}>
-                    Remove
-                  </Button>
+                  <button type="button" className="btn btn-outline btn-sm" onClick={() => onDeleteItem(item.id)}>Remove</button>
                 </div>
                 <div className="mt-3 grid gap-3 md:grid-cols-[2fr_1fr]">
                   <div>
-                    <label
-                      className="text-xs uppercase tracking-widest"
-                      style={{ color: 'var(--gather-muted)' }}
-                    >
-                      Title
-                    </label>
-                    <Input
-                      value={item.title}
-                      onChange={(event) => handleItemChange(item.id, { title: event.target.value })}
-                    />
+                    <label className="text-xs uppercase tracking-widest" style={{ color: 'var(--gather-muted)' }}>Title</label>
+                    <input type="text" value={item.title} onChange={(event) => handleItemChange(item.id, { title: event.target.value })} className="input input-bordered w-full" />
                   </div>
                   <div>
-                    <label
-                      className="text-xs uppercase tracking-widest"
-                      style={{ color: 'var(--gather-muted)' }}
-                    >
-                      Duration (min)
-                    </label>
-                    <Input
-                      type="number"
-                      min={0}
-                      value={item.duration_minutes ?? ""}
-                      onChange={(event) => {
-                        const value = event.target.value;
-                        handleItemChange(item.id, { duration_minutes: value ? Number(value) : null });
-                      }}
-                    />
+                    <label className="text-xs uppercase tracking-widest" style={{ color: 'var(--gather-muted)' }}>Duration (min)</label>
+                    <input type="number" min={0} value={item.duration_minutes ?? ""} onChange={(event) => { const value = event.target.value; handleItemChange(item.id, { duration_minutes: value ? Number(value) : null }); }} className="input input-bordered w-full" />
                   </div>
                 </div>
                 <div className="mt-3 grid gap-3 md:grid-cols-[1fr_1fr]">

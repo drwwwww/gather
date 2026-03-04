@@ -1,6 +1,5 @@
 "use client";
 
-import { Button } from "../ui/button";
 
 export type AnnouncementTemplate = {
   title: string;
@@ -30,9 +29,14 @@ export default function AnnouncementTemplates({ onSelect }: AnnouncementTemplate
   return (
     <div className="flex flex-wrap gap-2">
       {templates.map((template) => (
-        <Button key={template.title} size="sm" variant="outline" onClick={() => onSelect(template)}>
+        <button
+          key={template.title}
+          type="button"
+          className="btn btn-outline btn-sm"
+          onClick={() => onSelect(template)}
+        >
           {template.title}
-        </Button>
+        </button>
       ))}
     </div>
   );

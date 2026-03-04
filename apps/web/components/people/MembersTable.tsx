@@ -1,10 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Button } from "../ui/button";
-import { DropdownMenu, DropdownMenuItem } from "../ui/DropdownMenu";
-import { Card, CardTitle } from "../ui/card";
-import { Badge } from "../ui/badge";
+// DaisyUI migration: use DaisyUI dropdown markup
+// ...existing code...
 import type { Role } from "@gather/lib";
 
 export type MemberStatus = "ACTIVE" | "INACTIVE" | "INVITED";
@@ -50,10 +48,10 @@ export default function MembersTable({
   error
 }: MembersTableProps) {
   return (
-    <Card>
+    <div className="card bg-base-100 shadow-md p-4 rounded-xl">
       <div className="flex items-center justify-between">
-        <CardTitle>Members</CardTitle>
-        <span className="text-xs text-[var(--gather-muted)]">{members.length} total</span>
+        <div className="card-title text-lg font-semibold">Members</div>
+        <span className="text-xs text-base-content/60">{members.length} total</span>
       </div>
 
       {error ? <p className="mt-3 text-sm text-error">{error}</p> : null}
@@ -76,8 +74,8 @@ export default function MembersTable({
                   <div className="space-y-2">
                     <p>No members found.</p>
                     <div className="flex flex-wrap justify-center gap-2">
-                      <Button size="sm" onClick={onGenerateSchedule}>Generate schedule</Button>
-                      <Button size="sm" variant="outline" onClick={onCopyLast}>Copy last service</Button>
+                      <button className="btn btn-sm btn-primary" onClick={onGenerateSchedule}>Generate schedule</button>
+                      <button className="btn btn-sm btn-outline" onClick={onCopyLast}>Copy last service</button>
                     </div>
                   </div>
                 </td>
@@ -88,7 +86,7 @@ export default function MembersTable({
                   <td>
                     <button
                       type="button"
-                      className="text-left font-medium text-[var(--gather-ink)] hover:underline"
+                      className="text-left font-medium text-base-content hover:underline"
                       onClick={() => onViewDetails(member.id)}
                     >
                       {member.name || "(No name)"}
@@ -97,7 +95,7 @@ export default function MembersTable({
                   <td>{member.email}</td>
                   <td>
                     {member.source === "invite" ? (
-                      <span className="text-xs text-[var(--gather-muted)]">{member.role}</span>
+                      <span className="text-xs text-base-content/60">{member.role}</span>
                     ) : (
                       <select
                         className="select select-bordered select-sm"
@@ -114,31 +112,31 @@ export default function MembersTable({
                     )}
                   </td>
                   <td>
-                    <Badge variant={statusVariant[member.status]}>{member.status}</Badge>
+                    <span className={`badge badge-${statusVariant[member.status]}`}>{member.status}</span>
                   </td>
                   <td>
-                    <DropdownMenu
-                      trigger={<Button size="sm" variant="outline">&#x22EF;</Button>}
-                    >
-                        <DropdownMenuItem onClick={() => onViewDetails(member.id)}>
-                          View
-                        </DropdownMenuItem>
-                      {member.source === "invite" ? (
-                        <DropdownMenuItem onClick={() => onCopyInvite(member.id)}>
-                          Copy invite
-                        </DropdownMenuItem>
-                      ) : (
-                        <DropdownMenuItem
-                          onClick={() => onToggleStatus(member.id, !member.disabled)}
-                          disabled={member.isCurrentUser}
-                        >
-                          {member.disabled ? "Activate" : "Deactivate"}
-                        </DropdownMenuItem>
-                      )}
-                      <DropdownMenuItem onClick={() => window.location.href = "/volunteers"}>
-                        Scheduling
-                      </DropdownMenuItem>
-                    </DropdownMenu>
+                    <div className="dropdown dropdown-end">
+                      <button tabIndex={0} className="btn btn-sm btn-outline">&#x22EF;</button>
+                      <ul tabIndex={0} className="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-52 z-[1]">
+                        <li>
+                          <button onClick={() => onViewDetails(member.id)}>View</button>
+                        </li>
+                        {member.source === "invite" ? (
+                          <li>
+                            <button onClick={() => onCopyInvite(member.id)}>Copy invite</button>
+                          </li>
+                        ) : (
+                          <li>
+                            <button onClick={() => onToggleStatus(member.id, !member.disabled)} disabled={member.isCurrentUser}>
+                              {member.disabled ? "Activate" : "Deactivate"}
+                            </button>
+                          </li>
+                        )}
+                        <li>
+                          <button onClick={() => window.location.href = "/volunteers"}>Scheduling</button>
+                        </li>
+                      </ul>
+                    </div>
                   </td>
                 </tr>
               ))
@@ -146,6 +144,6 @@ export default function MembersTable({
           </tbody>
         </table>
       </div>
-    </Card>
+    </div>
   );
 }

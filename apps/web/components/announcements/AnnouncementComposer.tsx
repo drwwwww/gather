@@ -1,9 +1,6 @@
 "use client";
 
 import { useMemo } from "react";
-import { Button } from "../ui/button";
-import { Card, CardTitle } from "../ui/card";
-import { Input } from "../ui/input";
 import AnnouncementPreview from "./AnnouncementPreview";
 import AnnouncementTemplates, { type AnnouncementTemplate } from "./AnnouncementTemplates";
 import { formatShortWeekdayDateTime } from "../../lib/format";
@@ -74,25 +71,26 @@ export default function AnnouncementComposer({
     return `Will publish on ${formatShortWeekdayDateTime(date)} ${timezoneLabel ? `(${timezoneLabel})` : ""}`;
   }, [scheduleDate, scheduleTime, timezoneLabel, scheduleReady]);
 
+  // Ensure function body is not prematurely closed
   return (
-    <Card>
+    <div className="card bg-base-100 shadow-md p-4 rounded-xl">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <CardTitle>{isEditing ? "Edit Announcement" : "Compose Announcement"}</CardTitle>
+        <div className="card-title text-lg font-semibold">{isEditing ? "Edit Announcement" : "Compose Announcement"}</div>
         <div className="flex items-center gap-2">
-          <Button
-            size="sm"
-            variant={previewMode === "EDIT" ? "default" : "outline"}
+          <button
+            type="button"
+            className={`btn btn-sm ${previewMode === "EDIT" ? "btn-primary" : "btn-ghost"}`}
             onClick={() => onPreviewModeChange("EDIT")}
           >
             Edit
-          </Button>
-          <Button
-            size="sm"
-            variant={previewMode === "PREVIEW" ? "default" : "outline"}
+          </button>
+          <button
+            type="button"
+            className={`btn btn-sm ${previewMode === "PREVIEW" ? "btn-primary" : "btn-ghost"}`}
             onClick={() => onPreviewModeChange("PREVIEW")}
           >
             Preview
-          </Button>
+          </button>
         </div>
       </div>
 
@@ -108,10 +106,12 @@ export default function AnnouncementComposer({
         </div>
       ) : (
         <div className="mt-4 space-y-4">
-          <Input
+          <input
+            type="text"
             placeholder="Announcement title"
             value={title}
             onChange={(event) => onTitleChange(event.target.value)}
+            className="input input-bordered w-full"
           />
           <textarea
             className="textarea textarea-bordered min-h-[160px] w-full"
@@ -165,11 +165,11 @@ export default function AnnouncementComposer({
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
                   <label className="text-xs text-[var(--gather-muted)]">Date</label>
-                  <Input type="date" value={scheduleDate} onChange={(event) => onScheduleDateChange(event.target.value)} />
+                  <input type="date" value={scheduleDate} onChange={(event) => onScheduleDateChange(event.target.value)} className="input input-bordered w-full" />
                 </div>
                 <div>
                   <label className="text-xs text-[var(--gather-muted)]">Time</label>
-                  <Input type="time" value={scheduleTime} onChange={(event) => onScheduleTimeChange(event.target.value)} />
+                  <input type="time" value={scheduleTime} onChange={(event) => onScheduleTimeChange(event.target.value)} className="input input-bordered w-full" />
                 </div>
               </div>
               <p className="text-xs text-[var(--gather-muted)]">
@@ -180,20 +180,20 @@ export default function AnnouncementComposer({
           ) : null}
 
           <div className="flex flex-wrap gap-2">
-            <Button onClick={onPrimary} disabled={!canPrimary}>
+            <button type="button" className="btn btn-primary" onClick={onPrimary} disabled={!canPrimary}>
               {publishMode === "NOW" ? "Publish now" : "Schedule announcement"}
-            </Button>
-            <Button variant="outline" onClick={onSaveDraft} disabled={!hasContent}>
+            </button>
+            <button type="button" className="btn btn-outline" onClick={onSaveDraft} disabled={!hasContent}>
               Save draft
-            </Button>
+            </button>
             {isEditing ? (
-              <Button variant="outline" onClick={onCancelEdit}>
+              <button type="button" className="btn btn-outline" onClick={onCancelEdit}>
                 Cancel
-              </Button>
+              </button>
             ) : null}
           </div>
         </div>
       )}
-    </Card>
+    </div>
   );
 }

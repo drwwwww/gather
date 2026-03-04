@@ -1,8 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Button } from "../ui/button";
-import { Card, CardTitle } from "../ui/card";
+// DaisyUI migration: use className markup for all UI
 
 type MemberAssignment = {
   id: string;
@@ -35,44 +34,44 @@ export default function MemberDetailsDrawer({
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/40">
-      <div className="h-full w-full max-w-md bg-[var(--gather-surface)] p-6 shadow-xl">
+      <div className="h-full w-full max-w-md bg-base-100 p-6 shadow-xl">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-[var(--gather-muted)]">Member details</p>
-            <p className="text-lg font-semibold text-[var(--gather-ink)]">{memberName}</p>
-            <p className="text-sm text-[var(--gather-muted)]">{memberEmail}</p>
+            <p className="text-xs uppercase tracking-[0.2em] text-base-content/60">Member details</p>
+            <p className="text-lg font-semibold text-base-content">{memberName}</p>
+            <p className="text-sm text-base-content/60">{memberEmail}</p>
           </div>
-          <Button variant="outline" size="sm" onClick={onClose}>Close</Button>
+          <button className="btn btn-outline btn-sm" onClick={onClose}>Close</button>
         </div>
 
         <div className="mt-4 space-y-4">
-          <Card>
+          <div className="card bg-base-100 shadow-md p-4 rounded-xl">
             <div className="space-y-2 text-sm">
-              <p className="text-[var(--gather-muted)]">Role</p>
-              <p className="font-medium text-[var(--gather-ink)]">{roleLabel}</p>
-              <p className="text-[var(--gather-muted)]">Status</p>
-              <p className="font-medium text-[var(--gather-ink)]">{statusLabel}</p>
+              <p className="text-base-content/60">Role</p>
+              <p className="font-medium text-base-content">{roleLabel}</p>
+              <p className="text-base-content/60">Status</p>
+              <p className="font-medium text-base-content">{statusLabel}</p>
             </div>
-          </Card>
+          </div>
 
-          <Card>
+          <div className="card bg-base-100 shadow-md p-4 rounded-xl">
             <div className="flex items-center justify-between">
-              <CardTitle>Upcoming assignments</CardTitle>
-              <span className="text-xs text-[var(--gather-muted)]">{assignments.length} next</span>
+              <div className="card-title text-lg font-semibold">Upcoming assignments</div>
+              <span className="text-xs text-base-content/60">{assignments.length} next</span>
             </div>
             <div className="mt-4 space-y-2 text-sm">
               {assignments.length === 0 ? (
-                <p className="text-[var(--gather-muted)]">No upcoming assignments.</p>
+                <p className="text-base-content/60">No upcoming assignments.</p>
               ) : (
                 assignments.map((assignment) => (
                   <div key={assignment.id} className="rounded-xl bg-base-100 p-3">
-                    <p className="font-medium text-[var(--gather-ink)]">{assignment.role}</p>
-                    <p className="text-[var(--gather-muted)]">{assignment.serviceLabel}</p>
+                    <p className="font-medium text-base-content">{assignment.role}</p>
+                    <p className="text-base-content/60">{assignment.serviceLabel}</p>
                   </div>
                 ))
               )}
             </div>
-          </Card>
+          </div>
 
           {children}
         </div>

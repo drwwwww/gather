@@ -2,8 +2,8 @@
 
 import type { Database } from "@gather/lib";
 import Link from "next/link";
-import { Card, CardTitle } from "../ui/card";
-import { Accordion } from "../ui/accordion";
+
+// ...existing code...
 import ServiceTimeSelector from "./ServiceTimeSelector";
 import PresetCreateRow from "./PresetCreateRow";
 import PresetCard from "./PresetCard";
@@ -61,7 +61,7 @@ export default function PresetList({
 }: PresetListProps) {
   return (
     <div className="space-y-6">
-      <Card>
+      <div className="card bg-base-100 shadow-md p-4 rounded-xl">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:gap-8">
           <div className="flex-1 min-w-[240px]">
             <ServiceTimeSelector
@@ -80,12 +80,12 @@ export default function PresetList({
           </div>
         </div>
         {error ? <p className="mt-3 text-sm text-error">{error}</p> : null}
-      </Card>
+      </div>
 
-      <Card>
+      <div className="card bg-base-100 shadow-md p-4 rounded-xl">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <CardTitle>Presets</CardTitle>
+            <div className="card-title text-lg font-semibold">Presets</div>
             <p className="text-xs text-[var(--gather-muted)] mt-1">
               The default preset is used when generating new service plans.
             </p>
@@ -118,7 +118,7 @@ export default function PresetList({
             </Accordion>
           )}
         </div>
-      </Card>
+      </div>
     </div>
   );
 }

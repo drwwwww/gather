@@ -1,7 +1,5 @@
 "use client";
 
-import { Badge } from "../ui/badge";
-import { Card } from "../ui/card";
 
 type AnnouncementPreviewProps = {
   title: string;
@@ -13,11 +11,11 @@ export default function AnnouncementPreview({ title, body, audience }: Announcem
   const hasContent = title.trim() || body.trim();
 
   return (
-    <Card className="bg-base-100">
+    <div className="card bg-base-100 shadow-md p-4 rounded-xl">
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <p className="text-xs uppercase tracking-[0.2em] text-[var(--gather-muted)]">Preview</p>
-          <Badge>{audience}</Badge>
+          <span className="badge badge-outline">{audience}</span>
         </div>
         <div>
           <p className="text-lg font-semibold text-[var(--gather-ink)]">
@@ -31,6 +29,6 @@ export default function AnnouncementPreview({ title, body, audience }: Announcem
           <p className="text-xs text-[var(--gather-muted)]">Tip: keep announcements concise for mobile.</p>
         ) : null}
       </div>
-    </Card>
+    </div>
   );
 }

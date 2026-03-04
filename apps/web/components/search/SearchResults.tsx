@@ -19,10 +19,10 @@ type SearchResultsProps = {
 export default function SearchResults({ query, profiles, events, announcements }: SearchResultsProps) {
   return (
     <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-3">
-      <Card className="h-full">
+      <div className="card bg-base-100 shadow-md p-4 rounded-xl h-full">
         <div className="flex h-full flex-col">
           <div className="flex items-center justify-between">
-            <CardTitle>Members</CardTitle>
+            <div className="card-title text-lg font-semibold">Members</div>
             <span className="text-xs text-[var(--gather-muted)]">{profiles.length} found</span>
           </div>
 
@@ -62,12 +62,12 @@ export default function SearchResults({ query, profiles, events, announcements }
             </div>
           ) : null}
         </div>
-      </Card>
+      </div>
 
-      <Card className="h-full">
+      <div className="card bg-base-100 shadow-md p-4 rounded-xl h-full">
         <div className="flex h-full flex-col">
           <div className="flex items-center justify-between">
-            <CardTitle>Events</CardTitle>
+            <div className="card-title text-lg font-semibold">Events</div>
             <span className="text-xs text-[var(--gather-muted)]">{events.length} found</span>
           </div>
 
@@ -93,12 +93,12 @@ export default function SearchResults({ query, profiles, events, announcements }
             )}
           </div>
         </div>
-      </Card>
+      </div>
 
-      <Card className="h-full">
+      <div className="card bg-base-100 shadow-md p-4 rounded-xl h-full">
         <div className="flex h-full flex-col">
           <div className="flex items-center justify-between">
-            <CardTitle>Announcements</CardTitle>
+            <div className="card-title text-lg font-semibold">Announcements</div>
             <span className="text-xs text-[var(--gather-muted)]">{announcements.length} found</span>
           </div>
 
@@ -123,7 +123,7 @@ export default function SearchResults({ query, profiles, events, announcements }
             )}
           </div>
         </div>
-      </Card>
+      </div>
     </div>
   );
 }

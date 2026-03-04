@@ -1,53 +1,56 @@
 import Link from "next/link";
-import { Calendar } from "lucide-react";
-import { Card, CardTitle } from "../ui/card";
-import { Badge } from "../ui/badge";
+import { format } from "../../lib/format";
 
-export type EventPreview = {
+
+export type EventRow = {
   id: string;
-  title: string;
-  startAt: string;
-  location: string | null;
-  rsvpCount: number;
+  name: string;
+  date: string;
+  status: string;
 };
 
-export default function UpcomingEventsCard({ items }: { items: EventPreview[] }) {
+export default function UpcomingEventsCard({ items }: { items: EventRow[] }) {
   return (
-    <Card>
-      <div className="flex items-center justify-between">
-        <CardTitle>Upcoming Events</CardTitle>
-        <Link href="/events" className="btn btn-outline btn-sm">
-          View events
+    <div className="border rounded bg-white p-6">
+      <div className="flex items-center justify-between mb-8">
+        <h2 className="text-lg font-medium text-[var(--ink)]">Upcoming Events</h2>
+        <Link href="/events">
+          <span className="px-2 py-1 rounded bg-gray-200 text-gray-800 text-xs">View all events</span>
         </Link>
       </div>
-
       {items.length === 0 ? (
-        <div className="mt-4 rounded-xl border border-dashed p-6 text-center text-sm" style={{ background: 'var(--gather-surface)', borderColor: 'var(--border)' }}>
-          <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full" style={{ background: 'var(--primary-soft)', color: 'var(--primary)' }}>
-            <Calendar className="h-5 w-5" />
-          </div>
-          <p className="font-semibold" style={{ color: 'var(--ink)' }}>No events scheduled</p>
-          <p className="mt-2" style={{ color: 'var(--muted)' }}>Create your first event to keep the church engaged.</p>
-          <Link href="/events" className="btn btn-outline btn-sm mt-4">
-            Create your first event
+        <div className="flex flex-col items-center gap-2 p-6">
+          <span className="text-[var(--muted)]">No upcoming events. Check back soon!</span>
+          <Link href="/events">
+            <span className="px-2 py-1 rounded bg-gray-200 text-gray-800 text-xs mt-2">Create event</span>
           </Link>
         </div>
       ) : (
-        <div className="mt-4 space-y-3 text-sm">
-          {items.map((event) => (
-            <div key={event.id} className="rounded-xl p-3" style={{ background: 'var(--gather-surface)' }}>
-              <div className="flex items-center justify-between">
-                <p className="font-semibold" style={{ color: 'var(--ink)' }}>{event.title}</p>
-                <Badge variant="neutral">{event.rsvpCount} RSVP</Badge>
-              </div>
-              <p className="text-xs" style={{ color: 'var(--muted)' }}>
-                {event.startAt}
-                {event.location ? ` - ${event.location}` : ""}
-              </p>
-            </div>
-          ))}
+        <div className="overflow-hidden rounded-2xl border border-[var(--border)]">
+          <table className="w-full text-sm">
+            <thead>
+              <tr>
+                <th className="text-xs text-[var(--muted)] font-medium uppercase tracking-wide">Name</th>
+                <th className="text-xs text-[var(--muted)] font-medium uppercase tracking-wide">Date</th>
+                <th className="text-xs text-[var(--muted)] font-medium uppercase tracking-wide">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((row) => (
+                <tr key={row.id} className="hover:bg-[var(--surface-2)] transition-colors">
+                  <td>{row.name}</td>
+                  <td>{format.date(row.date)}</td>
+                  <td>
+                    <span className="px-2 py-1 rounded bg-gray-200 text-gray-800 text-xs">
+                      {row.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
-    </Card>
+    </div>
   );
 }

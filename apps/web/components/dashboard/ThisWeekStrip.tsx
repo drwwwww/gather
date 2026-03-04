@@ -1,4 +1,4 @@
-import { Card } from "../ui/card";
+
 
 export type ThisWeekStripData = {
   nextServiceLabel: string;
@@ -22,20 +22,17 @@ export default function ThisWeekStrip({
     { label: "Announcements scheduled", value: scheduledAnnouncements.toString() },
     { label: "Events this week", value: eventsThisWeek.toString() }
   ];
-
   return (
-    <Card className="rounded-2xl">
-      <div className="grid gap-4 md:grid-cols-5">
-        {items.map((item, index) => (
-          <div
-            key={item.label}
-            className={`flex flex-col gap-1 ${index === 0 ? "" : "md:border-l md:border-[var(--gather-divider)] md:pl-4"}`}
-          >
-            <p className="text-xs uppercase tracking-[0.2em] text-[var(--gather-muted)]">{item.label}</p>
-            <p className="text-sm font-semibold text-[var(--gather-ink)]">{item.value}</p>
-          </div>
-        ))}
-      </div>
-    </Card>
+    <>
+      {items.map((item) => (
+        <div
+          key={item.label}
+          className="card bg-base-100 border border-base-300 rounded-2xl shadow-sm p-5 flex flex-col transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
+        >
+          <span className="text-xs uppercase tracking-wide text-base-content/60">{item.label}</span>
+          <span className="mt-2 text-2xl font-semibold text-base-content">{item.value}</span>
+        </div>
+      ))}
+    </>
   );
 }

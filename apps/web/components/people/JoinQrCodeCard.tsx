@@ -1,8 +1,6 @@
 "use client";
 
-import { Button } from "../ui/button";
-import { Card, CardTitle } from "../ui/card";
-import { Input } from "../ui/input";
+// DaisyUI migration: use className markup for all UI
 
 type JoinQrCodeCardProps = {
   joinLink: string;
@@ -12,10 +10,10 @@ type JoinQrCodeCardProps = {
 
 export default function JoinQrCodeCard({ joinLink, qrUrl, onCopyLink }: JoinQrCodeCardProps) {
   return (
-    <Card>
+    <div className="card bg-base-100 shadow-md p-4 rounded-xl">
       <div className="flex items-center justify-between">
-        <CardTitle>Join QR Code</CardTitle>
-        <span className="text-xs text-[var(--gather-muted)]">Scan to join</span>
+        <div className="card-title text-lg font-semibold">Join QR Code</div>
+        <span className="text-xs text-base-content/60">Scan to join</span>
       </div>
       <div className="mt-4 space-y-3">
         {qrUrl ? (
@@ -23,9 +21,9 @@ export default function JoinQrCodeCard({ joinLink, qrUrl, onCopyLink }: JoinQrCo
             <img src={qrUrl} alt="Join code QR" className="h-40 w-40" />
           </div>
         ) : null}
-        <Input value={joinLink} readOnly />
-        <Button variant="outline" onClick={onCopyLink}>Copy Join Link</Button>
+        <input className="input input-bordered w-full" value={joinLink} readOnly />
+        <button className="btn btn-outline" onClick={onCopyLink}>Copy Join Link</button>
       </div>
-    </Card>
+    </div>
   );
 }

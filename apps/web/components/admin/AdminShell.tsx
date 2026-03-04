@@ -7,8 +7,9 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Bell, Calendar, ClipboardList, LayoutDashboard, ListChecks, ListOrdered, LogOut, Megaphone, Search, Settings, Users } from "lucide-react";
 import clsx from "clsx";
 import { supabase } from "../../lib/supabaseClient";
-import { Separator } from "../ui/separator";
-import { Tooltip } from "../ui/tooltip";
+// Removed ProfileDropdown (dropdown) import
+import Avatar from "../ui/avatar";
+// ...existing code...
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
@@ -94,127 +95,158 @@ export default function AdminShell({ children }: { children: ReactNode }) {
   }, [notificationScope]);
 
   return (
-    <div className="min-h-screen" style={{ background: 'var(--gather-bg)' }}>
+    <div className="min-h-screen bg-[var(--bg)]">
       <div className="flex">
-        <aside className="sticky top-0 z-50 hidden h-screen w-[72px] flex-col items-center border-r border-[var(--border)] px-3 py-4 lg:flex" style={{ background: 'var(--gather-surface)' }}>
-          <div className="flex items-center justify-center">
+        {/* Sidebar */}
+        <aside className="sticky top-0 z-40 h-screen w-56 md:w-52 flex flex-col border-r border-[var(--border)] bg-[var(--surface)] flex transition-all duration-200">
+          <div className="flex flex-col items-start gap-2 px-3 py-4">
             <img src="/logo.png" alt="Gather" className="h-8 w-8" />
+            <span className="text-lg font-semibold tracking-tight text-[var(--ink)]">Gather</span>
           </div>
-          <nav className="mt-6 flex flex-col gap-4">
+          <nav className="flex flex-col gap-2 px-2">
             {navItems.map(({ href, icon: Icon, label }) => {
               const isActive = href === "/admin"
                 ? pathname === href
                 : pathname?.startsWith(href);
               return (
-                <Tooltip key={href} content={label}>
+                <li
+                  key={href}
+                  className={clsx(
+                    "rounded-xl relative group",
+                    isActive && "before:content-[''] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1 before:rounded-full before:bg-[var(--primary)]"
+                  )}
+                >
                   <Link
                     href={href}
-                    prefetch
                     className={clsx(
-                      "relative flex h-10 w-10 items-center justify-center rounded-xl text-muted transition hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
-                      isActive && "text-primary bg-primary/10"
+                      "flex items-center gap-3 rounded-xl px-3 py-2 transition-all duration-150 active:scale-[0.99]",
+                      isActive
+                        ? "bg-[var(--primary-soft)] text-[var(--primary)] font-medium hover:bg-[var(--primary-hover)] hover:text-[var(--ink)] hover:font-semibold"
+                        : "text-[var(--ink)] hover:bg-[var(--surface-2)] hover:text-[var(--primary)] hover:font-semibold",
                     )}
-                    aria-label={label}
                   >
-                    <Icon className="h-[18px] w-[18px]" style={{ color: 'var(--gather-muted)' }} />
+                    <Icon className={clsx("h-5 w-5", isActive ? "opacity-100" : "opacity-80 group-hover:opacity-100")} />
+                    <span className="text-sm">{label}</span>
                   </Link>
-                </Tooltip>
+                </li>
               );
             })}
           </nav>
           <div className="flex-1" />
-          <Separator className="my-3 w-10" />
-          <div className="flex flex-col items-center gap-4">
-            <Tooltip content="Notifications">
-              <Link
-                href="/notifications"
-                className={clsx(
-                  "relative flex h-10 w-10 items-center justify-center rounded-xl text-muted transition hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
-                  pathname === "/notifications" && "text-primary bg-primary/10"
-                )}
-                aria-label="Notifications"
-              >
-                <Bell className="h-[18px] w-[18px]" style={{ color: 'var(--gather-muted)' }} />
-                {notificationCount > 0 ? (
-                  <span className="absolute -right-1 -top-1 min-w-[18px] rounded-full bg-primary px-1.5 py-0.5 text-[10px] font-semibold text-[#FFF8ED]">
-                    {notificationCount > 99 ? "99+" : notificationCount}
-                  </span>
-                ) : null}
-              </Link>
-            </Tooltip>
-            <Tooltip content="Settings">
-              <Link
-                href="/account"
-                className={clsx(
-                  "relative flex h-10 w-10 items-center justify-center rounded-xl text-muted transition hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30",
-                  pathname === "/account" && "text-primary bg-primary/10"
-                )}
-                aria-label="Settings"
-              >
-                <Settings className="h-[18px] w-[18px]" style={{ color: 'var(--gather-muted)' }} />
-              </Link>
-            </Tooltip>
-            <Tooltip content="Sign out">
-              <button
-                type="button"
-                className="flex h-10 w-10 items-center justify-center rounded-xl text-muted transition hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
-                aria-label="Sign out"
-                onClick={async () => {
-                  await supabase?.auth.signOut();
-                  router.push("/login");
-                }}
-              >
-                <LogOut className="h-[18px] w-[18px]" style={{ color: 'var(--gather-muted)' }} />
-              </button>
-            </Tooltip>
+          <div className="border-t border-[var(--border)] my-4 mx-2" />
+          <div className="flex flex-col gap-2 px-2 pb-4">
+            <Link
+              href="/notifications"
+              className={clsx(
+                "flex items-center gap-3 rounded-xl px-3 py-2 text-[var(--ink)] transition-colors duration-150 active:scale-[0.99]",
+                pathname === "/notifications" && "bg-[var(--primary-soft)] text-[var(--primary)] font-medium",
+                pathname !== "/notifications" && "hover:bg-[var(--surface-2)]"
+              )}
+            >
+              <Bell className="h-5 w-5" />
+              <span className="text-sm">Notifications</span>
+              {notificationCount > 0 && (
+                <span className="ml-auto rounded-full bg-[var(--primary)] px-2 py-0.5 text-xs font-semibold text-[var(--surface)]">
+                  {notificationCount > 99 ? "99+" : notificationCount}
+                </span>
+              )}
+            </Link>
+            <Link
+              href="/account"
+              className={clsx(
+                "flex items-center gap-3 rounded-xl px-3 py-2 text-[var(--ink)] transition-colors duration-150 active:scale-[0.99]",
+                pathname === "/account" && "bg-[var(--primary-soft)] text-[var(--primary)] font-medium",
+                pathname !== "/account" && "hover:bg-[var(--surface-2)]"
+              )}
+            >
+              <Settings className="h-5 w-5" />
+              <span className="text-sm">Account</span>
+            </Link>
           </div>
         </aside>
 
-        <main className="flex-1 min-w-0" style={{ background: 'var(--gather-bg)' }}>
-          <header className="sticky top-0 z-40 border-b border-[var(--border)]" style={{ background: 'var(--gather-bg)', backdropFilter: 'blur(8px)' }}>
-            <div className="mx-auto flex max-w-7xl items-center gap-6 px-6 py-4">
-              <div className="hidden sm:block">
-                <p className="text-xs uppercase tracking-[0.2em] text-muted">Church</p>
-                <p className="text-sm font-semibold text-ink">{churchName}</p>
-              </div>
-
-              <form
-                className="relative flex-1 max-w-xl"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  const trimmed = searchTerm.trim();
-                  if (!trimmed) return;
-                  router.push(`/admin/search?q=${encodeURIComponent(trimmed)}`);
-                }}
+        {/* Main content */}
+        <main className="flex-1 min-w-0">
+          {/* Header */}
+          <header
+            className="sticky top-0 z-30 flex items-center h-[64px] bg-white border-b border-[var(--border)] px-8"
+            style={{ boxShadow: "none" }}
+          >
+            {/* Left: Org name + context */}
+            <div className="flex flex-col justify-center min-w-0" style={{ flex: '0 0 auto', height: 64 }}>
+              <span
+                className="uppercase tracking-wide text-[11px] font-semibold text-[var(--muted)] mb-1 pl-0.5"
+                style={{ letterSpacing: '0.06em', lineHeight: '1.2' }}
               >
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" style={{ color: 'var(--gather-muted)' }} />
-                <input
-                  type="search"
-                  placeholder="Search members, events, or records..."
-                  value={searchTerm}
-                  onChange={(event) => setSearchTerm(event.target.value)}
-                  className="w-full rounded-lg bg-surface/60 py-2 pl-9 pr-3 text-sm text-ink outline-none ring-1 ring-transparent focus:ring-primary/40"
-                />
-              </form>
-
-              <div className="ml-auto flex items-center gap-3">
-                <Link
-                  href="/account"
-                  className="flex items-center gap-3 rounded-full bg-surface/60 px-3 py-1 transition hover:bg-primary/10"
+                Church
+              </span>
+              <span
+                className="text-[28px] leading-[32px] font-semibold text-neutral-900 tracking-tight truncate max-w-[240px]"
+                style={{ letterSpacing: '-0.01em', lineHeight: '1.1' }}
+              >
+                {churchName}
+              </span>
+              {/* Context badge (optional, placeholder for now) */}
+              {/* <span className="ml-2 px-2 py-0.5 rounded bg-[var(--muted)] text-xs font-medium text-[var(--ink)]">Org</span> */}
+            </div>
+            {/* Center: Full-width search */}
+            <form
+              className="flex-1 flex justify-center px-8"
+              onSubmit={(event) => {
+                event.preventDefault();
+                const trimmed = searchTerm.trim();
+                if (!trimmed) return;
+                router.push(`/admin/search?q=${encodeURIComponent(trimmed)}`);
+              }}
+              role="search"
+              aria-label="Admin search"
+            >
+              <div className="w-full max-w-[420px]">
+                <label className="sr-only" htmlFor="admin-search">Search</label>
+                <div className="relative">
+                  <input
+                    id="admin-search"
+                    type="search"
+                    className="h-10 w-full rounded-[10px] border border-[var(--border)] px-10 text-[14px] bg-white placeholder:text-[var(--muted)] transition-all duration-150 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none hover:border-[color-mix(in_srgb,var(--border),#000_8%)]"
+                    placeholder="Search members, events, or records..."
+                    value={searchTerm}
+                    onChange={(event) => setSearchTerm(event.target.value)}
+                    aria-label="Search members, events, or records"
+                  />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)] w-5 h-5 pointer-events-none" aria-hidden="true" />
+                </div>
+              </div>
+            </form>
+            {/* Right: Profile dropdown + notifications */}
+            <div className="flex items-center gap-4 min-w-0" style={{ flex: '0 0 auto', height: 64 }}>
+              {/* Notifications icon */}
+              <Link
+                href="/notifications"
+                className="relative flex items-center justify-center w-10 h-10 rounded-[10px] hover:bg-[var(--muted)] transition-colors duration-150"
+                aria-label="Notifications"
+              >
+                <Bell className="w-5 h-5 text-[var(--muted)]" />
+                {notificationCount > 0 && (
+                  <span className="absolute top-1 right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-white text-xs font-semibold flex items-center justify-center">
+                    {notificationCount > 99 ? "99+" : notificationCount}
+                  </span>
+                )}
+              </Link>
+              {/* Minimal avatar and menu button */}
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-bold">
+                  {displayName.charAt(0)}
+                </div>
+                <button
+                  className="px-2 py-1 rounded bg-gray-100 text-gray-800 text-xs border"
+                  onClick={() => router.push("/logout")}
                 >
-                  <div className="hidden text-right sm:block">
-                    <p className="text-sm font-semibold text-ink">{displayName}</p>
-                    <p className="text-xs text-muted">{displayRole}</p>
-                  </div>
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/20 text-sm font-semibold text-primary">
-                    {displayName.slice(0, 1).toUpperCase()}
-                  </div>
-                </Link>
+                  Logout
+                </button>
               </div>
             </div>
           </header>
-
-          <div className="mx-auto max-w-7xl px-6 py-10" style={{ background: 'var(--gather-bg)' }}>
+          <div className="mx-auto max-w-7xl px-8 py-10">
             {children}
           </div>
         </main>

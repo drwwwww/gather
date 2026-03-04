@@ -1,5 +1,3 @@
-import { Button } from "../ui/button";
-import { Card, CardTitle } from "../ui/card";
 
 export default function SecurityCard({
   onChangePassword,
@@ -9,19 +7,29 @@ export default function SecurityCard({
   onSignOut: () => void;
 }) {
   return (
-    <Card>
+    <div className="card bg-base-100 shadow-md p-4 rounded-xl">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <CardTitle>Security</CardTitle>
+          <h2 className="card-title text-lg font-bold">Security</h2>
           <p className="text-sm text-[var(--gather-muted)]">Manage your login settings.</p>
         </div>
       </div>
       <div className="mt-6 flex flex-wrap gap-3">
-        <Button onClick={onChangePassword}>Change password</Button>
-        <Button variant="outline" onClick={onSignOut}>
+        <button
+          type="button"
+          className="btn btn-primary"
+          onClick={onChangePassword}
+        >
+          Change password
+        </button>
+        <button
+          type="button"
+          className="btn btn-outline"
+          onClick={onSignOut}
+        >
           Sign out
-        </Button>
+        </button>
       </div>
-    </Card>
+    </div>
   );
 }

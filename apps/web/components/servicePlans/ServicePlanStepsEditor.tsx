@@ -1,6 +1,5 @@
 import type { Database } from "@gather/lib";
 import { useEffect, useMemo, useState } from "react";
-import { Card } from "../ui/card";
 import StepList from "../runOfShow/StepList";
 import StepEditorToolbar from "../runOfShow/StepEditorToolbar";
 import { type PlanItemDraft } from "./ServicePlanStepRow";
@@ -67,8 +66,8 @@ export default function ServicePlanStepsEditor({
   };
 
   return (
-    <Card
-      className="rounded-2xl"
+    <div
+      className="card bg-base-100 shadow-md p-4 rounded-2xl"
       style={{
         background: 'var(--gather-surface)',
         borderColor: 'var(--gather-border)',
@@ -128,6 +127,6 @@ export default function ServicePlanStepsEditor({
           />
         )}
       </div>
-    </Card>
+    </div>
   );
 }

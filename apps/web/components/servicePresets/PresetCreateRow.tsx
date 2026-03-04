@@ -1,6 +1,6 @@
-import { Button } from "../ui/button";
-import { CardTitle } from "../ui/card";
-import { Input } from "../ui/input";
+// ...existing code...
+
+// ...existing code...
 
 export default function PresetCreateRow({
   name,
@@ -15,16 +15,23 @@ export default function PresetCreateRow({
 }) {
   return (
     <div className="flex-1">
-      <CardTitle>New preset</CardTitle>
+      <h2 className="card-title text-lg font-bold">New preset</h2>
       <div className="mt-2 flex flex-wrap gap-2">
-        <Input
-          placeholder="Main Service Run of Show"
-          value={name}
-          onChange={(event) => onNameChange(event.target.value)}
-        />
-        <Button onClick={onCreate} disabled={disabled || !name.trim()}>
-          Create preset
-        </Button>
+           <input
+             type="text"
+             placeholder="Main Service Run of Show"
+             value={name}
+             onChange={(event) => onNameChange(event.target.value)}
+             className="input input-bordered flex-1 min-w-[200px]"
+           />
+           <button
+             type="button"
+             onClick={onCreate}
+             disabled={disabled || !name.trim()}
+             className="btn btn-primary"
+           >
+             Create preset
+           </button>
       </div>
     </div>
   );

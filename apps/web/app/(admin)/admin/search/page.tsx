@@ -5,9 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import type { Database } from "@gather/lib";
 import { supabase } from "../../../../lib/supabaseClient";
 import AdminHeader from "../../../../components/admin/AdminHeader";
-import { MotionContainer, MotionItem } from "../../../../components/ui/motion";
-import { Input } from "../../../../components/ui/input";
-import { Button } from "../../../../components/ui/button";
+// DaisyUI migration: use className markup for all UI
 import SearchResults from "../../../../components/search/SearchResults";
 
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
@@ -112,17 +110,17 @@ export default function SearchPage() {
   }, [query, profiles.length, events.length, announcements.length]);
 
   return (
-    <MotionContainer className="space-y-10">
-      <MotionItem>
+    <div className="space-y-10">
+      <div>
         <AdminHeader
           title="Search Results"
           subtitle={query ? `Showing matches for "${query}"` : "Enter a search term to get started."}
           className="mb-8"
         />
-      </MotionItem>
+      </div>
 
-      <MotionItem>
-        <div className="rounded-xl border border-primary/10 bg-[var(--gather-surface)] p-6">
+      <div>
+        <div className="rounded-xl border border-primary/10 bg-base-100 p-6">
           <form
             className="flex flex-wrap items-center gap-4"
             onSubmit={(event) => {
@@ -139,25 +137,25 @@ export default function SearchPage() {
                 placeholder="Search members, events, or announcements"
               />
             </div>
-            <Button type="submit">Search</Button>
-            {summary ? <p className="text-xs text-[var(--gather-muted)]">{summary}</p> : null}
+            <button type="submit" className="btn btn-primary">Search</button>
+            {summary ? <p className="text-xs text-base-content/60">{summary}</p> : null}
           </form>
         </div>
-      </MotionItem>
+      </div>
 
       {error ? <p className="text-sm text-error">{error}</p> : null}
-      {loading ? <p className="text-sm text-[var(--gather-muted)]">Searching...</p> : null}
+      {loading ? <p className="text-sm text-base-content/60">Searching...</p> : null}
 
       {!loading ? (
-        <MotionItem>
+        <div>
           <SearchResults
             query={query}
             profiles={profiles}
             events={events}
             announcements={announcements}
           />
-        </MotionItem>
+        </div>
       ) : null}
-    </MotionContainer>
+    </div>
   );
 }

@@ -1,7 +1,9 @@
+import Link from "next/link";
+
 "use client";
 
-import { Button } from "../ui/button";
-import { Card, CardTitle } from "../ui/card";
+// DaisyUI migration: use className markup for all UI
+
 
 type PendingItem = {
   id: string;
@@ -15,27 +17,46 @@ type PendingResponsesCardProps = {
 };
 
 export default function PendingResponsesCard({ items, onFollowUp }: PendingResponsesCardProps) {
+  const safeItems = Array.isArray(items) ? items : [];
   return (
-    <Card>
-      <div className="flex items-center justify-between">
-        <CardTitle>Pending confirmations</CardTitle>
-        <span className="text-xs text-[var(--gather-muted)]">{items.length} pending</span>
-      </div>
-      <div className="mt-4 space-y-2 text-sm">
+  export default function PendingResponsesCard({ items }: { items: PendingRow[] }) {
+    return (
+      <div className="border rounded bg-white p-6">
+        <div className="flex items-center justify-between mb-8">
+          <h2 className="text-lg font-medium text-[var(--ink)]">Pending Responses</h2>
+          <Link href="/volunteers">
+            <span className="px-2 py-1 rounded bg-gray-200 text-gray-800 text-xs">View all volunteers</span>
+          </Link>
+        </div>
         {items.length === 0 ? (
-          <p className="text-[var(--gather-muted)]">No pending confirmations.</p>
+          <div className="flex flex-col items-center gap-2 p-6">
+            <span className="text-[var(--muted)]">No pending responses. All assignments confirmed.</span>
+          </div>
         ) : (
-          items.slice(0, 4).map((item) => (
-            <div key={item.id} className="rounded-xl p-3" style={{ background: 'var(--gather-surface)' }}>
-              <p className="font-medium" style={{ color: 'var(--ink)' }}>{item.role}</p>
-              <p style={{ color: 'var(--muted)' }}>{item.assignee}</p>
-            </div>
-          ))
+          <div className="overflow-hidden rounded-2xl border border-[var(--border)]">
+            <table className="w-full text-sm">
+              <thead>
+                <tr>
+                  <th className="text-xs text-[var(--muted)] font-medium uppercase tracking-wide">Role</th>
+                  <th className="text-xs text-[var(--muted)] font-medium uppercase tracking-wide">Assigned</th>
+                  <th className="text-xs text-[var(--muted)] font-medium uppercase tracking-wide">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((row) => (
+                  <tr key={row.id} className="hover:bg-[var(--surface-2)] transition-colors">
+                    <td>{row.role}</td>
+                    <td>{row.assignee}</td>
+                    <td>
+                      <span className="px-2 py-1 rounded bg-gray-200 text-gray-800 text-xs">
+                        {row.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
-      <div className="mt-4">
-        <Button size="sm" variant="outline" onClick={onFollowUp}>Resend request</Button>
-      </div>
-    </Card>
-  );
-}
+    );

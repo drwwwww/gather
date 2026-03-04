@@ -2,9 +2,6 @@
 
 import type { Database } from "@gather/lib";
 import { useState } from "react";
-import { Button } from "../ui/button";
-import { Card, CardTitle } from "../ui/card";
-import { Input } from "../ui/input";
 
 type ServiceTime = Database["public"]["Tables"]["service_times"]["Row"];
 type ServicePreset = Database["public"]["Tables"]["service_presets"]["Row"];
@@ -68,10 +65,10 @@ export default function PresetEditor({
 
   return (
     <div className="space-y-6">
-      <Card>
+      <div className="card bg-base-100 shadow-md p-4 rounded-xl">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex-1 min-w-[240px]">
-            <CardTitle>Preset details</CardTitle>
+            <div className="card-title text-lg font-semibold">Preset details</div>
             <div className="mt-3 space-y-3">
               <div>
                 <label className="text-xs uppercase tracking-widest text-[var(--gather-muted)]">Name</label>
@@ -100,22 +97,22 @@ export default function PresetEditor({
             {preset?.is_default ? (
               <span className="badge badge-secondary">Default preset</span>
             ) : onSetDefault ? (
-              <Button variant="outline" size="sm" onClick={onSetDefault}>
+              <button type="button" className="btn btn-outline btn-sm" onClick={onSetDefault}>
                 Set as default
-              </Button>
+              </button>
             ) : null}
-            <Button onClick={onSave} disabled={saving}>
+            <button type="button" className="btn btn-primary" onClick={onSave} disabled={saving}>
               {saving ? "Saving..." : "Save preset"}
-            </Button>
+            </button>
             {error ? <p className="text-sm text-error">{error}</p> : null}
           </div>
         </div>
-      </Card>
+      </div>
 
-      <Card>
+      <div className="card bg-base-100 shadow-md p-4 rounded-xl">
         <div className="flex items-center justify-between">
-          <CardTitle>Run of show items</CardTitle>
-          <Button size="sm" onClick={onAddItem}>Add item</Button>
+          <div className="card-title text-lg font-semibold">Run of show items</div>
+          <button type="button" className="btn btn-outline btn-sm" onClick={onAddItem}>Add item</button>
         </div>
         <div className="mt-4 space-y-4">
           {items.length === 0 ? (
@@ -138,21 +135,23 @@ export default function PresetEditor({
                     <span className="rounded-full bg-base-200 px-2 py-1">Step {index + 1}</span>
                     <span>Drag to reorder</span>
                   </div>
-                  <Button size="sm" variant="outline" onClick={() => onDeleteItem(item.id)}>
+                  <button type="button" className="btn btn-outline btn-sm" onClick={() => onDeleteItem(item.id)}>
                     Remove
-                  </Button>
+                  </button>
                 </div>
                 <div className="mt-3 grid gap-3 md:grid-cols-[2fr_1fr]">
                   <div>
                     <label className="text-xs uppercase tracking-widest text-[var(--gather-muted)]">Title</label>
-                    <Input
+                    <input
+                      type="text"
                       value={item.title}
                       onChange={(event) => handleItemChange(item.id, { title: event.target.value })}
+                      className="input input-bordered w-full"
                     />
                   </div>
                   <div>
                     <label className="text-xs uppercase tracking-widest text-[var(--gather-muted)]">Duration (min)</label>
-                    <Input
+                    <input
                       type="number"
                       min={0}
                       value={item.duration_minutes ?? ""}
@@ -160,6 +159,7 @@ export default function PresetEditor({
                         const value = event.target.value;
                         handleItemChange(item.id, { duration_minutes: value ? Number(value) : null });
                       }}
+                      className="input input-bordered w-full"
                     />
                   </div>
                 </div>
@@ -195,7 +195,7 @@ export default function PresetEditor({
             ))
           )}
         </div>
-      </Card>
+      </div>
     </div>
   );
 }

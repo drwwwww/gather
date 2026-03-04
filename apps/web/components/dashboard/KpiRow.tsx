@@ -1,26 +1,25 @@
-import { Card } from "../ui/card";
 
-export type KpiRowData = {
-  members: number;
-  volunteers: number;
-  rsvpsThisWeek: number;
-};
+import { Card } from "../ui/Card";
 
-export default function KpiRow({ members, volunteers, rsvpsThisWeek }: KpiRowData) {
+export default function KpiRow({ members, volunteers, rsvpsThisWeek }: { members: number; volunteers: number; rsvpsThisWeek: number }) {
   const items = [
     { label: "Members", value: members.toString() },
     { label: "Volunteers", value: volunteers.toString() },
     { label: "RSVPs this week", value: rsvpsThisWeek.toString() }
   ];
-
   return (
-    <div className="grid gap-4 md:grid-cols-3">
+    <>
       {items.map((item) => (
-        <Card key={item.label}>
-          <div className="text-xs uppercase tracking-[0.2em] text-[var(--gather-muted)]">{item.label}</div>
-          <div className="mt-2 text-2xl font-semibold text-[var(--gather-ink)]">{item.value}</div>
+        <Card key={item.label} className="flex flex-col items-start p-6 transition-all duration-150 hover:shadow-[0_2px_8px_rgba(0,0,0,0.08)] hover:-translate-y-[1px] cursor-pointer">
+          <div className="meta-text mb-2">{item.label}</div>
+          <div className="stat-number">{item.value}</div>
         </Card>
       ))}
-    </div>
+    </>
   );
 }
+export type KpiRowData = {
+  members: number;
+  volunteers: number;
+  rsvpsThisWeek: number;
+};

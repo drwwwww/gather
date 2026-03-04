@@ -1,9 +1,9 @@
 "use client";
 
 import type { Database } from "@gather/lib";
-import { Button } from "../ui/button";
-import { Card, CardTitle } from "../ui/card";
-import { Input } from "../ui/input";
+// DaisyUI migration: use className markup for all UI
+
+// DaisyUI migration: use className markup for all UI
 
 type ServiceTimeRow = Database["public"]["Tables"]["service_times"]["Row"];
 type RoleRow = Database["public"]["Tables"]["volunteer_roles"]["Row"];
@@ -52,15 +52,15 @@ export default function ScheduleBuilder({
   serviceTimeLabel
 }: ScheduleBuilderProps) {
   return (
-    <Card>
+    <Card className="p-6 flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <CardTitle>Schedule builder</CardTitle>
+        <div className="card-title text-lg font-semibold">Schedule builder</div>
         <span className="text-xs text-[var(--gather-muted)]">Add role slots</span>
       </div>
       <div className="mt-4 grid gap-3 md:grid-cols-[1.1fr_1.1fr_1fr_0.6fr]">
         <div className="space-y-2">
           <label className="text-xs text-[var(--gather-muted)]">Service date</label>
-          <Input type="date" value={serviceDate} onChange={(event) => onServiceDateChange(event.target.value)} />
+          <input type="date" className="input input-bordered w-full" value={serviceDate} onChange={(event) => onServiceDateChange(event.target.value)} />
         </div>
         <div className="space-y-2">
           <label className="text-xs text-[var(--gather-muted)]">Service time</label>
@@ -69,10 +69,10 @@ export default function ScheduleBuilder({
             value={serviceTimeId}
             onChange={(event) => onServiceTimeChange(event.target.value)}
           >
-            {serviceTimes.length === 0 ? (
+            {(Array.isArray(serviceTimes) ? serviceTimes : []).length === 0 ? (
               <option value="">Add service times in Create Church</option>
             ) : (
-              serviceTimes.map((service) => (
+              (Array.isArray(serviceTimes) ? serviceTimes : []).map((service) => (
                 <option key={service.id} value={service.id}>
                   {serviceTimeLabel(service)}
                 </option>
@@ -87,7 +87,7 @@ export default function ScheduleBuilder({
             value={slotRoleId}
             onChange={(event) => onSlotRoleChange(event.target.value)}
           >
-            {roles.map((role) => (
+            {Array.isArray(roles) && roles.map((role) => (
               <option key={role.id} value={role.id}>
                 {role.name}
               </option>
@@ -96,36 +96,37 @@ export default function ScheduleBuilder({
         </div>
         <div className="space-y-2">
           <label className="text-xs text-[var(--gather-muted)]">Quantity</label>
-          <Input
+          <input
             type="number"
             min={1}
+            className="input input-bordered w-full"
             value={slotCount}
             onChange={(event) => onSlotCountChange(Number(event.target.value))}
           />
         </div>
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-3">
-        <Button variant="outline" onClick={onAddSlot}>Add role slots</Button>
-        <Button onClick={onGenerateSchedule} disabled={!slots.length || !serviceTimeId}>Generate schedule</Button>
-        <Button variant="outline" onClick={onCopyLast}>Copy last service</Button>
+        <button className="btn btn-outline" onClick={onAddSlot}>Add role slots</button>
+        <button className="btn btn-primary" onClick={onGenerateSchedule} disabled={!Array.isArray(slots) || !slots.length || !serviceTimeId}>Generate schedule</button>
+        <button className="btn btn-outline" onClick={onCopyLast}>Copy last service</button>
       </div>
       <div className="mt-4 space-y-2">
-        {slots.length === 0 ? (
-          <div className="rounded-xl border border-dashed p-4 text-sm" style={{ borderColor: 'var(--border)', color: 'var(--muted)' }}>
+        {Array.isArray(slots) && slots.length === 0 ? (
+          <div className="rounded-xl border border-dashed p-4 text-sm text-base-content/60">
             No slots queued yet. Add role slots or copy last service.
           </div>
         ) : (
-          slots.map((slot) => (
-            <div key={slot.id} className="flex items-center justify-between rounded-2xl p-3 text-sm" style={{ background: 'var(--gather-surface)' }}>
+          Array.isArray(slots) && slots.map((slot) => (
+            <div key={slot.id} className="flex items-center justify-between rounded-2xl p-3 text-sm bg-base-100">
               <div>
-                <p className="font-medium">
+                <p className="font-medium text-base-content">
                   {roles.find((role) => role.id === slot.roleId)?.name ?? "Role"}
                 </p>
-                <p style={{ color: 'var(--muted)' }}>{slot.count} slots</p>
+                <p className="text-base-content/60">{slot.count} slots</p>
               </div>
-              <Button size="sm" variant="outline" onClick={() => onRemoveSlot(slot.id)}>
+              <button className="btn btn-sm btn-outline" onClick={() => onRemoveSlot(slot.id)}>
                 Remove
-              </Button>
+              </button>
             </div>
           ))
         )}

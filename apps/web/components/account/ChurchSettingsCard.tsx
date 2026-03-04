@@ -1,6 +1,3 @@
-import { Button } from "../ui/button";
-import { Card, CardTitle } from "../ui/card";
-import { Input } from "../ui/input";
 
 type TimezoneOption = { value: string; label: string };
 
@@ -24,32 +21,40 @@ export default function ChurchSettingsCard({
   saveDisabled: boolean;
 }) {
   return (
-    <Card>
+    <div className="card bg-base-100 shadow-md p-4 rounded-xl">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <CardTitle>Church Settings</CardTitle>
+          <h2 className="card-title text-lg font-bold">Church Settings</h2>
           <p className="text-sm text-[var(--gather-muted)]">Update the basics for your church.</p>
         </div>
-        <Button size="sm" onClick={onSave} disabled={saveDisabled}>
+        <button
+          type="button"
+          className="btn btn-sm btn-primary"
+          onClick={onSave}
+          disabled={saveDisabled}
+        >
           Save
-        </Button>
+        </button>
       </div>
       <div className="mt-4 grid gap-3">
         <div className="grid gap-1">
           <p className="text-xs uppercase tracking-[0.2em] text-[var(--gather-muted)]">Church name</p>
-          <Input
+          <input
+            type="text"
             placeholder="Church name"
+            className="input input-bordered w-full"
             value={churchName}
             onChange={(event) => onChurchNameChange(event.target.value)}
           />
         </div>
         <div className="grid gap-1">
           <p className="text-xs uppercase tracking-[0.2em] text-[var(--gather-muted)]">Church Join Code</p>
-          <Input
+          <input
+            type="text"
             placeholder="Join code"
+            className="input input-bordered w-full bg-base-200/60 text-[var(--gather-muted)]"
             value={joinCode}
             readOnly
-            className="bg-base-200/60 text-[var(--gather-muted)]"
           />
           <p className="text-sm text-[var(--gather-muted)]">
             Members use this code to join your church in the Gather app.
@@ -70,6 +75,6 @@ export default function ChurchSettingsCard({
           </select>
         </div>
       </div>
-    </Card>
+    </div>
   );
 }

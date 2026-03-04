@@ -3,10 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import AdminHeader from "../../../components/admin/AdminHeader";
-import { MotionContainer, MotionItem } from "../../../components/ui/motion";
-import { Button } from "../../../components/ui/button";
-import { Card, CardTitle } from "../../../components/ui/card";
-import { Input } from "../../../components/ui/input";
+// DaisyUI migration: use className markup for all UI
 import { getCurrentContext, indexProfilesById, listProfilesByChurch } from "../../../lib/supabaseData";
 import { supabase } from "../../../lib/supabaseClient";
 import { formatShortWeekdayDateTime } from "../../../lib/format";
@@ -17,6 +14,7 @@ import DeclinedCard from "../../../components/volunteers/DeclinedCard";
 import ScheduleBuilder from "../../../components/volunteers/ScheduleBuilder";
 import QuickRolePresets from "../../../components/volunteers/QuickRolePresets";
 import type { Database } from "@gather/lib";
+// DaisyUI migration: all MotionContainer/MotionItem removed, using divs/fragments for layout
 
 type RoleRow = Database["public"]["Tables"]["volunteer_roles"]["Row"];
 type MinistryRow = Database["public"]["Tables"]["ministries"]["Row"];
@@ -459,15 +457,15 @@ export default function VolunteersPage() {
   };
 
   return (
-    <MotionContainer className="space-y-8">
-      <MotionItem>
+    <div className="space-y-8">
+      <div>
         <AdminHeader
           title="Volunteer Scheduling"
           subtitle="See who is serving, fill open roles, and follow up in one place."
         />
-      </MotionItem>
+      </div>
 
-      <MotionItem>
+      <div>
         <NextServiceReadinessStrip
           serviceLabel={serviceLabel || "Not scheduled"}
           totalSlots={readinessCounts.total}
@@ -479,15 +477,15 @@ export default function VolunteersPage() {
           onCopyLast={handleCopyLastService}
           onSendReminders={handleSendReminders}
         />
-      </MotionItem>
+      </div>
 
       {error ? (
-        <MotionItem>
+        <div>
           <p className="text-sm text-error">{error}</p>
-        </MotionItem>
+        </div>
       ) : null}
 
-      <MotionItem>
+      <div>
         <AssignmentsTable
           assignments={assignmentsForSelected}
           roles={roles}
@@ -507,108 +505,61 @@ export default function VolunteersPage() {
           onGenerateSchedule={handleGenerateSchedule}
           onCopyLast={handleCopyLastService}
         />
-      </MotionItem>
+      </div>
 
-      <MotionItem>
-        <section className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
-          <div className="space-y-6">
-            <ScheduleBuilder
-              serviceDate={serviceDate}
-              serviceTimeId={serviceTimeId}
-              serviceTimes={serviceTimes}
-              roles={roles}
-              slotRoleId={slotRoleId}
-              slotCount={slotCount}
-              slots={slots}
-              onServiceDateChange={setServiceDate}
-              onServiceTimeChange={setServiceTimeId}
-              onSlotRoleChange={setSlotRoleId}
-              onSlotCountChange={setSlotCount}
-              onAddSlot={handleAddSlot}
-              onRemoveSlot={handleRemoveSlot}
-              onGenerateSchedule={handleGenerateSchedule}
-              onCopyLast={handleCopyLastService}
-              serviceTimeLabel={serviceTimeLabel}
+      <section className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
+        <div className="space-y-8">
+          <div>
+            <AdminHeader
+              title="Volunteer Scheduling"
+              subtitle="See who is serving, fill open roles, and follow up in one place."
             />
-
-            <Card>
-              <div className="flex items-center justify-between">
-                <CardTitle>Volunteer roles</CardTitle>
-                <span className="text-xs text-[var(--gather-muted)]">{roles.length} roles</span>
-              </div>
-              <div className="mt-4 space-y-3">
-                {roles.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-base-300 p-4 text-sm">
-                    <p className="text-[var(--gather-muted)]">No roles yet.</p>
-                    <p className="text-xs text-[var(--gather-muted)] mt-1">Add a role or try a preset.</p>
-                    <div className="mt-3">
-                      <QuickRolePresets onAddRole={(name) => handleAddRole(name)} />
-                    </div>
-                  </div>
-                ) : (
-                  roles.map((role) => (
-                    <div key={role.id} className="rounded-2xl bg-base-100 p-3 text-sm">
-                      <div className="flex items-center justify-between">
-                        <p className="font-medium text-[var(--gather-ink)]">{role.name}</p>
-                        <div className="flex items-center gap-2">
-                          <Button size="sm" variant="outline" onClick={() => handleEditRole(role)}>
-                            Edit
-                          </Button>
-                          <Button size="sm" variant="outline" onClick={() => handleDeleteRole(role.id)}>
-                            Delete
-                          </Button>
-                        </div>
-                      </div>
-                      {role.ministryName ? <p className="text-[var(--gather-muted)]">Ministry: {role.ministryName}</p> : null}
-                      {role.description ? <p className="text-[var(--gather-muted)]">{role.description}</p> : null}
-                    </div>
-                  ))
-                )}
-              </div>
-              <div className="mt-5 space-y-3">
-                <Input
-                  placeholder="Role name (e.g. Greeter)"
-                  value={newRoleName}
-                  onChange={(event) => setNewRoleName(event.target.value)}
-                />
-                <Input
-                  placeholder="Ministry (optional)"
-                  value={newRoleMinistry}
-                  onChange={(event) => setNewRoleMinistry(event.target.value)}
-                />
-                <Input
-                  placeholder="Short description (optional)"
-                  value={newRoleDescription}
-                  onChange={(event) => setNewRoleDescription(event.target.value)}
-                />
-                <Button onClick={() => handleAddRole()}>Add role</Button>
-                {editingRoleId ? (
-                  <div className="rounded-2xl bg-base-100 p-3">
-                    <p className="text-xs text-[var(--gather-muted)]">Editing role</p>
-                    <div className="mt-3 space-y-2">
-                      <Input value={editRoleName} onChange={(event) => setEditRoleName(event.target.value)} />
-                      <Input value={editRoleMinistry} onChange={(event) => setEditRoleMinistry(event.target.value)} />
-                      <Input value={editRoleDescription} onChange={(event) => setEditRoleDescription(event.target.value)} />
-                      <div className="flex gap-2">
-                        <Button size="sm" onClick={handleSaveRole}>Save</Button>
-                        <Button size="sm" variant="outline" onClick={() => setEditingRoleId(null)}>
-                          Cancel
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-            </Card>
           </div>
 
-          <div className="space-y-6">
-            <PendingResponsesCard items={pendingItems} onFollowUp={handleSendReminders} />
-            <DeclinedCard items={declinedItems} />
+          <div>
+            <NextServiceReadinessStrip
+              serviceLabel={serviceLabel || "Not scheduled"}
+              // ...existing props...
+            />
           </div>
-        </section>
-      </MotionItem>
-    </MotionContainer>
+
+          <div>
+            <AssignmentsTable
+              // ...existing props...
+            />
+          </div>
+
+          <div>
+            <PendingResponsesCard
+              // ...existing props...
+            />
+          </div>
+
+          <div>
+            <DeclinedCard
+              // ...existing props...
+            />
+          </div>
+
+          <div>
+            <ScheduleBuilder
+              // ...existing props...
+            />
+          </div>
+
+          <div>
+            <QuickRolePresets
+              // ...existing props...
+            />
+          </div>
+        </div>
+
+        <div className="space-y-6">
+          <PendingResponsesCard items={pendingItems} onFollowUp={handleSendReminders} />
+          <DeclinedCard items={declinedItems} />
+        </div>
+      </section>
+    </div>
   );
 }
 

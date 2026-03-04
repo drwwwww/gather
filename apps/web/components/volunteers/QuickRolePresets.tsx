@@ -1,6 +1,6 @@
 "use client";
 
-import { Button } from "../ui/button";
+// DaisyUI migration: use className markup for all UI
 
 const presetRoles = ["Greeter", "Usher", "Sound Team"];
 
@@ -11,10 +11,10 @@ type QuickRolePresetsProps = {
 export default function QuickRolePresets({ onAddRole }: QuickRolePresetsProps) {
   return (
     <div className="flex flex-wrap gap-2">
-      {presetRoles.map((role) => (
-        <Button key={role} size="sm" variant="outline" onClick={() => onAddRole(role)}>
+      {Array.isArray(presetRoles) && presetRoles.map((role) => (
+        <button key={role} className="btn btn-sm btn-outline" onClick={() => onAddRole(role)}>
           Add {role}
-        </Button>
+        </button>
       ))}
     </div>
   );

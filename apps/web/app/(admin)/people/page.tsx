@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import AdminHeader from "../../../components/admin/AdminHeader";
-import { Button } from "../../../components/ui/button";
+// DaisyUI migration: use className markup for all UI
 import { buildJoinLink } from "../../../lib/format";
 import { supabase } from "../../../lib/supabaseClient";
 import { getCurrentContext, listProfilesByChurch } from "../../../lib/supabaseData";
@@ -266,7 +266,12 @@ export default function PeoplePage() {
         title="People & Roles"
         subtitle="Manage members, roles, invites, and onboarding across the church."
         actions={
-          <Button onClick={() => setInviteOpen(true)}>Invite members</Button>
+          <button
+            className="btn btn-primary"
+            onClick={() => setInviteOpen(true)}
+          >
+            Invite members
+          </button>
         }
       />
 

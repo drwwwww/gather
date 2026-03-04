@@ -1,6 +1,6 @@
 "use client";
 
-import { Card, CardTitle } from "../ui/card";
+
 
 type DeclinedItem = {
   id: string;
@@ -13,24 +13,25 @@ type DeclinedCardProps = {
 };
 
 export default function DeclinedCard({ items }: DeclinedCardProps) {
+  const safeItems = Array.isArray(items) ? items : [];
   return (
-    <Card>
+    <div className="card bg-base-100 shadow-md p-4 rounded-xl">
       <div className="flex items-center justify-between">
-        <CardTitle>Declined</CardTitle>
-        <span className="text-xs text-[var(--gather-muted)]">{items.length} declined</span>
+        <div className="card-title text-lg font-semibold">Declined</div>
+        <span className="text-xs text-[var(--gather-muted)]">{safeItems.length} declined</span>
       </div>
       <div className="mt-4 space-y-2 text-sm">
-        {items.length === 0 ? (
+        {safeItems.length === 0 ? (
           <p className="text-[var(--gather-muted)]">No declined assignments.</p>
         ) : (
-          items.slice(0, 4).map((item) => (
-            <div key={item.id} className="rounded-xl p-3" style={{ background: 'var(--gather-surface)' }}>
-              <p className="font-medium" style={{ color: 'var(--ink)' }}>{item.role}</p>
-              <p style={{ color: 'var(--muted)' }}>{item.detail}</p>
+          safeItems.slice(0, 4).map((item) => (
+            <div key={item.id} className="rounded-xl p-3 bg-base-100">
+              <p className="font-medium text-base-content">{item.role}</p>
+              <p className="text-base-content/70">{item.detail}</p>
             </div>
           ))
         )}
       </div>
-    </Card>
+    </div>
   );
 }

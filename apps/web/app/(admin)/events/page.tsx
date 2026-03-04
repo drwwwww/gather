@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import AdminHeader from "../../../components/admin/AdminHeader";
-import { MotionContainer, MotionItem } from "../../../components/ui/motion";
 import { getCurrentContext, indexProfilesById, listProfilesByChurch } from "../../../lib/supabaseData";
 import { supabase } from "../../../lib/supabaseClient";
 import EventForm, { type EventFormValues } from "../../../components/events/EventForm";
@@ -279,14 +278,14 @@ export default function EventsPage() {
   };
 
   return (
-    <MotionContainer className="space-y-8">
-      <MotionItem>
+    <div className="space-y-8">
+      <div>
         <AdminHeader
           title="Events"
           subtitle="Create events and track RSVP counts."
         />
-      </MotionItem>
-      <MotionItem>
+      </div>
+      <div>
         <section className="grid gap-6 xl:grid-cols-[1.3fr_0.9fr]">
           <EventForm
             values={formValues}
@@ -322,7 +321,7 @@ export default function EventsPage() {
             />
           </div>
         </section>
-      </MotionItem>
+      </div>
 
       <AttendeeListDialog
         open={viewAttendees}
@@ -333,7 +332,7 @@ export default function EventsPage() {
       {loading ? (
         <div className="text-sm text-base-content/60">Loading events...</div>
       ) : null}
-    </MotionContainer>
+    </div>
   );
 }
 
