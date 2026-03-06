@@ -243,17 +243,17 @@ export default function AdminEntryPage() {
 
   if (status === "checking") {
     return (
-      <main className="mx-auto flex min-h-[60vh] max-w-3xl items-center justify-center px-6">
-        <p className="text-sm text-base-content/70">Finishing setup...</p>
+      <main className="mx-auto flex min-h-[60vh] max-w-3xl items-center justify-center px-6" style={{ background: "var(--bg)" }}>
+        <p className="text-sm" style={{ color: "var(--text-muted)" }}>Finishing setup...</p>
       </main>
     );
   }
 
   if (status === "restricted") {
     return (
-      <main className="mx-auto flex min-h-[60vh] max-w-3xl flex-col items-center justify-center gap-4 px-6 bg-base-100">
-        <h1 className="text-2xl font-semibold">Access restricted</h1>
-        <p className="text-sm text-base-content/70">Your account is not an admin. Request access from your church admin.</p>
+      <main className="mx-auto flex min-h-[60vh] max-w-3xl flex-col items-center justify-center gap-4 px-6" style={{ background: "var(--bg)" }}>
+        <h1 className="text-2xl font-semibold" style={{ color: "var(--text-primary)" }}>Access restricted</h1>
+        <p className="text-sm" style={{ color: "var(--text-muted)" }}>Your account is not an admin. Request access from your church admin.</p>
         <Button
           type="button"
           variant="ghost"
@@ -277,9 +277,9 @@ export default function AdminEntryPage() {
           subtitle="Weekly operations overview."
           actions={
             <div className="flex flex-wrap gap-2">
-              <Link href="/announcements" className="inline-flex items-center justify-center h-[34px] px-3 rounded-xl font-medium text-sm bg-[var(--primary)] text-white border-0 hover:bg-[var(--primary-hover)] transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2">Create announcement</Link>
-              <Link href="/events" className="inline-flex items-center justify-center h-[34px] px-3 rounded-xl font-medium text-sm bg-[var(--surface)] text-[var(--text-primary)] border border-[var(--border)] hover:bg-[var(--surface-2)] transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2">Create event</Link>
-              <Link href="/volunteers" className="inline-flex items-center justify-center h-[34px] px-3 rounded-xl font-medium text-sm bg-transparent text-[var(--text-secondary)] border-0 hover:bg-[var(--surface-2)] transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2">Generate schedule</Link>
+              <Link href="/announcements" className="btn btn-primary btn-sm">Create announcement</Link>
+              <Link href="/events" className="btn btn-secondary btn-sm">Create event</Link>
+              <Link href="/volunteers" className="btn btn-ghost btn-sm">Generate schedule</Link>
             </div>
           }
         />
@@ -311,12 +311,12 @@ export default function AdminEntryPage() {
             <div className="space-y-8">
               <UpcomingEventsCard items={eventPreviews} />
               <RecentActivityCard items={recentActivity} />
-              <section className="rounded-xl p-5" style={{ background: 'var(--gather-surface)' }}>
-                <p className="text-xs uppercase tracking-[0.2em]" style={{ color: 'var(--muted)' }}>Verse of the day</p>
-                <blockquote className="mt-3 text-sm italic" style={{ color: 'var(--ink)' }}>
+              <section className="rounded-xl p-5 border" style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
+                <p className="text-xs uppercase tracking-[0.2em]" style={{ color: "var(--text-muted)" }}>Verse of the day</p>
+                <blockquote className="mt-3 text-sm italic" style={{ color: "var(--text-primary)" }}>
                   "Let us not love with words or speech but with actions and in truth."
                 </blockquote>
-                <cite className="mt-2 block text-xs" style={{ color: 'var(--muted)' }}>- 1 John 3:18</cite>
+                <cite className="mt-2 block text-xs" style={{ color: "var(--text-muted)" }}>- 1 John 3:18</cite>
               </section>
             </div>
           </div>

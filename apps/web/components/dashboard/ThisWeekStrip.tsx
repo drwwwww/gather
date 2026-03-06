@@ -27,10 +27,11 @@ export default function ThisWeekStrip({
       {items.map((item) => (
         <div
           key={item.label}
-          className="card bg-base-100 border border-base-300 rounded-2xl shadow-sm p-5 flex flex-col transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
+          className="rounded-2xl border p-5 flex flex-col transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
+          style={{ background: "var(--surface)", borderColor: "var(--border)", boxShadow: "0 1px 2px rgba(16, 24, 40, 0.06)" }}
         >
-          <span className="text-xs uppercase tracking-wide text-base-content/60">{item.label}</span>
-          <span className="mt-2 text-2xl font-semibold text-base-content">{item.value}</span>
+          <span className="text-xs uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>{item.label}</span>
+          <span className="mt-2 text-2xl font-semibold" style={{ color: "var(--text-primary)" }}>{item.value}</span>
         </div>
       ))}
     </>

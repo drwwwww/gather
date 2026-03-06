@@ -1,5 +1,5 @@
 
-import { Card } from "../ui/Card";
+
 
 export default function KpiRow({ members, volunteers, rsvpsThisWeek }: { members: number; volunteers: number; rsvpsThisWeek: number }) {
   const items = [
@@ -10,10 +10,10 @@ export default function KpiRow({ members, volunteers, rsvpsThisWeek }: { members
   return (
     <>
       {items.map((item) => (
-        <Card key={item.label} className="flex flex-col items-start p-6 transition-all duration-150 hover:shadow-[0_2px_8px_rgba(0,0,0,0.08)] hover:-translate-y-[1px] cursor-pointer">
-          <div className="meta-text mb-2">{item.label}</div>
-          <div className="stat-number">{item.value}</div>
-        </Card>
+        <div key={item.label} className="flex flex-col items-start p-6 border rounded-xl transition-all duration-150 hover:shadow-[0_2px_8px_rgba(0,0,0,0.08)] hover:-translate-y-[1px] cursor-pointer" style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
+          <div className="mb-2 text-xs uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>{item.label}</div>
+          <div className="text-2xl font-semibold" style={{ color: "var(--text-primary)" }}>{item.value}</div>
+        </div>
       ))}
     </>
   );

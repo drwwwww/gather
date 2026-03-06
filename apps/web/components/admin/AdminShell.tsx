@@ -266,23 +266,23 @@ export default function AdminShell({ children }: { children: ReactNode }) {
           </div>
         </aside>
         {/* Main content */}
-        <main className="flex-1 min-w-0" style={{ marginLeft: "var(--sidebar-w)" }}>
+        <main className="flex-1 min-w-0 min-h-screen" style={{ marginLeft: "var(--sidebar-w)", background: "var(--bg)" }}>
           {/* Header */}
           <header
-            className="sticky top-0 z-30 flex items-center h-[64px] bg-white border-b border-[var(--border)] px-8"
-            style={{ boxShadow: "none" }}
+            className="sticky top-0 z-30 flex items-center h-[64px] border-b px-8"
+            style={{ background: "var(--surface)", borderColor: "var(--border)", boxShadow: "none" }}
           >
             {/* Left: Org name + context */}
             <div className="flex flex-col justify-center min-w-0" style={{ flex: '0 0 auto', height: 64 }}>
               <span
-                className="uppercase tracking-wide text-[11px] font-semibold text-[var(--muted)] mb-1 pl-0.5"
-                style={{ letterSpacing: '0.06em', lineHeight: '1.2' }}
+                className="uppercase tracking-wide text-[11px] font-semibold mb-1 pl-0.5"
+                style={{ letterSpacing: '0.06em', lineHeight: '1.2', color: 'var(--text-muted)' }}
               >
                 Church
               </span>
               <span
-                className="text-[28px] leading-[32px] font-semibold text-neutral-900 tracking-tight truncate max-w-[240px]"
-                style={{ letterSpacing: '-0.01em', lineHeight: '1.1' }}
+                className="text-[28px] leading-[32px] font-semibold tracking-tight truncate max-w-[240px]"
+                style={{ letterSpacing: '-0.01em', lineHeight: '1.1', color: 'var(--text-primary)' }}
               >
                 {churchName}
               </span>
@@ -307,13 +307,13 @@ export default function AdminShell({ children }: { children: ReactNode }) {
                   <input
                     id="admin-search"
                     type="search"
-                    className="h-10 w-full rounded-[10px] border border-[var(--border)] px-10 text-[14px] bg-white placeholder:text-[var(--muted)] transition-all duration-150 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none hover:border-[color-mix(in_srgb,var(--border),#000_8%)]"
+                    className="h-10 w-full rounded-[10px] border border-[var(--border)] px-10 text-[14px] bg-[var(--surface)] placeholder:text-[var(--text-muted)] transition-all duration-150 focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary-soft)] outline-none hover:border-[color-mix(in_srgb,var(--border),#000_8%)]"
                     placeholder="Search members, events, or records..."
                     value={searchTerm}
                     onChange={(event) => setSearchTerm(event.target.value)}
                     aria-label="Search members, events, or records"
                   />
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)] w-5 h-5 pointer-events-none" aria-hidden="true" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] w-5 h-5 pointer-events-none" aria-hidden="true" />
                 </div>
               </div>
             </form>
@@ -322,7 +322,7 @@ export default function AdminShell({ children }: { children: ReactNode }) {
               {/* Notifications icon */}
               <Link
                 href="/notifications"
-                className="relative flex items-center justify-center w-10 h-10 rounded-[10px] hover:bg-[var(--muted)] transition-colors duration-150"
+                className="relative flex items-center justify-center w-10 h-10 rounded-[10px] hover:bg-[var(--surface-2)] transition-colors duration-150"
                 aria-label="Notifications"
               >
                 <FontAwesomeIcon icon={faBell} className="w-5 h-5 text-[var(--text-muted)]" />
@@ -334,11 +334,12 @@ export default function AdminShell({ children }: { children: ReactNode }) {
               </Link>
               {/* Minimal avatar and menu button */}
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-bold">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold" style={{ background: "var(--surface-2)", color: "var(--text-secondary)" }}>
                   {displayName.charAt(0)}
                 </div>
                 <button
-                  className="px-2 py-1 rounded bg-gray-100 text-gray-800 text-xs border"
+                  type="button"
+                  className="btn btn-ghost btn-sm"
                   onClick={() => router.push("/logout")}
                 >
                   Logout
