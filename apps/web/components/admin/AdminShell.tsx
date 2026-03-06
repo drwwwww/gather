@@ -1,20 +1,18 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { ReactNode, ReactNode as ReactNodeType } from "react";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Bell, Calendar, ClipboardList, LayoutDashboard, ListChecks, ListOrdered, LogOut, Megaphone, Search, Settings, Users } from "lucide-react";
-import clsx from "clsx";
+import { Bell, Calendar, ListChecks, ListOrdered, Megaphone, Search, Settings } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faHouse, faPeopleGroup, faClipboardUser } from "@fortawesome/free-solid-svg-icons";
 import { supabase } from "../../lib/supabaseClient";
-// Removed ProfileDropdown (dropdown) import
-import Avatar from "../ui/avatar";
-// ...existing code...
 
 const navItems = [
-  { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/people", label: "People", icon: Users },
-  { href: "/volunteers", label: "Volunteers", icon: ClipboardList },
+  { href: "/admin", label: "Dashboard", icon: () => <FontAwesomeIcon icon={faHouse} className="w-5 h-5" /> },
+  { href: "/people", label: "People", icon: () => <FontAwesomeIcon icon={faPeopleGroup} className="w-5 h-5" /> },
+  { href: "/volunteers", label: "Volunteers", icon: () => <FontAwesomeIcon icon={faClipboardUser} className="w-5 h-5" /> },
   { href: "/admin/service-plans", label: "Service Plans", icon: ListChecks },
   { href: "/admin/service-presets", label: "Service Presets", icon: ListOrdered },
   { href: "/announcements", label: "Announcements", icon: Megaphone },
@@ -97,76 +95,176 @@ export default function AdminShell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-[var(--bg)]">
       <div className="flex">
-        {/* Sidebar */}
-        <aside className="sticky top-0 z-40 h-screen w-56 md:w-52 flex flex-col border-r border-[var(--border)] bg-[var(--surface)] flex transition-all duration-200">
-          <div className="flex flex-col items-start gap-2 px-3 py-4">
-            <img src="/logo.png" alt="Gather" className="h-8 w-8" />
-            <span className="text-lg font-semibold tracking-tight text-[var(--ink)]">Gather</span>
+        {/* Sidebar - fixed so it stays visible when scrolling */}
+        <aside
+          className="fixed left-0 top-0 z-40 flex h-screen min-w-0 flex-col overflow-hidden border-r border-[var(--border)] bg-[var(--surface)]"
+          style={{
+            width: "var(--sidebar-w)",
+            padding: "var(--sidebar-pad-y) var(--sidebar-row-pad-x)",
+            gap: "12px",
+          }}
+        >
+          {/* Brand - no margin */}
+          <div className="flex flex-col">
+            <span className="text-sm font-semibold tracking-tight text-[var(--text-primary)]">
+              Gather
+            </span>
+            <span className="text-xs text-[var(--text-muted)]">
+              Admin
+            </span>
           </div>
-          <nav className="flex flex-col gap-2 px-2">
-            {navItems.map(({ href, icon: Icon, label }) => {
-              const isActive = href === "/admin"
-                ? pathname === href
-                : pathname?.startsWith(href);
-              return (
-                <li
-                  key={href}
-                  className={clsx(
-                    "rounded-xl relative group",
-                    isActive && "before:content-[''] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1 before:rounded-full before:bg-[var(--primary)]"
-                  )}
-                >
+
+          <div className="h-px shrink-0 bg-[var(--divider)]" />
+
+          {/* Primary nav - no padding/margin; rail inside Link so it cannot affect layout */}
+          <nav aria-label="Main navigation" className="min-w-0 shrink-0">
+            <ul
+              className="flex list-none flex-col"
+              style={{
+                gap: "var(--sidebar-gap)",
+                margin: 0,
+                padding: 0,
+                listStyle: "none",
+              }}
+            >
+              {navItems.map(({ href, icon: Icon, label }) => {
+                const isActive =
+                  href === "/admin" ? pathname === href : pathname?.startsWith(href);
+                return (
+                  <li
+                    key={href}
+                    className="list-none"
+                    style={{ margin: 0, padding: 0 }}
+                  >
+                    <Link
+                      href={href}
+                      className="relative w-full grid grid-cols-[18px_1fr] items-center rounded-[14px] no-underline transition-colors duration-150 hover:no-underline hover:bg-[var(--surface-2)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-0"
+                      style={{
+                        height: "var(--sidebar-row-h)",
+                        padding: 0,
+                        margin: 0,
+                        columnGap: "0.75rem",
+                        background: isActive ? "var(--primary-soft)" : "transparent",
+                        color: isActive ? "var(--primary)" : "var(--text-secondary)",
+                        textDecoration: "none",
+                        boxSizing: "border-box",
+                      }}
+                    >
+                      {isActive && (
+                        <span
+                          className="absolute left-0 top-1 bottom-1 w-1 rounded-full pointer-events-none"
+                          style={{ background: "var(--primary)" }}
+                          aria-hidden
+                        />
+                      )}
+                      <span
+                        className="flex shrink-0 items-center justify-center overflow-hidden [&_svg]:size-full"
+                        style={{
+                          width: "18px",
+                          height: "18px",
+                          minWidth: "18px",
+                          minHeight: "18px",
+                          color: isActive ? "var(--primary)" : "var(--text-muted)",
+                        }}
+                        aria-hidden
+                      >
+                        <Icon className="w-full h-full" />
+                      </span>
+                      <span className="truncate text-sm font-medium leading-none min-w-0">
+                        {label}
+                      </span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
+
+          <div className="min-h-0 flex-1 shrink" />
+
+          <div className="h-px shrink-0 bg-[var(--divider)]" />
+
+          {/* Bottom nav - same row structure, rail inside Link */}
+          <nav aria-label="Account navigation" className="min-w-0 shrink-0">
+            <ul
+              className="flex list-none flex-col"
+              style={{
+                gap: "var(--sidebar-gap)",
+                margin: 0,
+                padding: 0,
+                listStyle: "none",
+              }}
+            >
+              {[
+                {
+                  href: "/notifications",
+                  label: "Notifications",
+                  icon: Bell,
+                  isActive: pathname === "/notifications",
+                  endAdornment:
+                    notificationCount > 0 ? (
+                      <span className="inline-flex h-5 min-w-[18px] shrink-0 items-center justify-center rounded-full bg-[var(--primary)] px-2 text-[10px] font-semibold text-white">
+                        {notificationCount > 99 ? "99+" : notificationCount}
+                      </span>
+                    ) : null,
+                },
+                {
+                  href: "/account",
+                  label: "Account",
+                  icon: Settings,
+                  isActive: pathname === "/account",
+                  endAdornment: null as ReactNodeType | null,
+                },
+              ].map(({ href, label, icon: Icon, isActive, endAdornment }) => (
+                <li key={href} className="list-none" style={{ margin: 0, padding: 0 }}>
                   <Link
                     href={href}
-                    className={clsx(
-                      "flex items-center gap-3 rounded-xl px-3 py-2 transition-all duration-150 active:scale-[0.99]",
-                      isActive
-                        ? "bg-[var(--primary-soft)] text-[var(--primary)] font-medium hover:bg-[var(--primary-hover)] hover:text-[var(--ink)] hover:font-semibold"
-                        : "text-[var(--ink)] hover:bg-[var(--surface-2)] hover:text-[var(--primary)] hover:font-semibold",
-                    )}
+                    className="relative w-full grid grid-cols-[18px_1fr] items-center rounded-[14px] no-underline transition-colors duration-150 hover:no-underline hover:bg-[var(--surface-2)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-0"
+                    style={{
+                      height: "var(--sidebar-row-h)",
+                      padding: 0,
+                      margin: 0,
+                      columnGap: "0.75rem",
+                      background: isActive ? "var(--primary-soft)" : "transparent",
+                      color: isActive ? "var(--primary)" : "var(--text-secondary)",
+                      textDecoration: "none",
+                      boxSizing: "border-box",
+                    }}
                   >
-                    <Icon className={clsx("h-5 w-5", isActive ? "opacity-100" : "opacity-80 group-hover:opacity-100")} />
-                    <span className="text-sm">{label}</span>
+                    {isActive && (
+                      <span
+                        className="absolute left-0 top-1 bottom-1 w-1 rounded-full pointer-events-none"
+                        style={{ background: "var(--primary)" }}
+                        aria-hidden
+                      />
+                    )}
+                    <span
+                      className="flex shrink-0 items-center justify-center overflow-hidden [&_svg]:size-full"
+                      style={{
+                        width: "18px",
+                        height: "18px",
+                        minWidth: "18px",
+                        minHeight: "18px",
+                        color: isActive ? "var(--primary)" : "var(--text-muted)",
+                      }}
+                      aria-hidden
+                    >
+                      <Icon className="w-full h-full" />
+                    </span>
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span className="truncate text-sm font-medium leading-none min-w-0">
+                        {label}
+                      </span>
+                      {endAdornment}
+                    </div>
                   </Link>
                 </li>
-              );
-            })}
+              ))}
+            </ul>
           </nav>
-          <div className="flex-1" />
-          <div className="border-t border-[var(--border)] my-4 mx-2" />
-          <div className="flex flex-col gap-2 px-2 pb-4">
-            <Link
-              href="/notifications"
-              className={clsx(
-                "flex items-center gap-3 rounded-xl px-3 py-2 text-[var(--ink)] transition-colors duration-150 active:scale-[0.99]",
-                pathname === "/notifications" && "bg-[var(--primary-soft)] text-[var(--primary)] font-medium",
-                pathname !== "/notifications" && "hover:bg-[var(--surface-2)]"
-              )}
-            >
-              <Bell className="h-5 w-5" />
-              <span className="text-sm">Notifications</span>
-              {notificationCount > 0 && (
-                <span className="ml-auto rounded-full bg-[var(--primary)] px-2 py-0.5 text-xs font-semibold text-[var(--surface)]">
-                  {notificationCount > 99 ? "99+" : notificationCount}
-                </span>
-              )}
-            </Link>
-            <Link
-              href="/account"
-              className={clsx(
-                "flex items-center gap-3 rounded-xl px-3 py-2 text-[var(--ink)] transition-colors duration-150 active:scale-[0.99]",
-                pathname === "/account" && "bg-[var(--primary-soft)] text-[var(--primary)] font-medium",
-                pathname !== "/account" && "hover:bg-[var(--surface-2)]"
-              )}
-            >
-              <Settings className="h-5 w-5" />
-              <span className="text-sm">Account</span>
-            </Link>
-          </div>
         </aside>
-
         {/* Main content */}
-        <main className="flex-1 min-w-0">
+        <main className="flex-1 min-w-0" style={{ marginLeft: "var(--sidebar-w)" }}>
           {/* Header */}
           <header
             className="sticky top-0 z-30 flex items-center h-[64px] bg-white border-b border-[var(--border)] px-8"

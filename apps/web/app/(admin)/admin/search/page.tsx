@@ -7,6 +7,7 @@ import { supabase } from "../../../../lib/supabaseClient";
 import AdminHeader from "../../../../components/admin/AdminHeader";
 // DaisyUI migration: use className markup for all UI
 import SearchResults from "../../../../components/search/SearchResults";
+import { Input } from "../../../../components/ui/input";
 
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 type EventRow = Database["public"]["Tables"]["events"]["Row"];

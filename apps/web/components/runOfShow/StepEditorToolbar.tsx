@@ -1,4 +1,6 @@
 
+import { Button } from "../ui/button";
+
 const quickInsertTitles = [
   "Welcome",
   "Worship",

@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { Database } from "@gather/lib";
 
-import { Button } from "../../ui/button";
+import { Button } from "../ui/button";
 
 type AssignmentRow = Database["public"]["Tables"]["volunteer_assignments"]["Row"];
 type RoleRow = Database["public"]["Tables"]["volunteer_roles"]["Row"];

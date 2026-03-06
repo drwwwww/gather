@@ -6,7 +6,7 @@ import type { Database } from "@gather/lib";
 // ...existing code...
 import { formatDurationMinutes } from "../../lib/format";
 import PresetStepsEditor, { type PresetItemDraft } from "./PresetStepsEditor";
-// ...existing code...
+import { Badge } from "../ui/badge";
 
 type ServicePreset = Database["public"]["Tables"]["service_presets"]["Row"];
 type PresetItemRow = Database["public"]["Tables"]["service_preset_items"]["Row"];

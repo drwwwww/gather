@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { Database, ServicePlanStatus } from "@gather/lib";
 import clsx from "clsx";
 import StepNumberBadge from "./StepNumberBadge";
+import { Input } from "../ui/input";
 
 type RoleRow = Database["public"]["Tables"]["volunteer_roles"]["Row"];
 

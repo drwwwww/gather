@@ -98,7 +98,8 @@ export default function VolunteersPage() {
         assignee:
           assignment.assigned_user_id && profilesById[assignment.assigned_user_id]
             ? profilesById[assignment.assigned_user_id]?.full_name || "Assigned"
-            : "Unassigned"
+            : "Unassigned",
+        status: assignment.status
       }));
   }, [assignmentsForSelected, roles, profilesById]);
 

@@ -4,6 +4,8 @@
 import { formatShortWeekdayDateTime } from "../../lib/format";
 import EventTemplates, { type EventTemplate } from "./EventTemplates";
 import type { Database } from "@gather/lib";
+import { Button } from "../ui/button";
+import { Badge } from "../ui/badge";
 
 type EventItem = Database["public"]["Tables"]["events"]["Row"];
 

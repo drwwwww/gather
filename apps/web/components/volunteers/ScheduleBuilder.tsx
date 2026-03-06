@@ -52,7 +52,7 @@ export default function ScheduleBuilder({
   serviceTimeLabel
 }: ScheduleBuilderProps) {
   return (
-    <Card className="p-6 flex flex-col gap-4">
+    <div className="card bg-base-100 shadow-md rounded-xl p-6 flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <div className="card-title text-lg font-semibold">Schedule builder</div>
         <span className="text-xs text-[var(--gather-muted)]">Add role slots</span>
@@ -131,6 +131,6 @@ export default function ScheduleBuilder({
           ))
         )}
       </div>
-    </Card>
+    </div>
   );
 }

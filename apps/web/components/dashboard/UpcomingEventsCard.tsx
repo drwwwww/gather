@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { format } from "../../lib/format";
+import { formatShortDate } from "../../lib/format";
 
 
 export type EventRow = {
@@ -39,7 +39,7 @@ export default function UpcomingEventsCard({ items }: { items: EventRow[] }) {
               {items.map((row) => (
                 <tr key={row.id} className="hover:bg-[var(--surface-2)] transition-colors">
                   <td>{row.name}</td>
-                  <td>{format.date(row.date)}</td>
+                  <td>{formatShortDate(row.date)}</td>
                   <td>
                     <span className="px-2 py-1 rounded bg-gray-200 text-gray-800 text-xs">
                       {row.status}

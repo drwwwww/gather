@@ -7,6 +7,7 @@ import { formatFriendlyDate, formatServiceTimeLabel } from "../../../../../../li
 import { getCurrentContext } from "../../../../../../lib/supabaseData";
 import { supabase } from "../../../../../../lib/supabaseClient";
 import type { Database } from "@gather/lib";
+import { Button } from "../../../../../../components/ui/button";
 
 type ServicePlan = Database["public"]["Tables"]["service_plans"]["Row"];
 type PlanItemRow = Database["public"]["Tables"]["service_plan_items"]["Row"];

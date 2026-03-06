@@ -2,6 +2,7 @@
 
 import type { Database } from "@gather/lib";
 import { useState } from "react";
+import { Input } from "../ui/input";
 
 type ServiceTime = Database["public"]["Tables"]["service_times"]["Row"];
 type ServicePreset = Database["public"]["Tables"]["service_presets"]["Row"];
