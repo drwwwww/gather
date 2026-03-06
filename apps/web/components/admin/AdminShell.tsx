@@ -4,19 +4,19 @@ import type { ReactNode, ReactNode as ReactNodeType } from "react";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Bell, Calendar, ListChecks, ListOrdered, Megaphone, Search, Settings } from "lucide-react";
+import { Search } from "lucide-react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faHouse, faPeopleGroup, faClipboardUser } from "@fortawesome/free-solid-svg-icons";
+import { faHouse, faPeopleGroup, faClipboardUser, faClipboardList, faHammer, faBullhorn, faCalendar, faBell, faGear } from "@fortawesome/free-solid-svg-icons";
 import { supabase } from "../../lib/supabaseClient";
 
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: () => <FontAwesomeIcon icon={faHouse} className="w-5 h-5" /> },
   { href: "/people", label: "People", icon: () => <FontAwesomeIcon icon={faPeopleGroup} className="w-5 h-5" /> },
   { href: "/volunteers", label: "Volunteers", icon: () => <FontAwesomeIcon icon={faClipboardUser} className="w-5 h-5" /> },
-  { href: "/admin/service-plans", label: "Service Plans", icon: ListChecks },
-  { href: "/admin/service-presets", label: "Service Presets", icon: ListOrdered },
-  { href: "/announcements", label: "Announcements", icon: Megaphone },
-  { href: "/events", label: "Events", icon: Calendar }
+  { href: "/admin/service-plans", label: "Service Plans", icon: () => <FontAwesomeIcon icon={faClipboardList} className="w-5 h-5" /> },
+  { href: "/admin/service-presets", label: "Service Presets", icon: () => <FontAwesomeIcon icon={faHammer} className="w-5 h-5" /> },
+  { href: "/announcements", label: "Announcements", icon: () => <FontAwesomeIcon icon={faBullhorn} className="w-5 h-5" /> },
+  { href: "/events", label: "Events", icon: () => <FontAwesomeIcon icon={faCalendar} className="w-5 h-5" /> }
 ];
 
 export default function AdminShell({ children }: { children: ReactNode }) {
@@ -97,10 +97,15 @@ export default function AdminShell({ children }: { children: ReactNode }) {
       <div className="flex">
         {/* Sidebar - fixed so it stays visible when scrolling */}
         <aside
-          className="fixed left-0 top-0 z-40 flex h-screen min-w-0 flex-col overflow-hidden border-r border-[var(--border)] bg-[var(--surface)]"
+          className="fixed left-0 top-0 z-40 flex min-w-0 flex-col overflow-hidden border-r border-[var(--border)] bg-[var(--bg)]"
           style={{
             width: "var(--sidebar-w)",
-            padding: "var(--sidebar-pad-y) var(--sidebar-row-pad-x)",
+            height: "100vh",
+            boxSizing: "border-box",
+            paddingTop: "var(--sidebar-pad-y)",
+            paddingRight: "var(--sidebar-row-pad-x)",
+            paddingBottom: "var(--sidebar-pad-y)",
+            paddingLeft: "var(--sidebar-row-pad-x)",
             gap: "12px",
           }}
         >
@@ -116,8 +121,8 @@ export default function AdminShell({ children }: { children: ReactNode }) {
 
           <div className="h-px shrink-0 bg-[var(--divider)]" />
 
-          {/* Primary nav - no padding/margin; rail inside Link so it cannot affect layout */}
-          <nav aria-label="Main navigation" className="min-w-0 shrink-0">
+          {/* Primary nav - scrollable so bottom links stay on screen */}
+          <nav aria-label="Main navigation" className="min-h-0 min-w-0 flex-1 overflow-y-auto">
             <ul
               className="flex list-none flex-col"
               style={{
@@ -138,14 +143,13 @@ export default function AdminShell({ children }: { children: ReactNode }) {
                   >
                     <Link
                       href={href}
-                      className="relative w-full grid grid-cols-[18px_1fr] items-center rounded-[14px] no-underline transition-colors duration-150 hover:no-underline hover:bg-[var(--surface-2)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-0"
+                      className={`relative w-full grid grid-cols-[18px_1fr] items-center rounded-[14px] no-underline transition-colors duration-200 ease-out hover:no-underline hover:bg-[var(--surface-2)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-0 ${isActive ? "bg-[var(--primary-soft)]" : "bg-transparent"}`}
                       style={{
                         height: "var(--sidebar-row-h)",
-                        padding: 0,
+                        padding: "0 10px",
                         margin: 0,
                         columnGap: "0.75rem",
-                        background: isActive ? "var(--primary-soft)" : "transparent",
-                        color: isActive ? "var(--primary)" : "var(--text-secondary)",
+                        color: isActive ? "var(--primary-hover)" : "var(--text-secondary)",
                         textDecoration: "none",
                         boxSizing: "border-box",
                       }}
@@ -164,11 +168,11 @@ export default function AdminShell({ children }: { children: ReactNode }) {
                           height: "18px",
                           minWidth: "18px",
                           minHeight: "18px",
-                          color: isActive ? "var(--primary)" : "var(--text-muted)",
+                          color: "inherit",
                         }}
                         aria-hidden
                       >
-                        <Icon className="w-full h-full" />
+                        <Icon />
                       </span>
                       <span className="truncate text-sm font-medium leading-none min-w-0">
                         {label}
@@ -180,88 +184,86 @@ export default function AdminShell({ children }: { children: ReactNode }) {
             </ul>
           </nav>
 
-          <div className="min-h-0 flex-1 shrink" />
-
-          <div className="h-px shrink-0 bg-[var(--divider)]" />
-
-          {/* Bottom nav - same row structure, rail inside Link */}
-          <nav aria-label="Account navigation" className="min-w-0 shrink-0">
-            <ul
-              className="flex list-none flex-col"
-              style={{
-                gap: "var(--sidebar-gap)",
-                margin: 0,
-                padding: 0,
-                listStyle: "none",
-              }}
-            >
-              {[
-                {
-                  href: "/notifications",
-                  label: "Notifications",
-                  icon: Bell,
-                  isActive: pathname === "/notifications",
-                  endAdornment:
-                    notificationCount > 0 ? (
-                      <span className="inline-flex h-5 min-w-[18px] shrink-0 items-center justify-center rounded-full bg-[var(--primary)] px-2 text-[10px] font-semibold text-white">
-                        {notificationCount > 99 ? "99+" : notificationCount}
-                      </span>
-                    ) : null,
-                },
-                {
-                  href: "/account",
-                  label: "Account",
-                  icon: Settings,
-                  isActive: pathname === "/account",
-                  endAdornment: null as ReactNodeType | null,
-                },
-              ].map(({ href, label, icon: Icon, isActive, endAdornment }) => (
-                <li key={href} className="list-none" style={{ margin: 0, padding: 0 }}>
-                  <Link
-                    href={href}
-                    className="relative w-full grid grid-cols-[18px_1fr] items-center rounded-[14px] no-underline transition-colors duration-150 hover:no-underline hover:bg-[var(--surface-2)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-0"
-                    style={{
-                      height: "var(--sidebar-row-h)",
-                      padding: 0,
-                      margin: 0,
-                      columnGap: "0.75rem",
-                      background: isActive ? "var(--primary-soft)" : "transparent",
-                      color: isActive ? "var(--primary)" : "var(--text-secondary)",
-                      textDecoration: "none",
-                      boxSizing: "border-box",
-                    }}
-                  >
-                    {isActive && (
-                      <span
-                        className="absolute left-0 top-1 bottom-1 w-1 rounded-full pointer-events-none"
-                        style={{ background: "var(--primary)" }}
-                        aria-hidden
-                      />
-                    )}
-                    <span
-                      className="flex shrink-0 items-center justify-center overflow-hidden [&_svg]:size-full"
+          {/* Bottom block: divider + nav + space so links sit above viewport bottom */}
+          <div className="flex shrink-0 flex-col" style={{ paddingBottom: "0px" }}>
+            <div className="h-px shrink-0 bg-[var(--divider)]" />
+            <nav aria-label="Account navigation" className="min-w-0 shrink-0">
+              <ul
+                className="flex list-none flex-col"
+                style={{
+                  gap: "var(--sidebar-gap)",
+                  margin: 0,
+                  padding: 0,
+                  listStyle: "none",
+                }}
+              >
+                {[
+                  {
+                    href: "/notifications",
+                    label: "Notifications",
+                    icon: () => <FontAwesomeIcon icon={faBell} className="w-5 h-5" />,
+                    isActive: pathname === "/notifications",
+                    endAdornment:
+                      notificationCount > 0 ? (
+                        <span className="inline-flex h-5 min-w-[18px] shrink-0 items-center justify-center rounded-full bg-[var(--primary)] px-2 text-[10px] font-semibold text-white">
+                          {notificationCount > 99 ? "99+" : notificationCount}
+                        </span>
+                      ) : null,
+                  },
+                  {
+                    href: "/account",
+                    label: "Account",
+                    icon: () => <FontAwesomeIcon icon={faGear} className="w-5 h-5" />,
+                    isActive: pathname === "/account",
+                    endAdornment: null as ReactNodeType | null,
+                  },
+                ].map(({ href, label, icon: Icon, isActive, endAdornment }) => (
+                  <li key={href} className="list-none" style={{ margin: 0, padding: 0 }}>
+                    <Link
+                      href={href}
+                      className={`relative w-full grid grid-cols-[18px_1fr] items-center rounded-[14px] no-underline transition-colors duration-200 ease-out hover:no-underline hover:bg-[var(--surface-2)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-0 ${isActive ? "bg-[var(--primary-soft)]" : "bg-transparent"}`}
                       style={{
-                        width: "18px",
-                        height: "18px",
-                        minWidth: "18px",
-                        minHeight: "18px",
-                        color: isActive ? "var(--primary)" : "var(--text-muted)",
+                        height: "var(--sidebar-row-h)",
+                        padding: "0 10px",
+                        margin: 0,
+                        columnGap: "0.75rem",
+                        color: isActive ? "var(--primary-hover)" : "var(--text-secondary)",
+                        textDecoration: "none",
+                        boxSizing: "border-box",
                       }}
-                      aria-hidden
                     >
-                      <Icon className="w-full h-full" />
-                    </span>
-                    <div className="flex min-w-0 items-center gap-2">
-                      <span className="truncate text-sm font-medium leading-none min-w-0">
-                        {label}
+                      {isActive && (
+                        <span
+                          className="absolute left-0 top-1 bottom-1 w-1 rounded-full pointer-events-none"
+                          style={{ background: "var(--primary)" }}
+                          aria-hidden
+                        />
+                      )}
+                      <span
+                        className="flex shrink-0 items-center justify-center overflow-hidden [&_svg]:size-full"
+                        style={{
+                          width: "18px",
+                          height: "18px",
+                          minWidth: "18px",
+                          minHeight: "18px",
+                          color: "inherit",
+                        }}
+                        aria-hidden
+                      >
+                        <Icon />
                       </span>
-                      {endAdornment}
-                    </div>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
+                      <div className="flex min-w-0 items-center gap-2">
+                        <span className="truncate text-sm font-medium leading-none min-w-0">
+                          {label}
+                        </span>
+                        {endAdornment}
+                      </div>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          </div>
         </aside>
         {/* Main content */}
         <main className="flex-1 min-w-0" style={{ marginLeft: "var(--sidebar-w)" }}>
@@ -323,7 +325,7 @@ export default function AdminShell({ children }: { children: ReactNode }) {
                 className="relative flex items-center justify-center w-10 h-10 rounded-[10px] hover:bg-[var(--muted)] transition-colors duration-150"
                 aria-label="Notifications"
               >
-                <Bell className="w-5 h-5 text-[var(--muted)]" />
+                <FontAwesomeIcon icon={faBell} className="w-5 h-5 text-[var(--text-muted)]" />
                 {notificationCount > 0 && (
                   <span className="absolute top-1 right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-white text-xs font-semibold flex items-center justify-center">
                     {notificationCount > 99 ? "99+" : notificationCount}

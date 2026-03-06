@@ -1,7 +1,6 @@
 "use client";
 
-// DaisyUI migration: use className markup for all UI
-
+import { Button } from "../ui/button";
 
 type NextServiceReadinessStripProps = {
   serviceLabel: string;
@@ -56,9 +55,9 @@ export default function NextServiceReadinessStrip({
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2 lg:justify-end font-sans">
-          <button className="btn btn-sm btn-primary" onClick={onGenerate}>Generate schedule</button>
-          <button className="btn btn-sm btn-outline" onClick={onCopyLast}>Copy last service</button>
-          <button className="btn btn-sm btn-outline" onClick={onSendReminders}>Send reminders</button>
+          <Button size="sm" variant="primary" onClick={onGenerate}>Generate schedule</Button>
+          <Button size="sm" variant="secondary" onClick={onCopyLast}>Copy last service</Button>
+          <Button size="sm" variant="secondary" onClick={onSendReminders}>Send reminders</Button>
         </div>
       </div>
     </div>

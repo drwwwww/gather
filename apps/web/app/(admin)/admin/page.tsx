@@ -4,10 +4,11 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
+import { Button } from "../../../components/ui/button";
 import AppShell from "../../../components/layout/AppShell";
 import PageHeader from "../../../components/layout/PageHeader";
 
-import { Card } from "../../../components/ui/card";
+
 import { supabase } from "../../../lib/supabaseClient";
 import type { Database } from "@gather/lib";
 import { formatShortDateTime, formatWeekdayDateTime } from "../../../lib/format";
@@ -253,16 +254,17 @@ export default function AdminEntryPage() {
       <main className="mx-auto flex min-h-[60vh] max-w-3xl flex-col items-center justify-center gap-4 px-6 bg-base-100">
         <h1 className="text-2xl font-semibold">Access restricted</h1>
         <p className="text-sm text-base-content/70">Your account is not an admin. Request access from your church admin.</p>
-        <button
+        <Button
           type="button"
-          className="btn btn-ghost btn-sm"
+          variant="ghost"
+          size="sm"
           onClick={async () => {
             await supabase?.auth.signOut();
             router.push("/login");
           }}
         >
           Sign out
-        </button>
+        </Button>
       </main>
     );
   }
@@ -275,9 +277,9 @@ export default function AdminEntryPage() {
           subtitle="Weekly operations overview."
           actions={
             <div className="flex flex-wrap gap-2">
-              <Link href="/announcements" className="btn btn-primary btn-sm">Create announcement</Link>
-              <Link href="/events" className="btn btn-outline btn-sm">Create event</Link>
-              <Link href="/volunteers" className="btn btn-ghost btn-sm">Generate schedule</Link>
+              <Link href="/announcements" className="inline-flex items-center justify-center h-[34px] px-3 rounded-xl font-medium text-sm bg-[var(--primary)] text-white border-0 hover:bg-[var(--primary-hover)] transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2">Create announcement</Link>
+              <Link href="/events" className="inline-flex items-center justify-center h-[34px] px-3 rounded-xl font-medium text-sm bg-[var(--surface)] text-[var(--text-primary)] border border-[var(--border)] hover:bg-[var(--surface-2)] transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2">Create event</Link>
+              <Link href="/volunteers" className="inline-flex items-center justify-center h-[34px] px-3 rounded-xl font-medium text-sm bg-transparent text-[var(--text-secondary)] border-0 hover:bg-[var(--surface-2)] transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2">Generate schedule</Link>
             </div>
           }
         />

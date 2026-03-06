@@ -1,9 +1,7 @@
 "use client";
 
 import type { Database } from "@gather/lib";
-// DaisyUI migration: use className markup for all UI
-
-// DaisyUI migration: use className markup for all UI
+import { Button } from "../ui/button";
 
 type ServiceTimeRow = Database["public"]["Tables"]["service_times"]["Row"];
 type RoleRow = Database["public"]["Tables"]["volunteer_roles"]["Row"];
@@ -106,9 +104,9 @@ export default function ScheduleBuilder({
         </div>
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-3">
-        <button className="btn btn-outline" onClick={onAddSlot}>Add role slots</button>
-        <button className="btn btn-primary" onClick={onGenerateSchedule} disabled={!Array.isArray(slots) || !slots.length || !serviceTimeId}>Generate schedule</button>
-        <button className="btn btn-outline" onClick={onCopyLast}>Copy last service</button>
+        <Button variant="secondary" onClick={onAddSlot}>Add role slots</Button>
+        <Button variant="primary" onClick={onGenerateSchedule} disabled={!Array.isArray(slots) || !slots.length || !serviceTimeId}>Generate schedule</Button>
+        <Button variant="secondary" onClick={onCopyLast}>Copy last service</Button>
       </div>
       <div className="mt-4 space-y-2">
         {Array.isArray(slots) && slots.length === 0 ? (
@@ -124,9 +122,9 @@ export default function ScheduleBuilder({
                 </p>
                 <p className="text-base-content/60">{slot.count} slots</p>
               </div>
-              <button className="btn btn-sm btn-outline" onClick={() => onRemoveSlot(slot.id)}>
+              <Button size="sm" variant="secondary" onClick={() => onRemoveSlot(slot.id)}>
                 Remove
-              </button>
+              </Button>
             </div>
           ))
         )}

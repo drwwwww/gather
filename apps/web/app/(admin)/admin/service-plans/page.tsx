@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Button } from "../../../../components/ui/button";
 import AdminHeader from "../../../../components/admin/AdminHeader";
 import ServicePlanHeader from "../../../../components/servicePlans/ServicePlanHeader";
 import ServicePlanEmptyState from "../../../../components/servicePlans/ServicePlanEmptyState";
@@ -311,7 +312,7 @@ export default function ServicePlansPage() {
         title="Service Plans"
         subtitle="See the run of show and keep the team aligned for each service."
         actions={
-          <Link className="btn btn-outline btn-sm" href="/admin/service-presets">
+          <Link href="/admin/service-presets" className="inline-flex items-center justify-center h-[34px] px-3 rounded-xl font-medium text-sm bg-[var(--surface)] text-[var(--text-primary)] border border-[var(--border)] hover:bg-[var(--surface-2)] transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2">
             Manage presets
           </Link>
         }
@@ -327,9 +328,9 @@ export default function ServicePlansPage() {
           onServiceDateChange={setServiceDate}
           actions={
             <>
-              <button className="btn btn-outline btn-sm" onClick={handlePrint} disabled={!plan}>
+              <Button size="sm" variant="secondary" onClick={handlePrint} disabled={!plan}>
                 Print plan
-              </button>
+              </Button>
             </>
           }
         />

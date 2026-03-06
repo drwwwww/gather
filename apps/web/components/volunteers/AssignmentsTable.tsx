@@ -6,6 +6,7 @@ import Link from "next/link";
 import type { Database } from "@gather/lib";
 
 import { Button } from "../ui/button";
+import Badge from "../ui/Badge";
 
 type AssignmentRow = Database["public"]["Tables"]["volunteer_assignments"]["Row"];
 type RoleRow = Database["public"]["Tables"]["volunteer_roles"]["Row"];
@@ -33,11 +34,11 @@ type AssignmentsTableProps = {
   onCopyLast: () => void;
 };
 
-const statusStyles: Record<AssignmentStatus, { label: string; variant: string }> = {
+const statusStyles: Record<AssignmentStatus, { label: string; variant: "warning" | "neutral" | "success" | "danger" }> = {
   OPEN: { label: "OPEN", variant: "warning" },
   ASSIGNED: { label: "PENDING", variant: "neutral" },
   CONFIRMED: { label: "CONFIRMED", variant: "success" },
-  DECLINED: { label: "DECLINED", variant: "error" }
+  DECLINED: { label: "DECLINED", variant: "danger" }
 };
 
 export default function AssignmentsTable({
@@ -97,10 +98,10 @@ export default function AssignmentsTable({
       <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
         <div className="text-lg font-semibold text-[var(--ink)]">Assignments</div>
         <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--muted)]">
-          <span className="px-2 py-1 rounded bg-gray-200 text-gray-800 text-xs">OPEN</span>
-          <span className="px-2 py-1 rounded bg-gray-200 text-gray-800 text-xs">PENDING</span>
-          <span className="px-2 py-1 rounded bg-gray-200 text-gray-800 text-xs">CONFIRMED</span>
-          <span className="px-2 py-1 rounded bg-gray-200 text-gray-800 text-xs">DECLINED</span>
+          <Badge variant="warning">OPEN</Badge>
+          <Badge variant="neutral">PENDING</Badge>
+          <Badge variant="success">CONFIRMED</Badge>
+          <Badge variant="danger">DECLINED</Badge>
         </div>
       </div>
 
@@ -145,7 +146,7 @@ export default function AssignmentsTable({
         <div className="flex flex-col items-center gap-2 p-6 mb-4">
           <span>No service team members yet.</span>
           <Link href="/people" className="w-full mt-2">
-            <Button variant="outline" size="sm" className="w-full">Add volunteers</Button>
+            <Button variant="secondary" size="sm" className="w-full">Add volunteers</Button>
           </Link>
         </div>
       )}
@@ -169,7 +170,7 @@ export default function AssignmentsTable({
                     <span>No schedule yet for this date.</span>
                     <div className="flex flex-wrap justify-center gap-2 mt-2">
                       <Button variant="primary" size="sm" onClick={onGenerateSchedule}>Generate schedule</Button>
-                      <Button variant="outline" size="sm" onClick={onCopyLast}>Copy last service</Button>
+                      <Button variant="secondary" size="sm" onClick={onCopyLast}>Copy last service</Button>
                     </div>
                   </div>
                 </td>
@@ -199,7 +200,7 @@ export default function AssignmentsTable({
                       </select>
                     </td>
                     <td>
-                      <span className="px-2 py-1 rounded bg-gray-200 text-gray-800 text-xs">{status.label}</span>
+                      <Badge variant={status.variant}>{status.label}</Badge>
                     </td>
                     <td>
                       <input
@@ -215,9 +216,9 @@ export default function AssignmentsTable({
                     </td>
                     <td>
                       <div className="flex flex-wrap gap-2">
-                        <Button variant="outline" size="sm" onClick={() => onStatusChange(assignment.id, "CONFIRMED")}>Confirm</Button>
-                        <Button variant="outline" size="sm" onClick={() => onStatusChange(assignment.id, "DECLINED")}>Decline</Button>
-                        <Button variant="error" size="sm" onClick={() => onUnassign(assignment.id)}>Unassign</Button>
+                        <Button variant="secondary" size="sm" onClick={() => onStatusChange(assignment.id, "CONFIRMED")}>Confirm</Button>
+                        <Button variant="secondary" size="sm" onClick={() => onStatusChange(assignment.id, "DECLINED")}>Decline</Button>
+                        <Button variant="danger" size="sm" onClick={() => onUnassign(assignment.id)}>Unassign</Button>
                       </div>
                     </td>
                   </tr>

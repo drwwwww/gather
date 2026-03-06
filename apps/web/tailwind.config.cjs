@@ -8,6 +8,9 @@ const config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ["Rubik", "Arial", "sans-serif"]
+      },
       colors: {
         bg: "var(--bg)",
         surface: "var(--surface)",

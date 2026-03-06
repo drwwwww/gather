@@ -3,6 +3,7 @@
 import { formatRelativeTime, formatShortWeekdayDateTime } from "../../lib/format";
 import AnnouncementTemplates, { type AnnouncementTemplate } from "./AnnouncementTemplates";
 import type { Database } from "@gather/lib";
+import Badge from "../ui/Badge";
 
 type Announcement = Database["public"]["Tables"]["announcements"]["Row"];
 
@@ -81,12 +82,8 @@ export default function RecentAnnouncementsList({
                   <div>
                     <p className="font-medium text-[var(--gather-ink)]">{announcement.title}</p>
                     <div className="mt-1 flex flex-wrap items-center gap-2">
-                      <span className="badge badge-outline">{audienceLabels[announcement.audience] ?? announcement.audience}</span>
-                      <span className={
-                        status === "PUBLISHED" ? "badge badge-success" :
-                        status === "SCHEDULED" ? "badge badge-warning" :
-                        status === "DRAFT" ? "badge badge-neutral" : "badge"
-                      }>{status}</span>
+                      <Badge variant="neutral">{audienceLabels[announcement.audience] ?? announcement.audience}</Badge>
+                      <Badge variant={statusBadge[status]}>{status}</Badge>
                     </div>
                     <p className="mt-2 text-xs text-[var(--gather-muted)]">{timeLabel}</p>
                   </div>

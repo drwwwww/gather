@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { PendingRow } from "../dashboard/PendingConfirmationsCard";
+import Badge from "../ui/Badge";
 
 type PendingResponsesCardProps = {
   items: PendingRow[];
@@ -26,9 +27,7 @@ export default function PendingResponsesCard({ items, onFollowUp }: PendingRespo
             </button>
           ) : null}
           <Link href="/volunteers">
-            <span className="px-2 py-1 rounded bg-gray-200 text-gray-800 text-xs">
-              View all volunteers
-            </span>
+            <Badge variant="neutral">View all volunteers</Badge>
           </Link>
         </div>
       </div>
@@ -60,9 +59,9 @@ export default function PendingResponsesCard({ items, onFollowUp }: PendingRespo
                   <td>{row.role}</td>
                   <td>{row.assignee}</td>
                   <td>
-                    <span className="px-2 py-1 rounded bg-gray-200 text-gray-800 text-xs">
+                    <Badge variant={row.status === "DECLINED" ? "danger" : row.status === "CONFIRMED" ? "success" : "neutral"}>
                       {row.status}
-                    </span>
+                    </Badge>
                   </td>
                 </tr>
               ))}

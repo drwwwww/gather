@@ -5,7 +5,7 @@ import { formatShortWeekdayDateTime } from "../../lib/format";
 import EventTemplates, { type EventTemplate } from "./EventTemplates";
 import type { Database } from "@gather/lib";
 import { Button } from "../ui/button";
-import { Badge } from "../ui/badge";
+import Badge from "../ui/Badge";
 
 type EventItem = Database["public"]["Tables"]["events"]["Row"];
 
@@ -112,7 +112,7 @@ export default function EventsList({
                     </div>
                   </div>
                   <div className="dropdown dropdown-end">
-                    <Button size="sm" variant="outline" onClick={(evt) => evt.stopPropagation()}>
+                    <Button size="sm" variant="secondary" onClick={(evt) => evt.stopPropagation()}>
                       ⋮
                     </Button>
                     <ul className="dropdown-content menu rounded-box w-40 bg-base-100 p-2 shadow">

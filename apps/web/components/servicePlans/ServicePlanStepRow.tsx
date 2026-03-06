@@ -160,7 +160,7 @@ export default function ServicePlanStepRow({
           </select>
         </div>
         <div className="flex items-end">
-          <Button size="sm" variant="outline" onClick={() => setNotesOpen((prev) => !prev)}>
+          <Button size="sm" variant="secondary" onClick={() => setNotesOpen((prev) => !prev)}>
             {notesOpen ? "Hide notes" : "Notes"}
           </Button>
         </div>

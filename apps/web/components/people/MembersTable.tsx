@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
-// DaisyUI migration: use DaisyUI dropdown markup
-// ...existing code...
 import type { Role } from "@gather/lib";
+import Badge from "../ui/Badge";
 
 export type MemberStatus = "ACTIVE" | "INACTIVE" | "INVITED";
 
@@ -112,7 +111,7 @@ export default function MembersTable({
                     )}
                   </td>
                   <td>
-                    <span className={`badge badge-${statusVariant[member.status]}`}>{member.status}</span>
+                    <Badge variant={statusVariant[member.status]}>{member.status}</Badge>
                   </td>
                   <td>
                     <div className="dropdown dropdown-end">

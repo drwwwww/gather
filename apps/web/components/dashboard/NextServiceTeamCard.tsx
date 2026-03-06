@@ -1,6 +1,5 @@
-
-
 import Link from "next/link";
+import Badge from "../ui/Badge";
 
 
 export type TeamRow = {
@@ -42,9 +41,7 @@ export default function NextServiceTeamCard({ items }: { items: TeamRow[] }) {
                   <td>{row.role}</td>
                   <td>{row.assignee}</td>
                   <td>
-                    <span className="px-2 py-1 rounded bg-gray-200 text-gray-800 text-xs">
-                      {row.status}
-                    </span>
+                    <Badge variant={statusVariant(row.status)}>{row.status}</Badge>
                   </td>
                 </tr>
               ))}

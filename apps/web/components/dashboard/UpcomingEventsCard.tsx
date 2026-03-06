@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { formatShortDate } from "../../lib/format";
+import Badge from "../ui/Badge";
 
 
 export type EventRow = {
@@ -41,9 +42,7 @@ export default function UpcomingEventsCard({ items }: { items: EventRow[] }) {
                   <td>{row.name}</td>
                   <td>{formatShortDate(row.date)}</td>
                   <td>
-                    <span className="px-2 py-1 rounded bg-gray-200 text-gray-800 text-xs">
-                      {row.status}
-                    </span>
+                    <Badge variant="neutral">{row.status}</Badge>
                   </td>
                 </tr>
               ))}

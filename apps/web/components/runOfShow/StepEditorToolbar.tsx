@@ -34,7 +34,7 @@ export default function StepEditorToolbar({
         </Button>
         <div className="flex flex-wrap items-center gap-2">
           {quickInsertTitles.map((title) => (
-            <Button key={title} size="sm" variant="outline" onClick={() => onAddQuickStep(title)}>
+            <Button key={title} size="sm" variant="secondary" onClick={() => onAddQuickStep(title)}>
               {title}
             </Button>
           ))}

@@ -100,7 +100,7 @@ export default function ServicePlanPrintPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between px-6 py-4">
         <p className="text-sm text-base-content/60">Printable view</p>
-        <Button size="sm" variant="outline" onClick={() => window.print()}>
+        <Button size="sm" variant="secondary" onClick={() => window.print()}>
           Print
         </Button>
       </div>

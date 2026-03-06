@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Button } from "../ui/button";
 
 export default function ServicePlanEmptyState({
   friendlyDate,
@@ -25,14 +26,14 @@ export default function ServicePlanEmptyState({
           </p>
         </div>
         <div className="flex flex-wrap justify-center gap-2">
-          <button className="btn btn-primary" onClick={onGenerate} disabled={generateDisabled}>
+          <Button variant="primary" onClick={onGenerate} disabled={generateDisabled}>
             Generate from preset
-          </button>
-          <button className="btn btn-outline" onClick={onCopyLast} disabled={copyDisabled}>
+          </Button>
+          <Button variant="secondary" onClick={onCopyLast} disabled={copyDisabled}>
             Copy last plan
-          </button>
+          </Button>
         </div>
-        <Link className="btn btn-ghost btn-sm text-primary" href="/admin/service-presets">
+        <Link href="/admin/service-presets" className="inline-flex items-center justify-center h-[34px] px-3 rounded-xl font-medium text-sm bg-transparent text-[var(--primary)] border-0 hover:bg-[var(--surface-2)] transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2">
           Manage presets
         </Link>
       </div>

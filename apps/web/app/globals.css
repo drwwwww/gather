@@ -1,15 +1,58 @@
+@import url('https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap');
 
-
-@import url('https://fonts.googleapis.com/css2?family=Roboto+Condensed:ital,wght@0,100..900;1,100..900&family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap');
-
-
-
-@layer base {
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-body {
-  font-family: Arial, sans-serif;
+/* Theme tokens */
+:root {
+  /* Backgrounds */
+  --bg: oklch(98.6% 0.002 67.8);
+  --surface: oklch(96% 0.002 17.2);
+  --surface-2: oklch(92.2% 0.005 34.3);
+
+  /* Text */
+  --text-primary: #111827;
+  --text-secondary: #4b5563;
+  --text-muted: #9ca3af;
+
+  /* Borders */
+  --border: #e5e7eb;
+  --divider: #f1f5f9;
+
+  /* Brand */
+  --primary: oklch(82.8% 0.189 84.429);
+  --primary-hover: oklch(76.9% 0.188 70.08);
+  --primary-soft: oklch(96.2% 0.059 95.617);
+
+  /* Status */
+  --success: oklch(72.3% 0.219 149.579);
+  --warning: oklch(70.5% 0.213 47.604);
+  --danger: oklch(57.7% 0.245 27.325);
+  --danger-hover: oklch(50% 0.22 27);
+  --info: oklch(62.3% 0.214 259.815);
+
+    /* Sidebar sizing system */
+  --sidebar-w: 240px;           /* 224/240/256 are the usual */
+  --sidebar-pad-x: 12px;        /* 12px = px-3 */
+  --sidebar-pad-y: 12px;
+  --sidebar-row-h: 40px;        /* 36/40/44 */
+  --sidebar-row-pad-x: 12px;
+  --sidebar-icon: 18px;         /* 16/18/20 */
+  --sidebar-radius: 14px;       /* 12–16 */
+  --sidebar-gap: 4px;           /* space between rows */
 }
+
+@layer base {
+  html,
+  body {
+    height: 100%;
+    margin: 0;
+  }
+
+  body {
+    font-family: 'Rubik', Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text-primary);
+  }
 }
