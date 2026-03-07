@@ -38,9 +38,9 @@ export default function EventForm({
   const canSubmit = Boolean(values.title.trim()) && Boolean(values.startDate) && (values.allDay || Boolean(values.startTime));
 
   return (
-    <div className="card bg-base-100 shadow-md p-4 rounded-xl">
+    <div className="card shadow-sm p-4">
       <div className="flex items-center justify-between">
-        <div className="card-title text-lg font-semibold">{isEditing ? "Edit Event" : "Create Event"}</div>
+        <div className="card-title">{isEditing ? "Edit Event" : "Create Event"}</div>
         <span className="text-xs text-[var(--gather-muted)]">Keep it simple</span>
       </div>
       <div className="mt-4 space-y-4">
@@ -91,12 +91,15 @@ export default function EventForm({
           onChange={(event) => onChange({ location: event.target.value })}
           className="input input-bordered w-full"
         />
-        <textarea
-          className="textarea textarea-bordered min-h-[140px] w-full"
-          placeholder="Description"
-          value={values.description}
-          onChange={(event) => onChange({ description: event.target.value })}
-        />
+        <div className="space-y-2">
+          <label className="text-xs text-[var(--text-muted)]">Description</label>
+          <textarea
+            className="textarea textarea-bordered min-h-[140px] w-full"
+            placeholder="Add details for your event..."
+            value={values.description}
+            onChange={(event) => onChange({ description: event.target.value })}
+          />
+        </div>
         <div className="space-y-2">
           <label className="text-xs text-[var(--gather-muted)]">Audience</label>
           <select

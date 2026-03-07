@@ -167,20 +167,11 @@ export default function ServicePlanStepRow({
       </div>
       {notesOpen ? (
         <div className="mt-3">
-          <label
-            className="text-xs uppercase tracking-[0.2em]"
-            style={{ color: 'var(--gather-muted)' }}
-          >
-            Notes
-          </label>
+          <label className="text-xs uppercase tracking-[0.2em]" style={{ color: 'var(--gather-muted)' }}>Notes</label>
           <textarea
-            className="textarea textarea-bordered w-full"
+            className="textarea textarea-bordered w-full mt-1"
             rows={3}
-            style={{
-              background: 'var(--gather-surface)',
-              borderColor: 'var(--gather-border)',
-              color: 'var(--gather-ink)'
-            }}
+            placeholder="Optional step notes..."
             value={item.notes}
             onChange={(event) => onChange({ notes: event.target.value })}
           />

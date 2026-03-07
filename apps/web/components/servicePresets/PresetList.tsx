@@ -9,6 +9,7 @@ import PresetCreateRow from "./PresetCreateRow";
 import PresetCard from "./PresetCard";
 import type { PresetItemDraft } from "./PresetStepsEditor";
 import StarterTemplates from "./StarterTemplates";
+import Loader from "../ui/Loader";
 import type { PresetTemplate } from "../../lib/presets";
 
 type ServiceTime = Database["public"]["Tables"]["service_times"]["Row"];
@@ -61,7 +62,7 @@ export default function PresetList({
 }: PresetListProps) {
   return (
     <div className="space-y-6">
-      <div className="card bg-base-100 shadow-md p-4 rounded-xl">
+      <div className="card shadow-sm p-4">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:gap-8">
           <div className="flex-1 min-w-[240px]">
             <ServiceTimeSelector
@@ -82,10 +83,10 @@ export default function PresetList({
         {error ? <p className="mt-3 text-sm text-error">{error}</p> : null}
       </div>
 
-      <div className="card bg-base-100 shadow-md p-4 rounded-xl">
+      <div className="card shadow-sm p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <div className="card-title text-lg font-semibold">Presets</div>
+            <div className="card-title">Presets</div>
             <p className="text-xs text-[var(--gather-muted)] mt-1">
               The default preset is used when generating new service plans.
             </p>
@@ -96,7 +97,10 @@ export default function PresetList({
         </div>
         <div className="mt-4 space-y-4">
           {loading ? (
-            <p className="text-sm text-[var(--gather-muted)]">Loading presets...</p>
+            <div className="flex flex-col items-center justify-center gap-4 py-6">
+              <Loader />
+              <p className="text-sm" style={{ color: "var(--text-muted)" }}>Loading presets...</p>
+            </div>
           ) : presets.length === 0 ? (
             <StarterTemplates onSelect={onTemplateSelect} />
           ) : (

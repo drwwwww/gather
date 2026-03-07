@@ -121,7 +121,7 @@ export default function SearchPage() {
       </div>
 
       <div>
-        <div className="rounded-xl border border-primary/10 bg-base-100 p-6">
+        <div className="card p-6 border border-primary/10">
           <form
             className="flex flex-wrap items-center gap-4"
             onSubmit={(event) => {

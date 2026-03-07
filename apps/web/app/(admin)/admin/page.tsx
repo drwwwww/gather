@@ -5,15 +5,14 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 import { Button } from "../../../components/ui/button";
+import PageLoader from "../../../components/ui/PageLoader";
 import AppShell from "../../../components/layout/AppShell";
-import PageHeader from "../../../components/layout/PageHeader";
-
 
 import { supabase } from "../../../lib/supabaseClient";
 import type { Database } from "@gather/lib";
-import { formatShortDateTime, formatWeekdayDateTime } from "../../../lib/format";
-import ThisWeekStrip, { type ThisWeekStripData } from "../../../components/dashboard/ThisWeekStrip";
-import KpiRow, { type KpiRowData } from "../../../components/dashboard/KpiRow";
+import { formatShortDateTime, formatWeekdayDateTime, formatCountdown } from "../../../lib/format";
+import { type ThisWeekStripData } from "../../../components/dashboard/ThisWeekStrip";
+import { type KpiRowData } from "../../../components/dashboard/KpiRow";
 import NextServiceTeamCard, { type TeamRow } from "../../../components/dashboard/NextServiceTeamCard";
 import PendingConfirmationsCard, { type PendingRow } from "../../../components/dashboard/PendingConfirmationsCard";
 import LatestAnnouncementsCard, { type AnnouncementPreview } from "../../../components/dashboard/LatestAnnouncementsCard";
@@ -50,6 +49,8 @@ export default function AdminEntryPage() {
   const [announcementPreviews, setAnnouncementPreviews] = useState<AnnouncementPreview[]>([]);
   const [eventPreviews, setEventPreviews] = useState<EventPreview[]>([]);
   const [recentActivity, setRecentActivity] = useState<string[]>([]);
+  const [churchAddress, setChurchAddress] = useState<string | null>(null);
+  const [nextServiceAt, setNextServiceAt] = useState<Date | null>(null);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<"checking" | "restricted" | "ready">("checking");
   const router = useRouter();
@@ -94,13 +95,14 @@ export default function AdminEntryPage() {
     const thisWeekEnd = new Date(now);
     thisWeekEnd.setDate(thisWeekEnd.getDate() + 7);
 
-    const [assignmentsResult, eventsResult, announcementsResult, serviceTimesResult, rolesResult, profilesResult] = await Promise.all([
+    const [assignmentsResult, eventsResult, announcementsResult, serviceTimesResult, rolesResult, profilesResult, churchResult] = await Promise.all([
       supabase.from("volunteer_assignments").select("*").eq("church_id", profile.church_id),
       supabase.from("events").select("*").eq("church_id", profile.church_id).order("start_at", { ascending: true }),
       supabase.from("announcements").select("*").eq("church_id", profile.church_id),
       supabase.from("service_times").select("*").eq("church_id", profile.church_id).order("day_of_week", { ascending: true }),
       supabase.from("volunteer_roles").select("id, name").eq("church_id", profile.church_id),
-      supabase.from("profiles").select("id, full_name, email, role, created_at").eq("church_id", profile.church_id)
+      supabase.from("profiles").select("id, full_name, email, role, created_at").eq("church_id", profile.church_id),
+      supabase.from("churches").select("address").eq("id", profile.church_id).maybeSingle()
     ]);
 
     const assignments = (assignmentsResult.data ?? []) as AssignmentRow[];
@@ -117,6 +119,11 @@ export default function AdminEntryPage() {
 
     const nextService = getNextServiceDateTime(serviceTimes);
     const nextServiceDateOnly = nextService ? nextService.toISOString().slice(0, 10) : null;
+
+    setChurchAddress(
+      (churchResult.data as { address?: string | null } | null)?.address?.trim() || null
+    );
+    setNextServiceAt(nextService ?? null);
     const assignmentsForNextService = nextServiceDateOnly
       ? assignments.filter((assignment) => assignment.scheduled_date === nextServiceDateOnly)
       : [];
@@ -242,11 +249,7 @@ export default function AdminEntryPage() {
   }, []);
 
   if (status === "checking") {
-    return (
-      <main className="mx-auto flex min-h-[60vh] max-w-3xl items-center justify-center px-6" style={{ background: "var(--bg)" }}>
-        <p className="text-sm" style={{ color: "var(--text-muted)" }}>Finishing setup...</p>
-      </main>
-    );
+    return <PageLoader message="Finishing setup..." />;
   }
 
   if (status === "restricted") {
@@ -271,57 +274,114 @@ export default function AdminEntryPage() {
 
   return (
     <AppShell>
-      <div className="space-y-8">
-        <PageHeader
-          title={`Welcome back, ${displayName}`}
-          subtitle="Weekly operations overview."
-          actions={
-            <div className="flex flex-wrap gap-2">
-              <Link href="/announcements" className="btn btn-primary btn-sm">Create announcement</Link>
-              <Link href="/events" className="btn btn-secondary btn-sm">Create event</Link>
-              <Link href="/volunteers" className="btn btn-ghost btn-sm">Generate schedule</Link>
+      {/* Top: page actions / simple navigation (dropdown + primary button) */}
+      <header className="flex flex-col gap-2 mb-4">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight" style={{ color: "var(--text-primary)" }}>
+            Welcome back, {displayName}
+          </h1>
+          <p className="text-sm mt-0.5" style={{ color: "var(--text-muted)" }}>
+            Weekly operations overview
+          </p>
+        </div>
+      </header>
+
+      {/* Hero: Next service (primary) with quick actions */}
+      <section className="mb-6">
+        <div className="card shadow-sm overflow-hidden">
+          <div className="p-6 sm:p-8">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="min-w-0 space-y-2">
+                <div className="text-[11px] uppercase tracking-[0.2em]" style={{ color: "var(--text-muted)" }}>
+                  Next service
+                </div>
+                <div className="text-2xl sm:text-3xl font-semibold tracking-tight" style={{ color: "var(--text-primary)" }}>
+                  {thisWeekStrip.nextServiceLabel}
+                </div>
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm" style={{ color: "var(--text-muted)" }}>
+                  {nextServiceAt && formatCountdown(nextServiceAt) && (
+                    <span>{formatCountdown(nextServiceAt)}</span>
+                  )}
+                  {churchAddress && (
+                    <span>{churchAddress}</span>
+                  )}
+                </div>
+                {(thisWeekStrip.openSlots > 0 || thisWeekStrip.pendingConfirmations > 0) && (
+                  <div className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                    {thisWeekStrip.openSlots > 0 && (
+                      <span>{thisWeekStrip.openSlots} open slot{thisWeekStrip.openSlots !== 1 ? "s" : ""}</span>
+                    )}
+                    {thisWeekStrip.openSlots > 0 && thisWeekStrip.pendingConfirmations > 0 && (
+                      <span> · </span>
+                    )}
+                    {thisWeekStrip.pendingConfirmations > 0 && (
+                      <span>{thisWeekStrip.pendingConfirmations} pending confirmation{thisWeekStrip.pendingConfirmations !== 1 ? "s" : ""}</span>
+                    )}
+                  </div>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-2 flex-shrink-0">
+                <Link href="/admin/service-plans" className="btn btn-secondary btn-sm">
+                  View plan
+                </Link>
+                <Link href="/volunteers" className="btn btn-primary btn-sm">
+                  Volunteers
+                </Link>
+              </div>
             </div>
-          }
-        />
-
-        <ThisWeekStrip
-          nextServiceLabel={thisWeekStrip.nextServiceLabel}
-          openSlots={thisWeekStrip.openSlots}
-          pendingConfirmations={thisWeekStrip.pendingConfirmations}
-          scheduledAnnouncements={thisWeekStrip.scheduledAnnouncements}
-          eventsThisWeek={thisWeekStrip.eventsThisWeek}
-        />
-
-        <KpiRow
-          members={kpis.members}
-          volunteers={kpis.volunteers}
-          rsvpsThisWeek={kpis.rsvpsThisWeek}
-        />
-
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
-          <div className="lg:col-span-8 space-y-8">
-            <div className="space-y-8">
-              <NextServiceTeamCard items={teamRows} />
-              <PendingConfirmationsCard items={pendingRows} />
-              <LatestAnnouncementsCard items={announcementPreviews} />
-            </div>
-          </div>
-
-          <div className="lg:col-span-4 space-y-8">
-            <div className="space-y-8">
-              <UpcomingEventsCard items={eventPreviews} />
-              <RecentActivityCard items={recentActivity} />
-              <section className="rounded-xl p-5 border" style={{ background: "var(--surface)", borderColor: "var(--border)" }}>
-                <p className="text-xs uppercase tracking-[0.2em]" style={{ color: "var(--text-muted)" }}>Verse of the day</p>
-                <blockquote className="mt-3 text-sm italic" style={{ color: "var(--text-primary)" }}>
-                  "Let us not love with words or speech but with actions and in truth."
-                </blockquote>
-                <cite className="mt-2 block text-xs" style={{ color: "var(--text-muted)" }}>- 1 John 3:18</cite>
-              </section>
+            <div className="mt-6 pt-6 flex flex-wrap gap-2" style={{ borderTop: "1px solid var(--border)" }}>
+              <Link href="/announcements" className="btn btn-primary btn-sm">
+                Create announcement
+              </Link>
+              <Link href="/events" className="btn btn-secondary btn-sm">
+                Create event
+              </Link>
             </div>
           </div>
         </div>
-      </div>
+      </section>
+
+      {/* Service readiness — one card with grid */}
+      <section className="mb-6">
+        <div className="card shadow-sm p-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+            {[
+              { label: "Open volunteer slots", value: thisWeekStrip.openSlots },
+              { label: "Pending confirmations", value: thisWeekStrip.pendingConfirmations },
+              { label: "Announcements scheduled", value: thisWeekStrip.scheduledAnnouncements },
+              { label: "Events this week", value: thisWeekStrip.eventsThisWeek },
+              { label: "Members", value: kpis.members },
+              { label: "Volunteers", value: kpis.volunteers }
+            ].map(({ label, value }) => (
+              <div key={label} className="flex flex-col">
+                <span className="text-[11px] uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>
+                  {label}
+                </span>
+                <span className="mt-1 text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+                  {value}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Main grid: service team + work queue vs communications + activity */}
+      <section className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="lg:col-span-8 space-y-6">
+          <NextServiceTeamCard items={teamRows} />
+          <PendingConfirmationsCard items={pendingRows} />
+        </div>
+        <div className="lg:col-span-4 space-y-6">
+          <LatestAnnouncementsCard items={announcementPreviews} />
+          <RecentActivityCard items={recentActivity} />
+        </div>
+      </section>
+
+      {/* Optional: upcoming events */}
+      <section className="mt-6">
+        <UpcomingEventsCard items={eventPreviews} />
+      </section>
     </AppShell>
   );
 }

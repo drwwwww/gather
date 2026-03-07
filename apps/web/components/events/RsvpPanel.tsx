@@ -16,9 +16,9 @@ export default function RsvpPanel({
   onViewAttendees
 }: RsvpPanelProps) {
   return (
-    <div className="card bg-base-100 shadow-md p-4 rounded-xl">
+    <div className="card shadow-sm p-4">
       <div className="flex items-center justify-between">
-        <div className="card-title text-lg font-semibold">RSVP Breakdown</div>
+        <div className="card-title">RSVP Breakdown</div>
         <span className="text-xs text-[var(--gather-muted)]">Per event</span>
       </div>
       <div className="mt-4 space-y-3 text-sm">
@@ -28,15 +28,15 @@ export default function RsvpPanel({
           <>
             <p className="text-sm text-[var(--gather-muted)]">{selectedEventTitle}</p>
             <div className="grid gap-3 sm:grid-cols-3">
-              <div className="rounded-xl bg-base-100 p-3">
+              <div className="rounded-xl bg-[var(--surface)] p-3">
                 <p className="text-xs text-[var(--gather-muted)]">Going</p>
                 <p className="text-lg font-semibold text-[var(--gather-ink)]">{going}</p>
               </div>
-              <div className="rounded-xl bg-base-100 p-3">
+              <div className="rounded-xl bg-[var(--surface)] p-3">
                 <p className="text-xs text-[var(--gather-muted)]">Maybe</p>
                 <p className="text-lg font-semibold text-[var(--gather-ink)]">{maybe}</p>
               </div>
-              <div className="rounded-xl bg-base-100 p-3">
+              <div className="rounded-xl bg-[var(--surface)] p-3">
                 <p className="text-xs text-[var(--gather-muted)]">No</p>
                 <p className="text-lg font-semibold text-[var(--gather-ink)]">{no}</p>
               </div>

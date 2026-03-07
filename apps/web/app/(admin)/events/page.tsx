@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import AdminHeader from "../../../components/admin/AdminHeader";
+import Loader from "../../../components/ui/Loader";
 import { getCurrentContext, indexProfilesById, listProfilesByChurch } from "../../../lib/supabaseData";
 import { supabase } from "../../../lib/supabaseClient";
 import EventForm, { type EventFormValues } from "../../../components/events/EventForm";
@@ -330,7 +331,10 @@ export default function EventsPage() {
       />
 
       {loading ? (
-        <div className="text-sm text-base-content/60">Loading events...</div>
+        <div className="flex flex-col items-center justify-center gap-4 py-8">
+          <Loader />
+          <p className="text-sm" style={{ color: "var(--text-muted)" }}>Loading events...</p>
+        </div>
       ) : null}
     </div>
   );

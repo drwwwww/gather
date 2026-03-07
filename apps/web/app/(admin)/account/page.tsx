@@ -129,7 +129,7 @@ export default function AccountPage() {
 
   const handleChangePassword = async () => {
     if (!supabase || !profile?.email) return;
-    const redirectTo = typeof window !== "undefined" ? `${window.location.origin}/auth/sign-in` : undefined;
+    const redirectTo = typeof window !== "undefined" ? `${window.location.origin}/login` : undefined;
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(
       profile.email,
       redirectTo ? { redirectTo } : undefined
@@ -198,7 +198,7 @@ export default function AccountPage() {
       </div>
 
       {toast ? (
-        <div className="fixed right-6 top-6 z-50 rounded-xl bg-base-200 px-4 py-3 text-sm shadow">
+        <div className="fixed right-6 top-6 z-50 rounded-xl bg-[var(--surface-2)] px-4 py-3 text-sm shadow">
           <p className={toast.tone === "error" ? "text-error" : "text-base-content"}>{toast.message}</p>
         </div>
       ) : null}

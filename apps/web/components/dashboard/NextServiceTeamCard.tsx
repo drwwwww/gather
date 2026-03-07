@@ -1,4 +1,3 @@
-import Link from "next/link";
 import Badge from "../ui/Badge";
 
 
@@ -11,15 +10,11 @@ export type TeamRow = {
 
 export default function NextServiceTeamCard({ items }: { items: TeamRow[] }) {
   return (
-    <div className="rounded-2xl border p-6" style={{ background: "var(--surface)", borderColor: "var(--border)", boxShadow: "0 1px 2px rgba(16, 24, 40, 0.06)" }}>
-      <div className="flex items-center justify-between mb-8">
-        <h2 className="text-lg font-medium" style={{ color: "var(--text-primary)" }}>Next Service Team</h2>
-        <Link href="/volunteers" className="btn btn-secondary btn-sm">View full schedule</Link>
-      </div>
+    <div className="card shadow-sm p-6">
+      <h2 className="card-title mb-4">Next Service Team</h2>
       {items.length === 0 ? (
         <div className="flex flex-col items-center gap-2 p-6">
-          <span style={{ color: "var(--text-muted)" }}>No assignments yet. Generate this week's schedule to see your team.</span>
-          <Link href="/volunteers" className="btn btn-secondary btn-sm mt-2 inline-flex">Generate schedule</Link>
+          <span style={{ color: "var(--text-muted)" }}>No assignments yet. Go to Volunteers to generate this week&apos;s schedule.</span>
         </div>
       ) : (
         <div className="overflow-hidden rounded-2xl border border-[var(--border)]">

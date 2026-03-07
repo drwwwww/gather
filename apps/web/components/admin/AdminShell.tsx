@@ -93,7 +93,7 @@ export default function AdminShell({ children }: { children: ReactNode }) {
   }, [notificationScope]);
 
   return (
-    <div className="min-h-screen bg-[var(--bg)]">
+    <div className="min-h-screen bg-[var(--surface)]">
       <div className="flex">
         {/* Sidebar - fixed so it stays visible when scrolling */}
         <aside
@@ -143,7 +143,7 @@ export default function AdminShell({ children }: { children: ReactNode }) {
                   >
                     <Link
                       href={href}
-                      className={`relative w-full grid grid-cols-[18px_1fr] items-center rounded-[14px] no-underline transition-colors duration-200 ease-out hover:no-underline hover:bg-[var(--surface-2)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-0 ${isActive ? "bg-[var(--primary-soft)]" : "bg-transparent"}`}
+                      className={`relative w-full grid grid-cols-[18px_1fr] items-center rounded-[14px] no-underline transition-colors duration-200 ease-out hover:no-underline hover:bg-[var(--surface-2)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-0 ${isActive ? "bg-[var(--primary-soft)] rounded-l-none" : "bg-transparent"}`}
                       style={{
                         height: "var(--sidebar-row-h)",
                         padding: "0 10px",
@@ -156,7 +156,7 @@ export default function AdminShell({ children }: { children: ReactNode }) {
                     >
                       {isActive && (
                         <span
-                          className="absolute left-0 top-1 bottom-1 w-1 rounded-full pointer-events-none"
+                          className="absolute left-0 top-px bottom-px w-1 rounded-full pointer-events-none"
                           style={{ background: "var(--primary)" }}
                           aria-hidden
                         />
@@ -221,7 +221,7 @@ export default function AdminShell({ children }: { children: ReactNode }) {
                   <li key={href} className="list-none" style={{ margin: 0, padding: 0 }}>
                     <Link
                       href={href}
-                      className={`relative w-full grid grid-cols-[18px_1fr] items-center rounded-[14px] no-underline transition-colors duration-200 ease-out hover:no-underline hover:bg-[var(--surface-2)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-0 ${isActive ? "bg-[var(--primary-soft)]" : "bg-transparent"}`}
+                      className={`relative w-full grid grid-cols-[18px_1fr] items-center rounded-[14px] no-underline transition-colors duration-200 ease-out hover:no-underline hover:bg-[var(--surface-2)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-0 ${isActive ? "bg-[var(--primary-soft)] rounded-l-none" : "bg-transparent"}`}
                       style={{
                         height: "var(--sidebar-row-h)",
                         padding: "0 10px",
@@ -234,7 +234,7 @@ export default function AdminShell({ children }: { children: ReactNode }) {
                     >
                       {isActive && (
                         <span
-                          className="absolute left-0 top-1 bottom-1 w-1 rounded-full pointer-events-none"
+                          className="absolute left-0 top-px bottom-px w-1 rounded-full pointer-events-none"
                           style={{ background: "var(--primary)" }}
                           aria-hidden
                         />
@@ -266,11 +266,11 @@ export default function AdminShell({ children }: { children: ReactNode }) {
           </div>
         </aside>
         {/* Main content */}
-        <main className="flex-1 min-w-0 min-h-screen" style={{ marginLeft: "var(--sidebar-w)", background: "var(--bg)" }}>
+        <main className="flex-1 min-w-0 min-h-screen" style={{ marginLeft: "var(--sidebar-w)", background: "var(--surface)" }}>
           {/* Header */}
           <header
             className="sticky top-0 z-30 flex items-center h-[64px] border-b px-8"
-            style={{ background: "var(--surface)", borderColor: "var(--border)", boxShadow: "none" }}
+            style={{ background: "var(--bg)", borderColor: "var(--border)", boxShadow: "none" }}
           >
             {/* Left: Org name + context */}
             <div className="flex flex-col justify-center min-w-0" style={{ flex: '0 0 auto', height: 64 }}>
@@ -307,7 +307,7 @@ export default function AdminShell({ children }: { children: ReactNode }) {
                   <input
                     id="admin-search"
                     type="search"
-                    className="h-10 w-full rounded-[10px] border border-[var(--border)] px-10 text-[14px] bg-[var(--surface)] placeholder:text-[var(--text-muted)] transition-all duration-150 focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary-soft)] outline-none hover:border-[color-mix(in_srgb,var(--border),#000_8%)]"
+                    className="h-10 w-full rounded-[10px] border border-[var(--border)] px-10 text-[14px] bg-transparent placeholder:text-[var(--text-muted)] transition-all duration-150 focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary-soft)] outline-none hover:border-[color-mix(in_srgb,var(--border),#000_8%)]"
                     placeholder="Search members, events, or records..."
                     value={searchTerm}
                     onChange={(event) => setSearchTerm(event.target.value)}
@@ -347,7 +347,7 @@ export default function AdminShell({ children }: { children: ReactNode }) {
               </div>
             </div>
           </header>
-          <div className="mx-auto max-w-7xl px-8 py-10">
+          <div className="w-full px-8 py-10">
             {children}
           </div>
         </main>

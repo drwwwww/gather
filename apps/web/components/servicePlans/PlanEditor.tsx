@@ -62,10 +62,10 @@ export default function PlanEditor({
 
   return (
     <div className="space-y-6">
-      <div className="card bg-base-100 shadow-md p-4 rounded-xl" style={{ background: 'var(--gather-surface)', borderColor: 'var(--gather-border)', color: 'var(--gather-ink)' }}>
+      <div className="card shadow-sm p-4">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex-1 min-w-[240px]">
-            <div className="card-title text-lg font-semibold">Plan details</div>
+            <div className="card-title">Plan details</div>
             <div className="mt-3 space-y-3">
               <div>
                 <label className="text-xs uppercase tracking-widest" style={{ color: 'var(--gather-muted)' }}>Title</label>
@@ -87,9 +87,9 @@ export default function PlanEditor({
         </div>
       </div>
 
-      <div className="card bg-base-100 shadow-md p-4 rounded-xl" style={{ background: 'var(--gather-surface)', borderColor: 'var(--gather-border)', color: 'var(--gather-ink)' }}>
+      <div className="card shadow-sm p-4">
         <div className="flex items-center justify-between">
-          <div className="card-title text-lg font-semibold">Service plan items</div>
+          <div className="card-title">Service plan items</div>
           <button type="button" className="btn btn-outline btn-sm" onClick={onAddItem}>Add item</button>
         </div>
         <div className="mt-4 space-y-4">
@@ -172,20 +172,11 @@ export default function PlanEditor({
                   </div>
                 </div>
                 <div className="mt-3">
-                  <label
-                    className="text-xs uppercase tracking-widest"
-                    style={{ color: 'var(--gather-muted)' }}
-                  >
-                    Notes
-                  </label>
+                  <label className="text-xs uppercase tracking-widest" style={{ color: 'var(--gather-muted)' }}>Notes</label>
                   <textarea
-                    className="textarea textarea-bordered w-full"
+                    className="textarea textarea-bordered w-full mt-1"
                     rows={3}
-                    style={{
-                      background: 'var(--gather-surface)',
-                      borderColor: 'var(--gather-border)',
-                      color: 'var(--gather-ink)'
-                    }}
+                    placeholder="Optional step notes..."
                     value={item.notes}
                     onChange={(event) => handleItemChange(item.id, { notes: event.target.value })}
                   />

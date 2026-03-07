@@ -15,7 +15,7 @@ export default function PresetCreateRow({
 }) {
   return (
     <div className="flex-1">
-      <h2 className="card-title text-lg font-bold">New preset</h2>
+      <h2 className="card-title font-bold">New preset</h2>
       <div className="mt-2 flex flex-wrap gap-2">
            <input
              type="text"

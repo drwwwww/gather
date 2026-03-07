@@ -10,6 +10,7 @@ export const churchOnboardingSchema = z
     name: z.string().min(2),
     slug: z.string().min(2).regex(/^[a-z0-9-]+$/),
     timezone: z.string().min(2),
+    address: z.string().optional(),
     serviceDayChoice: z.enum(["SATURDAY", "SUNDAY", "BOTH", "CUSTOM"]),
     customDays: z.array(z.number().int().min(0).max(6)).optional(),
     serviceTime: z.string().min(3)

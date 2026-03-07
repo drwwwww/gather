@@ -66,10 +66,10 @@ export default function PresetEditor({
 
   return (
     <div className="space-y-6">
-      <div className="card bg-base-100 shadow-md p-4 rounded-xl">
+      <div className="card shadow-sm p-4">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex-1 min-w-[240px]">
-            <div className="card-title text-lg font-semibold">Preset details</div>
+            <div className="text-lg font-semibold">Preset details</div>
             <div className="mt-3 space-y-3">
               <div>
                 <label className="text-xs uppercase tracking-widest text-[var(--gather-muted)]">Name</label>
@@ -110,14 +110,14 @@ export default function PresetEditor({
         </div>
       </div>
 
-      <div className="card bg-base-100 shadow-md p-4 rounded-xl">
+      <div className="card shadow-sm p-4">
         <div className="flex items-center justify-between">
-          <div className="card-title text-lg font-semibold">Run of show items</div>
+          <div className="card-title">Run of show items</div>
           <button type="button" className="btn btn-outline btn-sm" onClick={onAddItem}>Add item</button>
         </div>
         <div className="mt-4 space-y-4">
           {items.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-base-300 p-6 text-center">
+            <div className="rounded-xl border border-dashed border-[var(--border)] p-6 text-center">
               <p className="text-sm text-[var(--gather-muted)]">No steps yet.</p>
               <p className="mt-1 text-xs text-[var(--gather-muted)]">Add a step to build your run of show.</p>
             </div>
@@ -125,7 +125,7 @@ export default function PresetEditor({
             items.map((item, index) => (
               <div
                 key={item.id}
-                className="rounded-xl border border-base-200 bg-base-100 p-4"
+                className="card p-4"
                 draggable
                 onDragStart={() => setDragId(item.id)}
                 onDragOver={(event) => event.preventDefault()}
@@ -133,7 +133,7 @@ export default function PresetEditor({
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-[var(--gather-muted)]">
-                    <span className="rounded-full bg-base-200 px-2 py-1">Step {index + 1}</span>
+                    <span className="rounded-full bg-[var(--surface-2)] px-2 py-1">Step {index + 1}</span>
                     <span>Drag to reorder</span>
                   </div>
                   <button type="button" className="btn btn-outline btn-sm" onClick={() => onDeleteItem(item.id)}>
@@ -185,8 +185,9 @@ export default function PresetEditor({
                   <div>
                     <label className="text-xs uppercase tracking-widest text-[var(--gather-muted)]">Notes</label>
                     <textarea
-                      className="textarea textarea-bordered w-full"
+                      className="textarea textarea-bordered w-full mt-1"
                       rows={3}
+                      placeholder="Optional step notes..."
                       value={item.notes}
                       onChange={(event) => handleItemChange(item.id, { notes: event.target.value })}
                     />

@@ -6,14 +6,14 @@ interface AppShellProps {
 
 /**
  * AppShell: Provides the main layout wrapper for the admin dashboard.
- * - Uses bg-base-100 (white canvas)
+ * - Uses theme surface (main canvas)
  * - Optional gentle gradient
  * - Centers content with max-w and responsive padding
  */
 const AppShell: React.FC<AppShellProps> = ({ children }) => {
   return (
-    <div className="min-h-screen" style={{ background: 'var(--gather-bg)' }}>
-      <div className="mx-auto max-w-7xl px-4 sm:px-8 py-8">
+    <div className="min-h-screen">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 py-4">
         {children}
       </div>
     </div>

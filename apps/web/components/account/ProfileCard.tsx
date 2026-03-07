@@ -15,10 +15,10 @@ export default function ProfileCard({
   saveDisabled: boolean;
 }) {
   return (
-    <div className="card bg-base-100 shadow-md p-4 rounded-xl">
+    <div className="card shadow-sm p-4">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="card-title text-lg font-bold">My Profile</h2>
+          <h2 className="card-title font-bold">My Profile</h2>
           <p className="text-sm text-[var(--gather-muted)]">Update your name and view your role.</p>
         </div>
         <button
@@ -46,7 +46,7 @@ export default function ProfileCard({
           <input
             type="email"
             placeholder="Email"
-            className="input input-bordered w-full bg-base-200/60 text-[var(--gather-muted)]"
+            className="input input-bordered w-full bg-[var(--surface-2)]/60 text-[var(--gather-muted)]"
             value={email}
             readOnly
           />

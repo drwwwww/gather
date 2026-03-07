@@ -4,6 +4,7 @@ import { formatRelativeTime, formatShortWeekdayDateTime } from "../../lib/format
 import AnnouncementTemplates, { type AnnouncementTemplate } from "./AnnouncementTemplates";
 import type { Database } from "@gather/lib";
 import Badge from "../ui/Badge";
+import Loader from "../ui/Loader";
 
 type Announcement = Database["public"]["Tables"]["announcements"]["Row"];
 
@@ -44,16 +45,19 @@ export default function RecentAnnouncementsList({
   onTemplateSelect
 }: RecentAnnouncementsListProps) {
   return (
-    <div className="card bg-base-100 shadow-md p-4 rounded-xl">
+    <div className="card shadow-sm p-4">
       <div className="flex items-center justify-between">
-        <div className="card-title text-lg font-semibold">Recent Announcements</div>
+        <div className="card-title">Recent Announcements</div>
         <span className="text-xs text-[var(--gather-muted)]">Latest activity</span>
       </div>
       <div className="mt-4 space-y-3 text-sm">
         {loading ? (
-          <p className="text-[var(--gather-muted)]">Loading announcements...</p>
+          <div className="flex flex-col items-center justify-center gap-4 py-6">
+            <Loader />
+            <p className="text-sm" style={{ color: "var(--text-muted)" }}>Loading announcements...</p>
+          </div>
         ) : announcements.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-base-300 p-4">
+          <div className="rounded-xl border border-dashed border-[var(--border)] p-4">
             <p className="text-[var(--gather-muted)]">No announcements yet.</p>
             <p className="text-xs text-[var(--gather-muted)] mt-1">Publish a welcome announcement to get started.</p>
             <div className="mt-3">
@@ -69,7 +73,7 @@ export default function RecentAnnouncementsList({
                 key={announcement.id}
                 role="button"
                 tabIndex={0}
-                className="w-full text-left rounded-2xl bg-base-100 p-4 hover:bg-base-200"
+                className="w-full text-left rounded-2xl bg-[var(--surface)] p-4 hover:bg-[var(--surface-2)]"
                 onClick={() => onSelect(announcement)}
                 onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") {
@@ -91,7 +95,7 @@ export default function RecentAnnouncementsList({
                     <button type="button" className="btn btn-outline btn-sm" onClick={(event) => event.stopPropagation()}>
                       ⋮
                     </button>
-                    <ul className="dropdown-content menu rounded-box w-40 bg-base-100 p-2 shadow">
+                    <ul className="dropdown-content menu rounded-box w-40 bg-[var(--surface)] border border-[var(--border)] p-2 shadow">
                       <li>
                         <button type="button" onClick={(event) => {
                           event.stopPropagation();

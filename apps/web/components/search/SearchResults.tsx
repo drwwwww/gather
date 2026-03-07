@@ -3,8 +3,6 @@
 import Link from "next/link";
 import { Calendar, Megaphone, UserRound } from "lucide-react";
 import type { Database } from "@gather/lib";
-import { Card, CardTitle } from "../ui/card";
-
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 type EventRow = Database["public"]["Tables"]["events"]["Row"];
 type AnnouncementRow = Database["public"]["Tables"]["announcements"]["Row"];
@@ -19,10 +17,10 @@ type SearchResultsProps = {
 export default function SearchResults({ query, profiles, events, announcements }: SearchResultsProps) {
   return (
     <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-3">
-      <div className="card bg-base-100 shadow-md p-4 rounded-xl h-full">
+      <div className="card shadow-sm p-4 h-full">
         <div className="flex h-full flex-col">
           <div className="flex items-center justify-between">
-            <div className="card-title text-lg font-semibold">Members</div>
+            <div className="card-title">Members</div>
             <span className="text-xs text-[var(--gather-muted)]">{profiles.length} found</span>
           </div>
 
@@ -35,7 +33,7 @@ export default function SearchResults({ query, profiles, events, announcements }
               />
             ) : (
               profiles.map((profile) => (
-                <div key={profile.id} className="flex items-center justify-between rounded-lg bg-base-100 p-3">
+                <div key={profile.id} className="flex items-center justify-between rounded-lg bg-[var(--surface)] p-3">
                   <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
                       {(profile.full_name || profile.email || "?").slice(0, 1).toUpperCase()}
@@ -64,10 +62,10 @@ export default function SearchResults({ query, profiles, events, announcements }
         </div>
       </div>
 
-      <div className="card bg-base-100 shadow-md p-4 rounded-xl h-full">
+      <div className="card shadow-sm p-4 h-full">
         <div className="flex h-full flex-col">
           <div className="flex items-center justify-between">
-            <div className="card-title text-lg font-semibold">Events</div>
+            <div className="card-title">Events</div>
             <span className="text-xs text-[var(--gather-muted)]">{events.length} found</span>
           </div>
 
@@ -82,7 +80,7 @@ export default function SearchResults({ query, profiles, events, announcements }
               />
             ) : (
               events.map((event) => (
-                <div key={event.id} className="rounded-lg bg-base-100 p-3">
+                <div key={event.id} className="rounded-lg bg-[var(--surface)] p-3">
                   <p className="font-semibold text-[var(--gather-ink)]">{event.title}</p>
                   <p className="text-xs text-[var(--gather-muted)]">
                     {event.start_at ? new Date(event.start_at).toLocaleString() : ""}
@@ -95,10 +93,10 @@ export default function SearchResults({ query, profiles, events, announcements }
         </div>
       </div>
 
-      <div className="card bg-base-100 shadow-md p-4 rounded-xl h-full">
+      <div className="card shadow-sm p-4 h-full">
         <div className="flex h-full flex-col">
           <div className="flex items-center justify-between">
-            <div className="card-title text-lg font-semibold">Announcements</div>
+            <div className="card-title">Announcements</div>
             <span className="text-xs text-[var(--gather-muted)]">{announcements.length} found</span>
           </div>
 
@@ -113,7 +111,7 @@ export default function SearchResults({ query, profiles, events, announcements }
               />
             ) : (
               announcements.map((announcement) => (
-                <div key={announcement.id} className="rounded-lg bg-base-100 p-3">
+                <div key={announcement.id} className="rounded-lg bg-[var(--surface)] p-3">
                   <p className="font-semibold text-[var(--gather-ink)]">{announcement.title}</p>
                   <p className="text-xs text-[var(--gather-muted)]">
                     {announcement.publish_at ? new Date(announcement.publish_at).toLocaleString() : "Draft"}
@@ -142,7 +140,7 @@ function EmptyState({
   actionHref?: string;
 }) {
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-base-200 bg-base-100 p-6 text-center">
+    <div className="flex h-full flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-[var(--border)] bg-[var(--surface)] p-6 text-center">
       <div className="flex h-10 w-10 items-center justify-center rounded-full" style={{ background: 'var(--gather-primary-weak)', color: 'var(--gather-primary)' }}>
         <Icon className="h-5 w-5" style={{ color: 'var(--gather-primary)' }} />
       </div>

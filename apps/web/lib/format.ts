@@ -108,6 +108,14 @@ export function formatRelativeTime(value?: Date | string | null) {
   return rtf.format(diffYears, "year");
 }
 
+/** Returns "in X days" style countdown for future dates */
+export function formatCountdown(value?: Date | string | null) {
+  if (!value) return "";
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime()) || date.getTime() <= Date.now()) return "";
+  return formatRelativeTime(date);
+}
+
 export type TimezoneOption = { value: string; label: string };
 
 const fallbackTimezones = [

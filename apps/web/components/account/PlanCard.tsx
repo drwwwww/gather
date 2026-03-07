@@ -1,10 +1,10 @@
 
 export default function PlanCard() {
   return (
-    <div className="card bg-base-100 shadow-md p-4 rounded-xl">
+    <div className="card shadow-sm p-4">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="card-title text-lg font-bold">Plan</h2>
+          <h2 className="card-title font-bold">Plan</h2>
           <p className="text-sm text-[var(--gather-muted)]">Starter - $79/month</p>
         </div>
         <button

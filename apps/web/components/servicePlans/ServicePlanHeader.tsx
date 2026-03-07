@@ -34,12 +34,12 @@ export default function ServicePlanHeader({
 }: ServicePlanHeaderProps) {
   return (
     <div
-      className="card bg-base-100 shadow-md p-4 rounded-xl"
+      className="card shadow-sm p-4"
       // DaisyUI/Tailwind only; remove legacy CSS vars if not needed
     >
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <div className="card-title text-lg font-semibold">Service plan</div>
+          <div className="card-title">Service plan</div>
           <p
             className="text-xs mt-1"
             style={{ color: 'var(--gather-muted)' }}

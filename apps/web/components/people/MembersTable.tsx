@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { useRef, useEffect, useState } from "react";
 import type { Role } from "@gather/lib";
 import Badge from "../ui/Badge";
 
@@ -46,16 +46,33 @@ export default function MembersTable({
   onCopyLast,
   error
 }: MembersTableProps) {
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [openRoleMenuId, setOpenRoleMenuId] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const roleMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (menuRef.current && !menuRef.current.contains(target)) setOpenMenuId(null);
+      if (roleMenuRef.current && !roleMenuRef.current.contains(target)) setOpenRoleMenuId(null);
+    };
+    if (openMenuId || openRoleMenuId) {
+      document.addEventListener("click", handleClickOutside);
+      return () => document.removeEventListener("click", handleClickOutside);
+    }
+  }, [openMenuId, openRoleMenuId]);
+
   return (
-    <div className="card bg-base-100 shadow-md p-4 rounded-xl">
+    <div className="card shadow-sm p-5">
       <div className="flex items-center justify-between">
-        <div className="card-title text-lg font-semibold">Members</div>
+        <div className="card-title">Members</div>
         <span className="text-xs text-base-content/60">{members.length} total</span>
       </div>
 
       {error ? <p className="mt-3 text-sm text-error">{error}</p> : null}
 
-      <div className="mt-4 rounded-2xl bg-base-100">
+      <div className="mt-5 overflow-visible rounded-xl">
         <table className="table">
           <thead>
             <tr>
@@ -92,49 +109,90 @@ export default function MembersTable({
                     </button>
                   </td>
                   <td>{member.email}</td>
-                  <td>
+                  <td className="relative">
                     {member.source === "invite" ? (
                       <span className="text-xs text-base-content/60">{member.role}</span>
                     ) : (
-                      <select
-                        className="select select-bordered select-sm"
-                        value={member.role}
-                        onChange={(event) => onRoleChange(member.id, event.target.value as Role)}
-                        disabled={member.isCurrentUser}
-                      >
-                        {roleOptions.map((role) => (
-                          <option key={role} value={role}>
-                            {role}
-                          </option>
-                        ))}
-                      </select>
+                      <div ref={roleMenuRef} className="relative inline-block">
+                        <button
+                          type="button"
+                          className="select select-bordered select-sm flex min-w-[100px] items-center justify-between gap-2"
+                          style={{ borderRadius: "var(--radius-box)" }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (!member.isCurrentUser) setOpenRoleMenuId((id) => (id === member.id ? null : member.id));
+                          }}
+                          disabled={member.isCurrentUser}
+                          aria-expanded={openRoleMenuId === member.id}
+                          aria-haspopup="listbox"
+                        >
+                          <span>{member.role}</span>
+                          <svg className="h-3.5 w-3.5 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+                        {openRoleMenuId === member.id ? (
+                          <ul
+                            className="dropdown-menu absolute left-0 top-full mt-2 flex min-w-[100px] flex-col gap-0.5 p-2"
+                            role="listbox"
+                          >
+                            {roleOptions.map((role) => (
+                              <li key={role} role="option" className="list-none">
+                                <button
+                                  type="button"
+                                  className={`dropdown-menu-item ${member.role === role ? "font-semibold" : ""}`}
+                                  onClick={() => {
+                                    onRoleChange(member.id, role);
+                                    setOpenRoleMenuId(null);
+                                  }}
+                                >
+                                  {role}
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : null}
+                      </div>
                     )}
                   </td>
                   <td>
                     <Badge variant={statusVariant[member.status]}>{member.status}</Badge>
                   </td>
-                  <td>
-                    <div className="dropdown dropdown-end">
-                      <button tabIndex={0} className="btn btn-sm btn-outline">&#x22EF;</button>
-                      <ul tabIndex={0} className="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-52 z-[1]">
-                        <li>
-                          <button onClick={() => onViewDetails(member.id)}>View</button>
-                        </li>
-                        {member.source === "invite" ? (
-                          <li>
-                            <button onClick={() => onCopyInvite(member.id)}>Copy invite</button>
+                  <td className="relative">
+                    <div ref={menuRef} className="relative inline-block">
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm btn-square"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenMenuId((id) => (id === member.id ? null : member.id));
+                        }}
+                        aria-expanded={openMenuId === member.id}
+                        aria-haspopup="true"
+                      >
+                        &#x22EF;
+                      </button>
+                      {openMenuId === member.id ? (
+                        <ul className="dropdown-menu absolute right-0 top-full mt-2 flex w-48 flex-col gap-0.5 p-2" role="menu">
+                          <li role="none" className="list-none">
+                            <button type="button" role="menuitem" className="dropdown-menu-item" onClick={() => { onViewDetails(member.id); setOpenMenuId(null); }}>View</button>
                           </li>
-                        ) : (
-                          <li>
-                            <button onClick={() => onToggleStatus(member.id, !member.disabled)} disabled={member.isCurrentUser}>
-                              {member.disabled ? "Activate" : "Deactivate"}
-                            </button>
+                          {member.source === "invite" ? (
+                            <li role="none" className="list-none">
+                              <button type="button" role="menuitem" className="dropdown-menu-item" onClick={() => { onCopyInvite(member.id); setOpenMenuId(null); }}>Copy invite</button>
+                            </li>
+                          ) : (
+                            <li role="none" className="list-none">
+                              <button type="button" role="menuitem" className="dropdown-menu-item disabled:opacity-50 disabled:hover:bg-transparent" onClick={() => { onToggleStatus(member.id, !member.disabled); setOpenMenuId(null); }} disabled={member.isCurrentUser}>
+                                {member.disabled ? "Activate" : "Deactivate"}
+                              </button>
+                            </li>
+                          )}
+                          <li role="none" className="list-none">
+                            <button type="button" role="menuitem" className="dropdown-menu-item" onClick={() => { setOpenMenuId(null); window.location.href = "/volunteers"; }}>Scheduling</button>
                           </li>
-                        )}
-                        <li>
-                          <button onClick={() => window.location.href = "/volunteers"}>Scheduling</button>
-                        </li>
-                      </ul>
+                        </ul>
+                      ) : null}
                     </div>
                   </td>
                 </tr>

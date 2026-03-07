@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import AdminHeader from "../../../../../components/admin/AdminHeader";
+import PageLoader from "../../../../../components/ui/PageLoader";
 import PresetEditor from "../../../../../components/servicePresets/PresetEditor";
 import { getCurrentContext } from "../../../../../lib/supabaseData";
 import { supabase } from "../../../../../lib/supabaseClient";
@@ -199,7 +200,7 @@ export default function ServicePresetEditorPage() {
   };
 
   if (status === "loading") {
-    return <p className="text-sm text-base-content/70">Loading preset...</p>;
+    return <PageLoader message="Loading preset..." />;
   }
 
   if (status === "restricted") {

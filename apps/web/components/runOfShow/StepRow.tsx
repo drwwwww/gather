@@ -139,8 +139,9 @@ export default function StepRow({
           <div className="mt-3">
             <label className="text-xs uppercase tracking-[0.2em] text-[var(--gather-muted)]">Notes</label>
             <textarea
-              className="textarea textarea-bordered w-full"
+              className="textarea textarea-bordered w-full mt-1"
               rows={3}
+              placeholder="Optional step notes..."
               value={step.notes}
               onChange={(event) => onUpdate({ notes: event.target.value })}
             />

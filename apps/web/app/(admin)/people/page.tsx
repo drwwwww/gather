@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import AdminHeader from "../../../components/admin/AdminHeader";
+import PageLoader from "../../../components/ui/PageLoader";
 // DaisyUI migration: use className markup for all UI
 import { buildJoinLink } from "../../../lib/format";
 import { supabase } from "../../../lib/supabaseClient";
@@ -257,7 +258,7 @@ export default function PeoplePage() {
   };
 
   if (loading) {
-    return <p className="text-sm text-base-content/70">Loading people...</p>;
+    return <PageLoader message="Loading people..." />;
   }
 
   return (

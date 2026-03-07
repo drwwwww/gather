@@ -48,9 +48,9 @@ export default function EventsList({
   const list = activeTab === "UPCOMING" ? upcoming : past;
 
   return (
-    <div className="card bg-base-100 shadow-md p-4 rounded-xl">
+    <div className="card shadow-sm p-4">
       <div className="flex items-center justify-between">
-        <div className="card-title text-lg font-semibold">Events</div>
+        <div className="card-title">Events</div>
         <div className="flex items-center gap-2">
             <button
               type="button"
@@ -71,7 +71,7 @@ export default function EventsList({
 
       <div className="mt-4 space-y-3 text-sm">
         {list.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-base-300 p-4">
+          <div className="rounded-xl border border-dashed border-[var(--border)] p-4">
             <p className="text-[var(--gather-muted)]">No events scheduled yet.</p>
             <p className="text-xs text-[var(--gather-muted)] mt-1">Create your first event.</p>
             <div className="mt-3">
@@ -87,7 +87,7 @@ export default function EventsList({
                 key={event.id}
                 role="button"
                 tabIndex={0}
-                className={`rounded-2xl p-4 ${isSelected ? "bg-primary/10" : "bg-base-100 hover:bg-base-200"}`}
+                className={`rounded-2xl p-4 ${isSelected ? "bg-primary/10" : "bg-[var(--surface)] hover:bg-[var(--surface-2)]"}`}
                 onClick={() => onSelect(event)}
                 onKeyDown={(evt) => {
                   if (evt.key === "Enter" || evt.key === " ") {
@@ -115,7 +115,7 @@ export default function EventsList({
                     <Button size="sm" variant="secondary" onClick={(evt) => evt.stopPropagation()}>
                       ⋮
                     </Button>
-                    <ul className="dropdown-content menu rounded-box w-40 bg-base-100 p-2 shadow">
+                    <ul className="dropdown-content menu rounded-box w-40 bg-[var(--surface)] border border-[var(--border)] p-2 shadow">
                       <li>
                         <button type="button" onClick={(evt) => {
                           evt.stopPropagation();

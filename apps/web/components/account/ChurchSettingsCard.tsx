@@ -21,10 +21,10 @@ export default function ChurchSettingsCard({
   saveDisabled: boolean;
 }) {
   return (
-    <div className="card bg-base-100 shadow-md p-4 rounded-xl">
+    <div className="card shadow-sm p-4">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="card-title text-lg font-bold">Church Settings</h2>
+          <h2 className="card-title font-bold">Church Settings</h2>
           <p className="text-sm text-[var(--gather-muted)]">Update the basics for your church.</p>
         </div>
         <button
@@ -52,7 +52,7 @@ export default function ChurchSettingsCard({
           <input
             type="text"
             placeholder="Join code"
-            className="input input-bordered w-full bg-base-200/60 text-[var(--gather-muted)]"
+            className="input input-bordered w-full bg-[var(--surface-2)]/60 text-[var(--gather-muted)]"
             value={joinCode}
             readOnly
           />

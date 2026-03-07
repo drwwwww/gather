@@ -18,7 +18,17 @@
 
   /* Borders */
   --border: #e5e7eb;
+  --border-width: 1px;
   --divider: #f1f5f9;
+
+  /* UI dimensions & radii */
+  --radius-selector: 2rem;
+  --radius-field: 2rem;
+  --radius-box: 2rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --depth: 1;
+  --noise: 0;
 
   /* Brand */
   --primary: oklch(82.8% 0.189 84.429);
@@ -81,6 +91,20 @@
     background: var(--bg);
     color: var(--text-primary);
   }
+}
+
+/* Card styles from DaisyUI plugin (tailwind.config.cjs) */
+.card {
+  background: var(--bg);
+  border-radius: var(--radius-box);
+  border: var(--border-width) solid var(--border);
+  overflow: visible;
+}
+
+/* Table cell padding inside cards */
+.card .table th,
+.card .table td {
+  padding: 12px 16px;
 }
 
 /* Button base and variants */
@@ -215,4 +239,170 @@
   width: 16px;
   height: 16px;
   flex: 0 0 16px;
+}
+
+/* DaisyUI input – one-line fields (use class "input input-bordered") */
+.input.input-bordered {
+  border-radius: var(--radius-field);
+  border-width: var(--border-width);
+  border-color: var(--border);
+  background: var(--bg);
+  color: var(--text-primary);
+  padding: 12px 16px;
+  min-height: 44px;
+  font-size: 15px;
+}
+.input.input-bordered::placeholder {
+  color: var(--text-muted);
+}
+.input.input-bordered:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-soft);
+}
+
+/* DaisyUI textarea – descriptions and multi-line content */
+.textarea.textarea-bordered {
+  border-radius: var(--radius-field);
+  border-width: var(--border-width);
+  border-color: var(--border);
+  background: var(--bg);
+  color: var(--text-primary);
+  padding: 12px 16px;
+  font-size: 15px;
+}
+.textarea.textarea-bordered::placeholder {
+  color: var(--text-muted);
+}
+.textarea.textarea-bordered:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-soft);
+}
+
+/* DaisyUI select – dropdowns */
+.select.select-bordered {
+  border-radius: var(--radius-field);
+  border-width: var(--border-width);
+  border-color: var(--border);
+  background: var(--bg);
+  color: var(--text-primary);
+  padding: 12px 16px;
+  min-height: 44px;
+  font-size: 15px;
+}
+.select.select-bordered:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-soft);
+}
+
+/* Dropdown / select menus – rounded like cards, hover animations, opaque, above cards */
+.dropdown-menu {
+  border-radius: var(--radius-box);
+  border: var(--border-width) solid var(--border);
+  background-color: var(--surface);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  z-index: 100;
+}
+.dropdown-menu-item {
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 14px;
+  text-align: left;
+  width: 100%;
+  transition: background-color 150ms ease;
+}
+.dropdown-menu-item:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+
+/* Loader – bouncing dots (Uiverse.io by mobinkakei, adapted) */
+.loader-wrapper {
+  width: 200px;
+  height: 60px;
+  position: relative;
+  z-index: 1;
+}
+
+.loader-circle {
+  width: 20px;
+  height: 20px;
+  position: absolute;
+  border-radius: 50%;
+  background-color: var(--primary);
+  left: 15%;
+  transform-origin: 50%;
+  animation: loader-circle 0.5s alternate infinite ease;
+}
+
+@keyframes loader-circle {
+  0% {
+    top: 60px;
+    height: 5px;
+    border-radius: 50px 50px 25px 25px;
+    transform: scaleX(1.7);
+  }
+
+  40% {
+    height: 20px;
+    border-radius: 50%;
+    transform: scaleX(1);
+  }
+
+  100% {
+    top: 0%;
+  }
+}
+
+.loader-circle:nth-child(2) {
+  left: 45%;
+  animation-delay: 0.2s;
+}
+
+.loader-circle:nth-child(3) {
+  left: auto;
+  right: 15%;
+  animation-delay: 0.3s;
+}
+
+.loader-shadow {
+  width: 20px;
+  height: 4px;
+  border-radius: 50%;
+  background-color: color-mix(in oklch, var(--primary) 35%, transparent);
+  position: absolute;
+  top: 62px;
+  transform-origin: 50%;
+  z-index: -1;
+  left: 15%;
+  filter: blur(1px);
+  animation: loader-shadow 0.5s alternate infinite ease;
+}
+
+@keyframes loader-shadow {
+  0% {
+    transform: scaleX(1.5);
+  }
+
+  40% {
+    transform: scaleX(1);
+    opacity: 0.7;
+  }
+
+  100% {
+    transform: scaleX(0.2);
+    opacity: 0.4;
+  }
+}
+
+.loader-shadow:nth-child(4) {
+  left: 45%;
+  animation-delay: 0.2s;
+}
+
+.loader-shadow:nth-child(5) {
+  left: auto;
+  right: 15%;
+  animation-delay: 0.3s;
 }

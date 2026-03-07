@@ -12,15 +12,14 @@ export type EventRow = {
 
 export default function UpcomingEventsCard({ items }: { items: EventRow[] }) {
   return (
-    <div className="rounded-2xl border p-6" style={{ background: "var(--surface)", borderColor: "var(--border)", boxShadow: "0 1px 2px rgba(16, 24, 40, 0.06)" }}>
-      <div className="flex items-center justify-between mb-8">
-        <h2 className="text-lg font-medium" style={{ color: "var(--text-primary)" }}>Upcoming Events</h2>
+    <div className="card shadow-sm p-6">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="card-title">Upcoming Events</h2>
         <Link href="/events" className="btn btn-secondary btn-sm">View all events</Link>
       </div>
       {items.length === 0 ? (
         <div className="flex flex-col items-center gap-2 p-6">
           <span style={{ color: "var(--text-muted)" }}>No upcoming events. Check back soon!</span>
-          <Link href="/events" className="btn btn-secondary btn-sm mt-2 inline-flex">Create event</Link>
         </div>
       ) : (
         <div className="overflow-hidden rounded-2xl border border-[var(--border)]">

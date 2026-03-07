@@ -34,7 +34,7 @@ export default function MemberDetailsDrawer({
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/40">
-      <div className="h-full w-full max-w-md bg-base-100 p-6 shadow-xl">
+      <div className="h-full w-full max-w-md bg-[var(--surface)] p-6 shadow-xl">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-base-content/60">Member details</p>
@@ -45,7 +45,7 @@ export default function MemberDetailsDrawer({
         </div>
 
         <div className="mt-4 space-y-4">
-          <div className="card bg-base-100 shadow-md p-4 rounded-xl">
+          <div className="card shadow-sm p-4">
             <div className="space-y-2 text-sm">
               <p className="text-base-content/60">Role</p>
               <p className="font-medium text-base-content">{roleLabel}</p>
@@ -54,9 +54,9 @@ export default function MemberDetailsDrawer({
             </div>
           </div>
 
-          <div className="card bg-base-100 shadow-md p-4 rounded-xl">
+          <div className="card shadow-sm p-4">
             <div className="flex items-center justify-between">
-              <div className="card-title text-lg font-semibold">Upcoming assignments</div>
+              <div className="card-title">Upcoming assignments</div>
               <span className="text-xs text-base-content/60">{assignments.length} next</span>
             </div>
             <div className="mt-4 space-y-2 text-sm">
@@ -64,7 +64,7 @@ export default function MemberDetailsDrawer({
                 <p className="text-base-content/60">No upcoming assignments.</p>
               ) : (
                 assignments.map((assignment) => (
-                  <div key={assignment.id} className="rounded-xl bg-base-100 p-3">
+                  <div key={assignment.id} className="rounded-xl bg-[var(--surface)] p-3">
                     <p className="font-medium text-base-content">{assignment.role}</p>
                     <p className="text-base-content/60">{assignment.serviceLabel}</p>
                   </div>

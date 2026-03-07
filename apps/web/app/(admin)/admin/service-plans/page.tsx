@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "../../../../components/ui/button";
 import AdminHeader from "../../../../components/admin/AdminHeader";
+import PageLoader from "../../../../components/ui/PageLoader";
 import ServicePlanHeader from "../../../../components/servicePlans/ServicePlanHeader";
 import ServicePlanEmptyState from "../../../../components/servicePlans/ServicePlanEmptyState";
 import ServicePlanStepsEditor from "../../../../components/servicePlans/ServicePlanStepsEditor";
@@ -294,7 +295,7 @@ export default function ServicePlansPage() {
   };
 
   if (status === "loading") {
-    return <p className="text-sm text-base-content/70">Loading service plans...</p>;
+    return <PageLoader message="Loading service plans..." />;
   }
 
   if (status === "restricted") {
@@ -335,7 +336,7 @@ export default function ServicePlansPage() {
           }
         />
 
-        <div className="card bg-base-100 shadow-md p-4 rounded-xl">
+        <div className="card shadow-sm p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-base-content">Generate from preset</p>
@@ -386,7 +387,7 @@ export default function ServicePlansPage() {
       </div>
 
       {toast ? (
-        <div className="fixed right-6 top-6 z-50 rounded-xl bg-base-200 px-4 py-3 text-sm shadow">
+        <div className="fixed right-6 top-6 z-50 rounded-xl bg-[var(--surface-2)] px-4 py-3 text-sm shadow">
           <p className={toast.tone === "error" ? "text-error" : "text-base-content"}>{toast.message}</p>
         </div>
       ) : null}

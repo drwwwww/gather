@@ -8,6 +8,7 @@ import { getCurrentContext } from "../../../../../../lib/supabaseData";
 import { supabase } from "../../../../../../lib/supabaseClient";
 import type { Database } from "@gather/lib";
 import { Button } from "../../../../../../components/ui/button";
+import PageLoader from "../../../../../../components/ui/PageLoader";
 
 type ServicePlan = Database["public"]["Tables"]["service_plans"]["Row"];
 type PlanItemRow = Database["public"]["Tables"]["service_plan_items"]["Row"];
@@ -89,7 +90,7 @@ export default function ServicePlanPrintPage() {
   }, [planId, router]);
 
   if (state === "loading") {
-    return <p className="text-sm text-base-content/70">Loading plan...</p>;
+    return <PageLoader message="Loading plan..." />;
   }
 
   if (state === "error" || !plan) {

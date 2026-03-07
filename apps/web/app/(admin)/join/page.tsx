@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Database } from "@gather/lib";
+import PageLoader from "../../../components/ui/PageLoader";
 import { supabase } from "../../../lib/supabaseClient";
 
 type ChurchRow = Database["public"]["Tables"]["churches"]["Row"];
@@ -57,22 +58,18 @@ export default function JoinInstructionsPage() {
   }, [router]);
 
   if (loading) {
-    return (
-      <main className="mx-auto flex min-h-[50vh] max-w-2xl items-center justify-center px-6">
-        <p className="text-sm text-base-content/60">Preparing print view...</p>
-      </main>
-    );
+    return <PageLoader message="Preparing print view..." />;
   }
 
   return (
     <main className="mx-auto max-w-2xl px-6 py-10">
-      <div className="rounded-2xl border border-primary/20 bg-base-100 p-8 shadow-sm print:border-none print:shadow-none">
+      <div className="rounded-2xl border border-primary/20 bg-[var(--surface)] p-8 shadow-sm print:border-none print:shadow-none">
         <h1 className="text-2xl font-semibold text-base-content">Join {info.church?.name ?? "Our Church"}</h1>
         <p className="mt-2 text-sm text-base-content/60">
           Open the Gather app, tap Join Church, and enter the code below.
         </p>
 
-        <div className="mt-6 rounded-xl bg-base-200/60 p-4 text-center text-2xl font-semibold tracking-wide">
+        <div className="mt-6 rounded-xl bg-[var(--surface-2)]/60 p-4 text-center text-2xl font-semibold tracking-wide">
           {info.church?.slug ?? ""}
         </div>
 

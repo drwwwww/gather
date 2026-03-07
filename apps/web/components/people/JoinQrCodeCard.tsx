@@ -10,14 +10,14 @@ type JoinQrCodeCardProps = {
 
 export default function JoinQrCodeCard({ joinLink, qrUrl, onCopyLink }: JoinQrCodeCardProps) {
   return (
-    <div className="card bg-base-100 shadow-md p-4 rounded-xl">
+    <div className="card shadow-sm p-4">
       <div className="flex items-center justify-between">
-        <div className="card-title text-lg font-semibold">Join QR Code</div>
+        <div className="card-title">Join QR Code</div>
         <span className="text-xs text-base-content/60">Scan to join</span>
       </div>
       <div className="mt-4 space-y-3">
         {qrUrl ? (
-          <div className="flex items-center justify-center rounded-xl bg-base-100 p-4">
+          <div className="flex items-center justify-center rounded-xl bg-[var(--surface)] p-4">
             <img src={qrUrl} alt="Join code QR" className="h-40 w-40" />
           </div>
         ) : null}

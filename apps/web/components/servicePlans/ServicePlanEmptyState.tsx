@@ -15,7 +15,7 @@ export default function ServicePlanEmptyState({
   copyDisabled?: boolean;
 }) {
   return (
-    <div className="card bg-base-100 shadow-md p-4 rounded-xl border-dashed">
+    <div className="card p-4 border border-dashed">
       <div className="space-y-4 text-center">
         <div>
           <p className="text-sm text-base-content/60">

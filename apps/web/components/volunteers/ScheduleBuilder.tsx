@@ -50,9 +50,9 @@ export default function ScheduleBuilder({
   serviceTimeLabel
 }: ScheduleBuilderProps) {
   return (
-    <div className="card bg-base-100 shadow-md rounded-xl p-6 flex flex-col gap-4">
+    <div className="card shadow-sm p-6 flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <div className="card-title text-lg font-semibold">Schedule builder</div>
+        <div className="card-title">Schedule builder</div>
         <span className="text-xs text-[var(--gather-muted)]">Add role slots</span>
       </div>
       <div className="mt-4 grid gap-3 md:grid-cols-[1.1fr_1.1fr_1fr_0.6fr]">
@@ -115,7 +115,7 @@ export default function ScheduleBuilder({
           </div>
         ) : (
           Array.isArray(slots) && slots.map((slot) => (
-            <div key={slot.id} className="flex items-center justify-between rounded-2xl p-3 text-sm bg-base-100">
+            <div key={slot.id} className="flex items-center justify-between rounded-2xl p-3 text-sm bg-[var(--surface)]">
               <div>
                 <p className="font-medium text-base-content">
                   {roles.find((role) => role.id === slot.roleId)?.name ?? "Role"}

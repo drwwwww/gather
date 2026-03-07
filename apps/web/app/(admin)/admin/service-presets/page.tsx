@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import AdminHeader from "../../../../components/admin/AdminHeader";
+import PageLoader from "../../../../components/ui/PageLoader";
 import PresetList from "../../../../components/servicePresets/PresetList";
 import { getCurrentContext } from "../../../../lib/supabaseData";
 import { supabase } from "../../../../lib/supabaseClient";
@@ -341,7 +342,7 @@ export default function ServicePresetsPage() {
   };
 
   if (status === "loading") {
-    return <p className="text-sm text-base-content/70">Loading presets...</p>;
+    return <PageLoader message="Loading presets..." />;
   }
 
   if (status === "restricted") {

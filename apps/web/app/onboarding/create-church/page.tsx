@@ -26,6 +26,7 @@ const weekdayOptions: Weekday[] = [
 
 export default function CreateChurchOnboardingPage() {
   const [name, setName] = useState("");
+  const [address, setAddress] = useState("");
   const [slug, setSlug] = useState("");
   const [slugTouched, setSlugTouched] = useState(false);
   const [timezone, setTimezone] = useState("");
@@ -177,6 +178,10 @@ export default function CreateChurchOnboardingPage() {
         setLoading(false);
         return;
       }
+
+      if (address.trim()) {
+        await supabase.from("churches").update({ address: address.trim() }).eq("id", churchId);
+      }
     }
 
     router.push("/admin");
@@ -189,7 +194,7 @@ export default function CreateChurchOnboardingPage() {
       <p className="mb-6 text-sm text-[var(--gather-muted)]">You're almost ready to manage schedules and updates.</p>
 
       <div className="grid gap-6">
-        <section className="space-y-4 rounded-2xl bg-base-200 p-5">
+        <section className="space-y-4 rounded-2xl bg-[var(--surface-2)] p-5">
           <h2 className="text-sm font-semibold text-base-content">Church basics</h2>
           <Input
             placeholder="Church name"
@@ -211,9 +216,15 @@ export default function CreateChurchOnboardingPage() {
             onChange={(e) => setTimezone(e.target.value)}
           />
           <p className="text-xs text-[var(--gather-muted)]">Used for reminders and schedules.</p>
+          <Input
+            placeholder="Address (optional)"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+          />
+          <p className="text-xs text-[var(--gather-muted)]">Used on the dashboard and for service details.</p>
         </section>
 
-        <section className="space-y-4 rounded-2xl bg-base-200 p-5">
+        <section className="space-y-4 rounded-2xl bg-[var(--surface-2)] p-5">
           <h2 className="text-sm font-semibold text-base-content">Service schedule</h2>
           <div className="grid gap-3">
             <label className="text-xs text-[var(--gather-muted)]">Service day</label>
@@ -264,9 +275,9 @@ export default function CreateChurchOnboardingPage() {
           </div>
         </section>
 
-        <section className="space-y-3 rounded-2xl bg-base-200 p-5">
+        <section className="space-y-3 rounded-2xl bg-[var(--surface-2)] p-5">
           <h2 className="text-sm font-semibold text-base-content">Plan</h2>
-          <div className="flex items-center justify-between rounded-xl bg-base-100 p-4">
+          <div className="flex items-center justify-between rounded-xl bg-[var(--surface)] p-4">
             <div>
               <p className="text-sm font-semibold text-[var(--gather-ink)]">Tier 1</p>
               <p className="text-xs text-[var(--gather-muted)]">Includes core scheduling and announcements.</p>
@@ -294,12 +305,15 @@ export default function CreateChurchOnboardingPage() {
           </div>
         ) : null}
         {showDetails && errorDetails ? (
-          <textarea
-            className="textarea textarea-bordered w-full text-xs"
-            readOnly
-            value={errorDetails}
-            rows={3}
-          />
+          <div className="space-y-2">
+            <label className="text-xs text-[var(--text-muted)]">Error details</label>
+            <textarea
+              className="textarea textarea-bordered w-full text-xs"
+              readOnly
+              value={errorDetails}
+              rows={3}
+            />
+          </div>
         ) : null}
 
         <Button onClick={handleCreate} disabled={loading} className="w-full">

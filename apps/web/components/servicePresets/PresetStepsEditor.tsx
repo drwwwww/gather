@@ -90,7 +90,7 @@ export default function PresetStepsEditor({
   };
 
   return (
-    <div className="card bg-base-100 shadow-md p-4 rounded-2xl">
+    <div className="card shadow-sm p-4 rounded-2xl">
       <div className="space-y-4">
         <div>
           <p className="text-sm font-semibold text-[var(--gather-ink)]">Run-of-show steps</p>
@@ -102,7 +102,7 @@ export default function PresetStepsEditor({
           onAddQuickStep={handleQuickAdd}
         />
         {steps.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-base-300 p-5 text-center">
+          <div className="rounded-xl border border-dashed border-[var(--border)] p-5 text-center">
             <p className="text-sm text-[var(--gather-muted)]">No steps yet.</p>
             <p className="text-xs text-[var(--gather-muted)] mt-1">Add the first step to start the flow.</p>
           </div>

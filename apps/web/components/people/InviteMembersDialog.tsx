@@ -58,7 +58,7 @@ export default function InviteMembersDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-      <div className="w-full max-w-xl rounded-2xl bg-base-100 p-6 shadow-xl">
+      <div className="w-full max-w-xl rounded-2xl bg-[var(--surface)] p-6 shadow-xl">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs uppercase tracking-[0.2em] text-base-content/60">Invite members</p>
@@ -68,8 +68,8 @@ export default function InviteMembersDialog({
         </div>
 
         <div className="mt-4 space-y-4">
-          <div>
-            <label className="text-xs uppercase tracking-widest text-base-content/60">Emails</label>
+          <div className="space-y-2">
+            <label className="text-xs text-[var(--text-muted)]">Emails</label>
             <textarea
               className="textarea textarea-bordered w-full"
               rows={4}
@@ -77,6 +77,7 @@ export default function InviteMembersDialog({
               value={emails}
               onChange={(event) => setEmails(event.target.value)}
             />
+            <p className="text-xs text-[var(--text-muted)]">Separate multiple addresses with commas or new lines.</p>
           </div>
           <div>
             <label className="text-xs uppercase tracking-widest text-base-content/60">Role</label>
@@ -95,7 +96,7 @@ export default function InviteMembersDialog({
             <button className="btn btn-outline" onClick={handleCopy} disabled={!message}>Copy invite message</button>
           </div>
           {message ? (
-            <div className="rounded-xl border border-base-200 bg-base-100 p-4 text-sm">
+            <div className="card p-4 text-sm">
               <p className="font-medium text-base-content">Invite message</p>
               <p className="mt-2 text-base-content/60">{message}</p>
             </div>

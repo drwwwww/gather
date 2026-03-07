@@ -8,9 +8,9 @@ export type Database = {
   public: {
     Tables: {
       churches: {
-        Row: { id: string; name: string; slug: string; timezone: string; created_at: string };
-        Insert: { id?: string; name: string; slug: string; timezone: string; created_at?: string };
-        Update: { name?: string; slug?: string; timezone?: string };
+        Row: { id: string; name: string; slug: string; timezone: string; address: string | null; created_at: string };
+        Insert: { id?: string; name: string; slug: string; timezone: string; address?: string | null; created_at?: string };
+        Update: { name?: string; slug?: string; timezone?: string; address?: string | null };
       };
       profiles: {
         Row: {

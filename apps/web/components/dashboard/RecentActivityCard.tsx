@@ -3,10 +3,8 @@
 
 export default function RecentActivityCard({ items }: { items: string[] }) {
   return (
-    <div className="rounded-2xl border p-6" style={{ background: "var(--surface)", borderColor: "var(--border)", boxShadow: "0 1px 2px rgba(16, 24, 40, 0.06)" }}>
-      <div className="mb-8">
-        <h2 className="text-lg font-medium" style={{ color: "var(--text-primary)" }}>Recent Activity</h2>
-      </div>
+    <div className="card shadow-sm p-6">
+      <h2 className="card-title mb-4">Recent Activity</h2>
       {items.length === 0 ? (
         <div className="flex flex-col items-center gap-2 p-6">
           <span className="text-center" style={{ color: "var(--text-muted)" }}>No recent activity yet. Actions will show here as your team responds.</span>

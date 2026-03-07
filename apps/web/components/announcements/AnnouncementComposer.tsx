@@ -73,9 +73,9 @@ export default function AnnouncementComposer({
 
   // Ensure function body is not prematurely closed
   return (
-    <div className="card bg-base-100 shadow-md p-4 rounded-xl">
+    <div className="card shadow-sm p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="card-title text-lg font-semibold">{isEditing ? "Edit Announcement" : "Compose Announcement"}</div>
+        <div className="card-title">{isEditing ? "Edit Announcement" : "Compose Announcement"}</div>
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -106,22 +106,28 @@ export default function AnnouncementComposer({
         </div>
       ) : (
         <div className="mt-4 space-y-4">
-          <input
-            type="text"
-            placeholder="Announcement title"
-            value={title}
-            onChange={(event) => onTitleChange(event.target.value)}
-            className="input input-bordered w-full"
-          />
-          <textarea
-            className="textarea textarea-bordered min-h-[160px] w-full"
-            placeholder="Write the announcement message..."
-            value={body}
-            onChange={(event) => onBodyChange(event.target.value)}
-          />
-          <div className="text-xs text-[var(--gather-muted)]">
-            {bodyLength} characters
-            {bodyLength > 320 ? " · Tip: keep announcements concise for mobile." : ""}
+          <div className="space-y-2">
+            <label className="block text-xs text-[var(--text-muted)]">Title</label>
+            <input
+              type="text"
+              placeholder="Announcement title"
+              value={title}
+              onChange={(event) => onTitleChange(event.target.value)}
+              className="input input-bordered w-full"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs text-[var(--text-muted)]">Message</label>
+            <textarea
+              className="textarea textarea-bordered min-h-[160px] w-full"
+              placeholder="Write the announcement message..."
+              value={body}
+              onChange={(event) => onBodyChange(event.target.value)}
+            />
+            <p className="text-xs text-[var(--text-muted)]">
+              {bodyLength} characters
+              {bodyLength > 320 ? " · Tip: keep announcements concise for mobile." : ""}
+            </p>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">

@@ -250,7 +250,7 @@ export default function AnnouncementsPage() {
       </div>
 
       {toast ? (
-        <div className="fixed right-6 top-6 z-50 rounded-xl bg-base-200 px-4 py-3 text-sm shadow">
+        <div className="fixed right-6 top-6 z-50 rounded-xl bg-[var(--surface-2)] px-4 py-3 text-sm shadow">
           <p className={toast.tone === "error" ? "text-error" : "text-base-content"}>{toast.message}</p>
         </div>
       ) : null}

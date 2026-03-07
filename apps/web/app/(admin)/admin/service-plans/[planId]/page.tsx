@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import AdminHeader from "../../../../../components/admin/AdminHeader";
+import PageLoader from "../../../../../components/ui/PageLoader";
 import PlanEditor from "../../../../../components/servicePlans/PlanEditor";
 import { getCurrentContext } from "../../../../../lib/supabaseData";
 import { supabase } from "../../../../../lib/supabaseClient";
@@ -183,7 +184,7 @@ export default function ServicePlanEditorPage() {
   };
 
   if (status === "loading") {
-    return <p className="text-sm text-base-content/70">Loading plan...</p>;
+    return <PageLoader message="Loading plan..." />;
   }
 
   if (status === "restricted") {
