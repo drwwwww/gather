@@ -1,43 +1,74 @@
-import type { ButtonHTMLAttributes } from "react";
+import type { ButtonHTMLAttributes, ReactNode } from "react";
 import clsx from "clsx";
 
-type ButtonVariant = "primary" | "outline" | "neutral" | "warning" | "error" | "ghost";
-type ButtonSize = "sm" | "md" | "lg";
+export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
+export type ButtonSize = "sm" | "md" | "lg";
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
   size?: ButtonSize;
+  leftIcon?: ReactNode;
+  rightIcon?: ReactNode;
+  loading?: boolean;
+  children: ReactNode;
 }
 
-export function Button({
+const variantClasses: Record<ButtonVariant, string> = {
+  primary: "btn-primary",
+  secondary: "btn-secondary",
+  ghost: "btn-ghost",
+  danger: "btn-danger",
+};
+
+const sizeClasses: Record<ButtonSize, string> = {
+  sm: "btn-sm",
+  md: "",
+  lg: "btn-lg",
+};
+
+function Button({
   variant = "primary",
   size = "md",
   className,
   type = "button",
+  disabled,
+  loading = false,
+  leftIcon,
+  rightIcon,
+  children,
   ...props
 }: ButtonProps) {
-  const variantClass =
-    variant === "primary"
-      ? "btn-primary"
-      : variant === "outline"
-      ? "btn-outline"
-      : variant === "neutral"
-      ? "btn-neutral"
-      : variant === "warning"
-      ? "btn-warning"
-      : variant === "error"
-      ? "btn-error"
-      : "btn-ghost";
-
-  const sizeClass =
-    size === "sm" ? "btn-sm" : size === "lg" ? "btn-lg" : undefined;
+  const isDisabled = disabled || loading;
 
   return (
     <button
       type={type}
-      className={clsx("btn", variantClass, sizeClass, className)}
+      disabled={isDisabled}
+      aria-disabled={isDisabled ? "true" : undefined}
+      className={clsx(
+        "btn",
+        variantClasses[variant],
+        sizeClasses[size],
+        isDisabled && "pointer-events-none",
+        className
+      )}
       {...props}
-    />
+    >
+      {loading ? (
+        <>
+          <span className="icon inline-block h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden />
+          <span>{children}</span>
+        </>
+      ) : (
+        <>
+          {leftIcon ? <span className="icon shrink-0 [&>svg]:size-4">{leftIcon}</span> : null}
+          <span>{children}</span>
+          {rightIcon ? <span className="icon shrink-0 [&>svg]:size-4">{rightIcon}</span> : null}
+        </>
+      )}
+    </button>
   );
 }
 
+export default Button;
+export { Button };

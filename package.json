@@ -21,6 +21,9 @@
     "turbo": "^2.8.10"
   },
   "dependencies": {
+    "@fortawesome/fontawesome-svg-core": "^7.2.0",
+    "@fortawesome/free-solid-svg-icons": "^7.2.0",
+    "@fortawesome/react-fontawesome": "^3.2.0",
     "@react-navigation/native": "^6.1.18",
     "@react-navigation/native-stack": "^6.10.0",
     "date-fns": "^4.1.0",
