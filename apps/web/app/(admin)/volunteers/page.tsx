@@ -57,6 +57,8 @@ export default function VolunteersPage() {
   const [showDeclinedOnly, setShowDeclinedOnly] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [toastError, setToastError] = useState<string | null>(null);
+  const [toastLeaving, setToastLeaving] = useState(false);
   const router = useRouter();
 
   const profilesById = useMemo(() => indexProfilesById(profiles), [profiles]);
@@ -183,6 +185,23 @@ export default function VolunteersPage() {
     if (serviceTimes.some((service) => service.id === serviceTimeId)) return;
     setServiceTimeId(serviceTimes[0].id);
   }, [serviceTimes, serviceTimeId]);
+
+  useEffect(() => {
+    if (!toastError) return;
+    setToastLeaving(false);
+    let hideTimerId: ReturnType<typeof setTimeout> | null = null;
+    const showTimerId = setTimeout(() => {
+      setToastLeaving(true);
+      hideTimerId = setTimeout(() => {
+        setToastError(null);
+        setToastLeaving(false);
+      }, 250);
+    }, 2500);
+    return () => {
+      clearTimeout(showTimerId);
+      if (hideTimerId) clearTimeout(hideTimerId);
+    };
+  }, [toastError]);
 
   const ensureMinistry = async (name: string, churchId: string) => {
     const trimmed = name.trim();
@@ -357,7 +376,7 @@ export default function VolunteersPage() {
 
     const rows = (data ?? []) as AssignmentRow[];
     if (!rows.length) {
-      setError("No prior service schedule found to copy.");
+      setToastError("No prior service schedule found to copy.");
       return;
     }
 
@@ -459,6 +478,27 @@ export default function VolunteersPage() {
 
   return (
     <div className="space-y-8">
+      {toastError ? (
+        <div
+          className={`fixed left-4 right-4 top-4 z-50 max-w-md mx-auto ${toastLeaving ? "toast-alert-leave" : "toast-alert-enter"}`}
+          role="alert"
+        >
+          <div
+            role="alert"
+            className="flex items-center gap-3 rounded-lg px-4 py-3 shadow-lg"
+            style={{
+              background: "var(--danger)",
+              color: "white",
+              border: "1px solid var(--danger-hover)"
+            }}
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>{toastError}</span>
+          </div>
+        </div>
+      ) : null}
       <div>
         <AdminHeader
           title="Volunteer Scheduling"
@@ -520,38 +560,62 @@ export default function VolunteersPage() {
           <div>
             <NextServiceReadinessStrip
               serviceLabel={serviceLabel || "Not scheduled"}
-              // ...existing props...
+              totalSlots={readinessCounts.total}
+              openSlots={readinessCounts.open}
+              pendingConfirmations={readinessCounts.pending}
+              confirmedCount={readinessCounts.confirmed}
+              declinedCount={readinessCounts.declined}
+              onGenerate={handleGenerateSchedule}
+              onCopyLast={handleCopyLastService}
+              onSendReminders={handleSendReminders}
             />
           </div>
 
           <div>
             <AssignmentsTable
-              // ...existing props...
-            />
-          </div>
-
-          <div>
-            <PendingResponsesCard
-              // ...existing props...
-            />
-          </div>
-
-          <div>
-            <DeclinedCard
-              // ...existing props...
+              assignments={assignmentsForSelected}
+              roles={roles}
+              profiles={profiles}
+              showOpenOnly={showOpenOnly}
+              showPendingOnly={showPendingOnly}
+              showDeclinedOnly={showDeclinedOnly}
+              searchTerm={searchTerm}
+              onToggleOpenOnly={setShowOpenOnly}
+              onTogglePendingOnly={setShowPendingOnly}
+              onToggleDeclinedOnly={setShowDeclinedOnly}
+              onSearchChange={setSearchTerm}
+              onAssign={handleAssign}
+              onUnassign={handleUnassign}
+              onStatusChange={handleStatusChange}
+              onNotesChange={handleNotesChange}
+              onGenerateSchedule={handleGenerateSchedule}
+              onCopyLast={handleCopyLastService}
             />
           </div>
 
           <div>
             <ScheduleBuilder
-              // ...existing props...
+              serviceDate={serviceDate}
+              serviceTimeId={serviceTimeId}
+              serviceTimes={serviceTimes}
+              roles={roles}
+              slotRoleId={slotRoleId}
+              slotCount={slotCount}
+              slots={slots}
+              onServiceDateChange={setServiceDate}
+              onServiceTimeChange={setServiceTimeId}
+              onSlotRoleChange={setSlotRoleId}
+              onSlotCountChange={setSlotCount}
+              onAddSlot={handleAddSlot}
+              onRemoveSlot={handleRemoveSlot}
+              onGenerateSchedule={handleGenerateSchedule}
+              onCopyLast={handleCopyLastService}
+              serviceTimeLabel={serviceTimeLabel}
             />
           </div>
 
           <div>
-            <QuickRolePresets
-              // ...existing props...
-            />
+            <QuickRolePresets onAddRole={(name) => handleAddRole(name)} />
           </div>
         </div>
 

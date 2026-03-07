@@ -406,3 +406,34 @@
   right: 15%;
   animation-delay: 0.3s;
 }
+
+/* Toast alert dropdown animations */
+@keyframes toast-slide-down {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes toast-slide-up {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+}
+
+.toast-alert-enter {
+  animation: toast-slide-down 0.3s ease-out forwards;
+}
+
+.toast-alert-leave {
+  animation: toast-slide-up 0.25s ease-in forwards;
+}
