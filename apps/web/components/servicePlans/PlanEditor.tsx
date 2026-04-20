@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import type { Database, ServicePlanStatus } from "@gather/lib";
-
-type RoleRow = Database["public"]["Tables"]["volunteer_roles"]["Row"];
+import { List } from "lucide-react";
+import type { ServicePlanStatus } from "@gather/lib";
 
 type PlanItem = {
   id: string;
@@ -11,14 +10,18 @@ type PlanItem = {
   duration_minutes: number | null;
   notes: string;
   owner_role_id: string | null;
+  assigned_user_id: string | null;
+  backup_user_id: string | null;
   status: ServicePlanStatus;
 };
+
+type MemberOption = { id: string; full_name: string | null; email: string | null };
 
 type PlanEditorProps = {
   planTitle: string;
   basedOnPresetName?: string | null;
   items: PlanItem[];
-  roles: RoleRow[];
+  members?: MemberOption[];
   onTitleChange: (value: string) => void;
   onItemsChange: (items: PlanItem[]) => void;
   onAddItem: () => void;
@@ -34,7 +37,7 @@ export default function PlanEditor({
   planTitle,
   basedOnPresetName,
   items,
-  roles,
+  members = [],
   onTitleChange,
   onItemsChange,
   onAddItem,
@@ -68,11 +71,11 @@ export default function PlanEditor({
             <div className="card-title">Plan details</div>
             <div className="mt-3 space-y-3">
               <div>
-                <label className="text-xs uppercase tracking-widest" style={{ color: 'var(--gather-muted)' }}>Title</label>
+                <label className="text-xs uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Title</label>
                 <input type="text" value={planTitle} onChange={(event) => onTitleChange(event.target.value)} className="input input-bordered w-full" />
               </div>
               {basedOnPresetName ? (
-                <p className="text-xs" style={{ color: 'var(--gather-muted)' }}>
+                <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
                   Based on preset: {basedOnPresetName}
                 </p>
               ) : null}
@@ -94,85 +97,87 @@ export default function PlanEditor({
         </div>
         <div className="mt-4 space-y-4">
           {items.length === 0 ? (
-            <div className="rounded-xl border border-dashed p-6 text-center" style={{ background: 'var(--gather-surface)', borderColor: 'var(--gather-border)', color: 'var(--gather-muted)' }}>
-              <p className="text-sm">No steps yet.</p>
-              <p className="mt-1 text-xs">Add a step to build your plan.</p>
+            <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-[var(--border)] bg-[var(--surface)] px-6 py-8 text-center">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--surface-2)]">
+                <List className="h-5 w-5" style={{ color: "var(--text-muted)" }} />
+              </div>
+              <div>
+                <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>No steps yet</p>
+                <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>Add a step to build your plan.</p>
+              </div>
             </div>
           ) : (
             items.map((item, index) => (
-              <div key={item.id} className="rounded-xl border p-4" style={{ background: 'var(--gather-surface)', borderColor: 'var(--gather-border)', color: 'var(--gather-ink)' }} draggable onDragStart={() => setDragId(item.id)} onDragOver={(event) => event.preventDefault()} onDrop={() => moveItem(item.id)}>
+              <div key={item.id} className="rounded-xl border p-4" style={{ background: 'var(--surface)', borderColor: 'var(--border)', color: 'var(--text-primary)' }} draggable onDragStart={() => setDragId(item.id)} onDragOver={(event) => event.preventDefault()} onDrop={() => moveItem(item.id)}>
                 <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="flex items-center gap-2 text-xs uppercase tracking-widest" style={{ color: 'var(--gather-muted)' }}>
-                    <span className="rounded-full px-2 py-1" style={{ background: 'var(--gather-surface-2)', color: 'var(--gather-ink)' }}>Step {index + 1}</span>
+                  <div className="flex items-center gap-2 text-xs uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+                    <span className="rounded-full px-2 py-1" style={{ background: 'var(--surface-2)', color: 'var(--text-primary)' }}>Step {index + 1}</span>
                     <span>Drag to reorder</span>
                   </div>
                   <button type="button" className="btn btn-outline btn-sm" onClick={() => onDeleteItem(item.id)}>Remove</button>
                 </div>
                 <div className="mt-3 grid gap-3 md:grid-cols-[2fr_1fr]">
                   <div>
-                    <label className="text-xs uppercase tracking-widest" style={{ color: 'var(--gather-muted)' }}>Title</label>
+                    <label className="text-xs uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Title</label>
                     <input type="text" value={item.title} onChange={(event) => handleItemChange(item.id, { title: event.target.value })} className="input input-bordered w-full" />
                   </div>
                   <div>
-                    <label className="text-xs uppercase tracking-widest" style={{ color: 'var(--gather-muted)' }}>Duration (min)</label>
+                    <label className="text-xs uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Duration (min)</label>
                     <input type="number" min={0} value={item.duration_minutes ?? ""} onChange={(event) => { const value = event.target.value; handleItemChange(item.id, { duration_minutes: value ? Number(value) : null }); }} className="input input-bordered w-full" />
                   </div>
                 </div>
-                <div className="mt-3 grid gap-3 md:grid-cols-[1fr_1fr]">
-                  <div>
-                    <label
-                      className="text-xs uppercase tracking-widest"
-                      style={{ color: 'var(--gather-muted)' }}
-                    >
-                      Owner role
+                <div className="mt-3 max-w-xs">
+                  <label
+                    className="text-xs uppercase tracking-widest"
+                    style={{ color: 'var(--text-muted)' }}
+                  >
+                    Status
+                  </label>
+                  <select
+                    className="select select-bordered w-full mt-1"
+                    style={{
+                      background: 'var(--surface)',
+                      borderColor: 'var(--border)',
+                      color: 'var(--text-primary)'
+                    }}
+                    value={item.status}
+                    onChange={(event) => handleItemChange(item.id, { status: event.target.value as ServicePlanStatus })}
+                  >
+                    {statusOptions.map((status) => (
+                      <option key={status} value={status}>
+                        {status}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {members.length > 0 ? (
+                  <div className="mt-3">
+                    <label className="text-xs uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>
+                      Assigned person
                     </label>
                     <select
-                      className="select select-bordered w-full"
+                      className="select select-bordered w-full mt-1"
                       style={{
-                        background: 'var(--gather-surface)',
-                        borderColor: 'var(--gather-border)',
-                        color: 'var(--gather-ink)'
+                        background: 'var(--surface)',
+                        borderColor: 'var(--border)',
+                        color: 'var(--text-primary)'
                       }}
-                      value={item.owner_role_id ?? ""}
+                      value={item.assigned_user_id ?? ""}
                       onChange={(event) =>
-                        handleItemChange(item.id, { owner_role_id: event.target.value || null })
+                        handleItemChange(item.id, { assigned_user_id: event.target.value || null })
                       }
                     >
-                      <option value="">Unassigned</option>
-                      {roles.map((role) => (
-                        <option key={role.id} value={role.id}>
-                          {role.name}
+                      <option value="">— Open —</option>
+                      {members.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.full_name?.trim() || m.email || m.id.slice(0, 8)}
                         </option>
                       ))}
                     </select>
                   </div>
-                  <div>
-                    <label
-                      className="text-xs uppercase tracking-widest"
-                      style={{ color: 'var(--gather-muted)' }}
-                    >
-                      Status
-                    </label>
-                    <select
-                      className="select select-bordered w-full"
-                      style={{
-                        background: 'var(--gather-surface)',
-                        borderColor: 'var(--gather-border)',
-                        color: 'var(--gather-ink)'
-                      }}
-                      value={item.status}
-                      onChange={(event) => handleItemChange(item.id, { status: event.target.value as ServicePlanStatus })}
-                    >
-                      {statusOptions.map((status) => (
-                        <option key={status} value={status}>
-                          {status}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
+                ) : null}
                 <div className="mt-3">
-                  <label className="text-xs uppercase tracking-widest" style={{ color: 'var(--gather-muted)' }}>Notes</label>
+                  <label className="text-xs uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Notes</label>
                   <textarea
                     className="textarea textarea-bordered w-full mt-1"
                     rows={3}
@@ -185,7 +190,7 @@ export default function PlanEditor({
             ))
           )}
         </div>
-      </Card>
+      </div>
     </div>
   );
 }

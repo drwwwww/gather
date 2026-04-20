@@ -25,7 +25,7 @@ export default function ChurchSettingsCard({
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="card-title font-bold">Church Settings</h2>
-          <p className="text-sm text-[var(--gather-muted)]">Update the basics for your church.</p>
+          <p className="text-sm text-[var(--text-muted)]">Update the basics for your church.</p>
         </div>
         <button
           type="button"
@@ -38,7 +38,7 @@ export default function ChurchSettingsCard({
       </div>
       <div className="mt-4 grid gap-3">
         <div className="grid gap-1">
-          <p className="text-xs uppercase tracking-[0.2em] text-[var(--gather-muted)]">Church name</p>
+          <p className="text-xs uppercase tracking-[0.2em] text-[var(--text-muted)]">Church name</p>
           <input
             type="text"
             placeholder="Church name"
@@ -48,20 +48,20 @@ export default function ChurchSettingsCard({
           />
         </div>
         <div className="grid gap-1">
-          <p className="text-xs uppercase tracking-[0.2em] text-[var(--gather-muted)]">Church Join Code</p>
+          <p className="text-xs uppercase tracking-[0.2em] text-[var(--text-muted)]">Church Join Code</p>
           <input
             type="text"
             placeholder="Join code"
-            className="input input-bordered w-full bg-[var(--surface-2)]/60 text-[var(--gather-muted)]"
+            className="input input-bordered w-full bg-[var(--surface-2)]/60 text-[var(--text-muted)]"
             value={joinCode}
             readOnly
           />
-          <p className="text-sm text-[var(--gather-muted)]">
+          <p className="text-sm text-[var(--text-muted)]">
             Members use this code to join your church in the Gather app.
           </p>
         </div>
         <div className="grid gap-1">
-          <p className="text-xs uppercase tracking-[0.2em] text-[var(--gather-muted)]">Timezone</p>
+          <p className="text-xs uppercase tracking-[0.2em] text-[var(--text-muted)]">Timezone</p>
           <select
             className="select select-bordered w-full"
             value={timezone}

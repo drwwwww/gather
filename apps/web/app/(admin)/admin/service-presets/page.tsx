@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import AdminHeader from "../../../../components/admin/AdminHeader";
 import PageLoader from "../../../../components/ui/PageLoader";
 import PresetList from "../../../../components/servicePresets/PresetList";
+import { PageGrid, PageGridFull } from "../../../../components/layout/PageGrid";
 import { getCurrentContext } from "../../../../lib/supabaseData";
 import { supabase } from "../../../../lib/supabaseClient";
 import type { PresetTemplate } from "../../../../lib/presets";
@@ -342,44 +343,66 @@ export default function ServicePresetsPage() {
   };
 
   if (status === "loading") {
-    return <PageLoader message="Loading presets..." />;
+    return (
+      <PageGrid className="animate-pulse-subtle">
+        <PageGridFull className="space-y-4">
+          <div className="h-8 w-48 rounded-md bg-[var(--surface-2)]" />
+          <div className="h-4 w-64 rounded-md bg-[var(--surface-2)]" />
+        </PageGridFull>
+        <PageGridFull>
+          <div className="card h-[400px] bg-[var(--surface)]" />
+        </PageGridFull>
+      </PageGrid>
+    );
   }
 
   if (status === "restricted") {
     return (
       <main className="mx-auto flex min-h-[60vh] max-w-3xl flex-col items-center justify-center gap-4 px-6">
-        <h1 className="text-2xl font-semibold">Access restricted</h1>
-        <p className="text-sm text-base-content/70">Only admins can manage service presets.</p>
+        <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-[var(--border)] bg-[var(--surface)] px-6 py-12 text-center w-full">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--surface-2)]">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" style={{ color: "var(--text-muted)" }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>Access restricted</p>
+            <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>Only admins can manage service presets.</p>
+          </div>
+        </div>
       </main>
     );
   }
 
   return (
-    <>
-      <AdminHeader
-        title="Service Presets"
-        subtitle="Create reusable run-of-show templates by service time."
-      />
-      <PresetList
-        serviceTimes={serviceTimes}
-        selectedServiceTimeId={serviceTimeId}
-        presets={presets}
-        roles={roles}
-        expandedPresetId={expandedPresetId}
-        newPresetName={newPresetName}
-        onServiceTimeChange={setServiceTimeId}
-        onNewPresetNameChange={setNewPresetName}
-        onCreatePreset={handleCreatePreset}
-        onTemplateSelect={handleTemplateSelect}
-        onTogglePreset={handleTogglePreset}
-        onSetDefault={handleSetDefault}
-        onDuplicate={handleDuplicate}
-        onDelete={handleDelete}
-        onSavePreset={handleSavePreset}
-        loading={loadingPresets}
-        savingPresetId={savingPresetId}
-        error={error}
-      />
-    </>
+    <PageGrid>
+      <PageGridFull className="animate-fade-in-up">
+        <AdminHeader
+          title="Service Presets"
+          subtitle="Create reusable run-of-show templates by service time."
+        />
+      </PageGridFull>
+      <PageGridFull className="animate-fade-in-up [animation-delay:100ms] opacity-0">
+        <PresetList
+          serviceTimes={serviceTimes}
+          selectedServiceTimeId={serviceTimeId}
+          presets={presets}
+          expandedPresetId={expandedPresetId}
+          newPresetName={newPresetName}
+          onServiceTimeChange={setServiceTimeId}
+          onNewPresetNameChange={setNewPresetName}
+          onCreatePreset={handleCreatePreset}
+          onTemplateSelect={handleTemplateSelect}
+          onTogglePreset={handleTogglePreset}
+          onSetDefault={handleSetDefault}
+          onDuplicate={handleDuplicate}
+          onDelete={handleDelete}
+          onSavePreset={handleSavePreset}
+          loading={loadingPresets}
+          savingPresetId={savingPresetId}
+          error={error}
+        />
+      </PageGridFull>
+    </PageGrid>
   );
 }

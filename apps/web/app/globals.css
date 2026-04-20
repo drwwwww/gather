@@ -24,7 +24,7 @@
   /* UI dimensions & radii */
   --radius-selector: 2rem;
   --radius-field: 2rem;
-  --radius-box: 2rem;
+  --radius-box: 25px;
   --size-selector: 0.25rem;
   --size-field: 0.25rem;
   --depth: 1;
@@ -37,6 +37,7 @@
 
   /* Status */
   --success: oklch(72.3% 0.219 149.579);
+  --success-hover: oklch(64% 0.19 149.579);
   --warning: oklch(70.5% 0.213 47.604);
   --danger: oklch(57.7% 0.245 27.325);
   --danger-hover: oklch(50% 0.22 27);
@@ -93,12 +94,62 @@
   }
 }
 
+/* Animated gradient waves for Hero card */
+.hero-gradient-bg {
+  background: linear-gradient(315deg, var(--primary) 3%, var(--primary-hover) 38%, var(--warning) 68%, var(--primary) 98%);
+  animation: hero-gradient 15s ease infinite;
+  background-size: 400% 400%;
+}
+
+@keyframes hero-gradient {
+  0% { background-position: 0% 0%; }
+  50% { background-position: 100% 100%; }
+  100% { background-position: 0% 0%; }
+}
+
+.hero-wave {
+  background: rgb(255 255 255 / 25%);
+  border-radius: 1000% 1000% 0 0;
+  position: absolute;
+  width: 200%;
+  height: 12em;
+  animation: hero-wave 10s -3s linear infinite;
+  transform: translate3d(0, 0, 0);
+  opacity: 0.8;
+  bottom: 0;
+  left: -50%;
+  z-index: 1;
+}
+
+.hero-wave:nth-of-type(2) {
+  bottom: -1.25em;
+  animation: hero-wave 18s linear reverse infinite;
+  opacity: 0.8;
+}
+
+.hero-wave:nth-of-type(3) {
+  bottom: -2.5em;
+  animation: hero-wave 20s -1s reverse infinite;
+  opacity: 0.9;
+}
+
+@keyframes hero-wave {
+  0% { transform: translateX(0) translateZ(0); }
+  50% { transform: translateX(25%) translateZ(0); }
+  100% { transform: translateX(0) translateZ(0); }
+}
+
 /* Card styles from DaisyUI plugin (tailwind.config.cjs) */
 .card {
-  background: var(--bg);
-  border-radius: var(--radius-box);
-  border: var(--border-width) solid var(--border);
+  background: #ffffff;
+  border-radius: 25px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   overflow: visible;
+  transition: box-shadow 200ms;
+}
+.card:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.07);
 }
 
 /* Table cell padding inside cards */
@@ -147,7 +198,7 @@
 }
 
 .btn:active {
-  transform: translateY(1px);
+  transform: scale(0.98);
 }
 
 .btn-primary {

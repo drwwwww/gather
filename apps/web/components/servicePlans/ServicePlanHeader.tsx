@@ -42,7 +42,7 @@ export default function ServicePlanHeader({
           <div className="card-title">Service plan</div>
           <p
             className="text-xs mt-1"
-            style={{ color: 'var(--gather-muted)' }}
+            style={{ color: 'var(--text-muted)' }}
           >
             Keep the run of show and readiness in one place.
           </p>
@@ -53,16 +53,16 @@ export default function ServicePlanHeader({
         <div>
           <label
             className="text-xs uppercase tracking-[0.2em]"
-            style={{ color: 'var(--gather-muted)' }}
+            style={{ color: 'var(--text-muted)' }}
           >
             Service time
           </label>
           <select
             className="select select-bordered w-full mt-2"
             style={{
-              background: 'var(--gather-surface)',
-              borderColor: 'var(--gather-border)',
-              color: 'var(--gather-ink)'
+              background: 'var(--surface)',
+              borderColor: 'var(--border)',
+              color: 'var(--text-primary)'
             }}
             value={serviceTimeId}
             onChange={(event) => onServiceTimeChange(event.target.value)}
@@ -77,7 +77,7 @@ export default function ServicePlanHeader({
         <div>
           <label
             className="text-xs uppercase tracking-[0.2em]"
-            style={{ color: 'var(--gather-muted)' }}
+            style={{ color: 'var(--text-muted)' }}
           >
             Service date
           </label>
@@ -91,7 +91,7 @@ export default function ServicePlanHeader({
         <div>
           <label
             className="text-xs uppercase tracking-[0.2em]"
-            style={{ color: 'var(--gather-muted)' }}
+            style={{ color: 'var(--text-muted)' }}
           >
             Plan status
           </label>

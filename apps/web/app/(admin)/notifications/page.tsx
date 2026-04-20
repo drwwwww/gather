@@ -2,12 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Bell } from "lucide-react";
 import AdminHeader from "../../../components/admin/AdminHeader";
 import Loader from "../../../components/ui/Loader";
 // DaisyUI migration: use className markup for all UI
 import { getCurrentContext } from "../../../lib/supabaseData";
 import { supabase } from "../../../lib/supabaseClient";
 import { formatRelativeTime, formatShortDate } from "../../../lib/format";
+import { PageGrid, PageGridFull } from "../../../components/layout/PageGrid";
 import type { Database } from "@gather/lib";
 
 type NotificationRow = Database["public"]["Tables"]["notification_log"]["Row"];
@@ -92,12 +94,32 @@ export default function NotificationsPage() {
 
   const renderMeta = (notification: NotificationRow): NotificationMeta => {
     if (notification.type === "ASSIGNMENT_REMINDER") {
-      const payload = notification.payload as { scheduled_date?: string };
+      const payload = notification.payload as {
+        scheduled_date?: string;
+        source?: string;
+        part_title?: string;
+        role_name?: string;
+      };
       const dateLabel = payload?.scheduled_date ? formatShortDate(payload.scheduled_date) : "";
+      const datePart = dateLabel ? `Service date: ${dateLabel}` : undefined;
+      if (payload?.source === "bulletin_part" && payload.part_title) {
+        return {
+          title: "Bulletin — run of show",
+          tone: "warning",
+          detail: [payload.part_title, datePart].filter(Boolean).join(" · ")
+        };
+      }
+      if (payload?.source === "bulletin_role" && payload.role_name) {
+        return {
+          title: "Bulletin — role",
+          tone: "warning",
+          detail: [payload.role_name, datePart].filter(Boolean).join(" · ")
+        };
+      }
       return {
         title: "Assignment reminder",
         tone: "warning",
-        detail: dateLabel ? `Service date: ${dateLabel}` : undefined
+        detail: datePart
       };
     }
 
@@ -108,25 +130,28 @@ export default function NotificationsPage() {
   };
 
   return (
-    <>
-      <AdminHeader
-        title="Notifications"
-        subtitle="Track reminders and activity across the church."
-        actions={
-          <button
-            className="btn btn-outline btn-sm"
-            onClick={async () => {
-              const context = await getCurrentContext();
-              if (!context) return;
-              await markAllAsRead(context.profile.church_id, context.userId);
-            }}
-            disabled={marking || unreadCount === 0}
-          >
-            {marking ? "Marking..." : "Mark all as read"}
-          </button>
-        }
-      />
+    <PageGrid>
+      <PageGridFull className="animate-fade-in-up">
+        <AdminHeader
+          title="Notifications"
+          subtitle="Track reminders and activity across the church."
+          actions={
+            <button
+              className="btn btn-outline btn-sm"
+              onClick={async () => {
+                const context = await getCurrentContext();
+                if (!context) return;
+                await markAllAsRead(context.profile.church_id, context.userId);
+              }}
+              disabled={marking || unreadCount === 0}
+            >
+              {marking ? "Marking..." : "Mark all as read"}
+            </button>
+          }
+        />
+      </PageGridFull>
 
+      <PageGridFull className="animate-fade-in-up [animation-delay:100ms] opacity-0">
       <div className="card p-6 rounded-box">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
           <div>
@@ -139,14 +164,20 @@ export default function NotificationsPage() {
 
         <div className="mt-4 space-y-3">
           {loading ? (
-            <div className="flex flex-col items-center justify-center gap-4 py-8">
-              <Loader />
-              <p className="text-sm" style={{ color: "var(--text-muted)" }}>Loading notifications...</p>
+            <div className="space-y-3 animate-pulse-subtle">
+              <div className="h-20 w-full rounded-xl bg-[var(--surface-2)]" />
+              <div className="h-20 w-full rounded-xl bg-[var(--surface-2)]" />
+              <div className="h-20 w-full rounded-xl bg-[var(--surface-2)]" />
             </div>
           ) : notifications.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-[var(--border)] p-6 text-center">
-              <p className="text-sm text-base-content/60">No notifications yet.</p>
-              <p className="text-xs text-base-content/60 mt-1">We will show reminders and updates here.</p>
+            <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-[var(--border)] bg-[var(--surface)] px-6 py-8 text-center">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--surface-2)]">
+                <Bell className="h-5 w-5" style={{ color: "var(--text-muted)" }} />
+              </div>
+              <div>
+                <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>No notifications yet</p>
+                <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>We will show reminders and updates here.</p>
+              </div>
             </div>
           ) : (
             notifications.map((notification) => {
@@ -177,6 +208,7 @@ export default function NotificationsPage() {
         </div>
         {error ? <p className="mt-3 text-sm text-error">{error}</p> : null}
       </div>
-    </>
+      </PageGridFull>
+    </PageGrid>
   );
 }

@@ -1,25 +1,42 @@
+import { NavigationContainer } from "@react-navigation/native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import MainTabs from "./MainTabs";
+import AnnouncementsDetailScreen from "../screens/AnnouncementsDetailScreen";
+import EventDetailScreen from "../screens/EventDetailScreen";
+import ProfileMenuScreen from "../screens/ProfileMenuScreen";
+import ChurchInfoScreen from "../screens/ChurchInfoScreen";
+import AssignmentDetailScreen from "../screens/AssignmentDetailScreen";
+import NotificationsScreen from "../screens/NotificationsScreen";
+import MembersScreen from "../screens/MembersScreen";
+import FeaturePlaceholderScreen from "../screens/FeaturePlaceholderScreen";
+import type { AppStackParamList } from "./paramLists";
 
-import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
-import MainTabs from './MainTabs';
-import AnnouncementsDetailScreen from '../screens/AnnouncementsDetailScreen';
-import EventDetailScreen from '../screens/EventDetailScreen';
-import ProfileMenuScreen from '../screens/ProfileMenuScreen';
-import ChurchInfoScreen from '../screens/ChurchInfoScreen';
+export type { AppStackParamList };
 
-const Stack = createStackNavigator();
+const Stack = createNativeStackNavigator<AppStackParamList>();
 
-export default function AppNavigator() {
-  // TODO: Replace with real logic for service team
-  const showServe = true;
+type AppNavigatorProps = {
+  showServe?: boolean;
+};
+
+export default function AppNavigator({ showServe = false }: AppNavigatorProps) {
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="MainTabs" children={() => <MainTabs showServe={showServe} />} />
+      <Stack.Navigator
+        screenOptions={{
+          headerShown: false,
+          freezeOnBlur: false,
+        }}
+      >
+        <Stack.Screen name="MainTabs" component={MainTabs} initialParams={{ showServe }} />
         <Stack.Screen name="AnnouncementsDetail" component={AnnouncementsDetailScreen} />
         <Stack.Screen name="EventDetail" component={EventDetailScreen} />
         <Stack.Screen name="ProfileMenu" component={ProfileMenuScreen} />
         <Stack.Screen name="ChurchInfo" component={ChurchInfoScreen} />
+        <Stack.Screen name="AssignmentDetail" component={AssignmentDetailScreen} />
+        <Stack.Screen name="Notifications" component={NotificationsScreen} />
+        <Stack.Screen name="Members" component={MembersScreen} />
+        <Stack.Screen name="FeaturePlaceholder" component={FeaturePlaceholderScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

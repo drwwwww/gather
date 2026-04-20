@@ -1,6 +1,8 @@
 "use client";
 
 
+import { Users } from "lucide-react";
+
 type Attendee = {
   id: string;
   name: string;
@@ -26,13 +28,20 @@ export default function AttendeeListDialog({ open, attendees, onClose }: Attende
         </div>
         <div className="mt-4 max-h-[360px] space-y-2 overflow-auto text-sm">
           {attendees.length === 0 ? (
-            <p className="text-[var(--gather-muted)]">No RSVPs yet.</p>
+            <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-[var(--border)] bg-[var(--surface)] px-6 py-8 text-center">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--surface-2)]">
+                <Users className="h-5 w-5" style={{ color: "var(--text-muted)" }} />
+              </div>
+              <div>
+                <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>No attendees yet</p>
+              </div>
+            </div>
           ) : (
             attendees.map((attendee) => (
               <div key={attendee.id} className="rounded-xl bg-[var(--surface)] p-3">
-                <p className="font-medium text-[var(--gather-ink)]">{attendee.name || "Member"}</p>
-                <p className="text-xs text-[var(--gather-muted)]">{attendee.email}</p>
-                <p className="text-xs text-[var(--gather-muted)]">{attendee.status}</p>
+                <p className="font-medium text-[var(--text-primary)]">{attendee.name || "Member"}</p>
+                <p className="text-xs text-[var(--text-muted)]">{attendee.email}</p>
+                <p className="text-xs text-[var(--text-muted)]">{attendee.status}</p>
               </div>
             ))
           )}

@@ -13,7 +13,7 @@ export default function StepNumberBadge({
   return (
     <div
       className={clsx(
-        "flex h-7 w-7 items-center justify-center rounded-full border border-[var(--gather-border)] text-xs font-semibold text-[var(--gather-ink)]",
+        "flex h-7 w-7 items-center justify-center rounded-full border border-[var(--border)] text-xs font-semibold text-[var(--text-primary)]",
         className
       )}
     >

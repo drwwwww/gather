@@ -1,5 +1,6 @@
 "use client";
 
+import { ListPlus } from "lucide-react";
 import type { Database } from "@gather/lib";
 import Link from "next/link";
 
@@ -15,15 +16,12 @@ import type { PresetTemplate } from "../../lib/presets";
 type ServiceTime = Database["public"]["Tables"]["service_times"]["Row"];
 type ServicePreset = Database["public"]["Tables"]["service_presets"]["Row"];
 type PresetItemRow = Database["public"]["Tables"]["service_preset_items"]["Row"];
-type RoleRow = Database["public"]["Tables"]["volunteer_roles"]["Row"];
-
 type PresetWithItems = ServicePreset & { items: PresetItemRow[] };
 
 type PresetListProps = {
   serviceTimes: ServiceTime[];
   selectedServiceTimeId: string;
   presets: PresetWithItems[];
-  roles: RoleRow[];
   expandedPresetId: string | null;
   newPresetName: string;
   onServiceTimeChange: (value: string) => void;
@@ -44,7 +42,6 @@ export default function PresetList({
   serviceTimes,
   selectedServiceTimeId,
   presets,
-  roles,
   expandedPresetId,
   newPresetName,
   onServiceTimeChange,
@@ -87,7 +84,7 @@ export default function PresetList({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <div className="card-title">Presets</div>
-            <p className="text-xs text-[var(--gather-muted)] mt-1">
+            <p className="text-xs text-[var(--text-muted)] mt-1">
               The default preset is used when generating new service plans.
             </p>
           </div>
@@ -102,14 +99,24 @@ export default function PresetList({
               <p className="text-sm" style={{ color: "var(--text-muted)" }}>Loading presets...</p>
             </div>
           ) : presets.length === 0 ? (
-            <StarterTemplates onSelect={onTemplateSelect} />
+            <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-[var(--border)] bg-[var(--surface)] px-6 py-8 text-center">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--surface-2)]">
+                <ListPlus className="h-5 w-5" style={{ color: "var(--text-muted)" }} />
+              </div>
+              <div>
+                <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>No presets found</p>
+                <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>Start with a template below or create a new preset.</p>
+              </div>
+              <div className="mt-3 w-full">
+                <StarterTemplates onSelect={onTemplateSelect} />
+              </div>
+            </div>
           ) : (
-            <Accordion>
+            <div className="space-y-4">
               {presets.map((preset) => (
                 <PresetCard
                   key={preset.id}
                   preset={preset}
-                  roles={roles}
                   isExpanded={expandedPresetId === preset.id}
                   saving={savingPresetId === preset.id}
                   onToggle={() => onTogglePreset(preset.id)}
@@ -119,7 +126,7 @@ export default function PresetList({
                   onSave={onSavePreset}
                 />
               ))}
-            </Accordion>
+            </div>
           )}
         </div>
       </div>

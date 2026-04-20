@@ -41,19 +41,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.lg,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 44,
+    minHeight: 40,
     marginVertical: theme.spacing.xs,
+    shadowColor: theme.colors.shadow,
+    shadowOpacity: 0.06,
+    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 1,
   },
   primary: {
     backgroundColor: theme.colors.primary,
   },
   secondary: {
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.card,
     borderWidth: 1,
     borderColor: theme.colors.border,
   },
   ghost: {
     backgroundColor: 'transparent',
+    shadowOpacity: 0,
+    elevation: 0,
   },
   pressed: {
     opacity: 0.85,
@@ -63,16 +70,16 @@ const styles = StyleSheet.create({
   },
   text: {
     fontFamily: theme.typography.fontFamily,
-    fontWeight: theme.typography.fontWeight.medium,
-    fontSize: theme.typography.fontSize.md,
+    fontWeight: theme.typography.fontWeight.semibold,
+    fontSize: theme.typography.fontSize.sm,
   },
   primaryText: {
-    color: theme.colors.primaryText,
+    color: theme.colors.onPrimary,
   },
   secondaryText: {
-    color: theme.colors.primaryText,
+    color: theme.colors.textPrimary,
   },
   ghostText: {
-    color: theme.colors.primaryText,
+    color: theme.colors.textSecondary,
   },
 });

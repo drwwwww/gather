@@ -1,8 +1,11 @@
 import "./globals.css";
 import type { ReactNode } from "react";
 
+/** Cookie/session auth + Supabase browser client require request-time rendering; avoids prerender errors. */
+export const dynamic = "force-dynamic";
+
 export const metadata = {
-  title: "Gather Admin",
+  title: "Gather",
   description: "Church coordination platform"
 };
 

@@ -14,19 +14,19 @@ export default function AnnouncementPreview({ title, body, audience }: Announcem
     <div className="card shadow-sm p-4">
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <p className="text-xs uppercase tracking-[0.2em] text-[var(--gather-muted)]">Preview</p>
+          <p className="text-xs uppercase tracking-[0.2em] text-[var(--text-muted)]">Preview</p>
           <span className="badge badge-outline">{audience}</span>
         </div>
         <div>
-          <p className="text-lg font-semibold text-[var(--gather-ink)]">
+          <p className="text-lg font-semibold text-[var(--text-primary)]">
             {title.trim() || "Announcement title"}
           </p>
-          <p className="mt-2 whitespace-pre-wrap text-sm text-[var(--gather-muted)]">
+          <p className="mt-2 whitespace-pre-wrap text-sm text-[var(--text-muted)]">
             {body.trim() || "Write your announcement to see a live preview."}
           </p>
         </div>
         {!hasContent ? (
-          <p className="text-xs text-[var(--gather-muted)]">Tip: keep announcements concise for mobile.</p>
+          <p className="text-xs text-[var(--text-muted)]">Tip: keep announcements concise for mobile.</p>
         ) : null}
       </div>
     </div>

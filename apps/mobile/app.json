@@ -3,13 +3,12 @@
     "name": "Gather",
     "slug": "gather",
     "version": "1.0.0",
-    "sdkVersion": "54.0.0",
-    "entryPoint": "./App.tsx",
     "platforms": ["ios", "android"],
     "assetBundlePatterns": ["**/*"],
     "extra": {
       "EXPO_PUBLIC_SUPABASE_URL": "https://fyvurcztcmkcwnqesfjh.supabase.co",
       "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_l2EdZBE-Pj5HzvWng4aOzw_i5zNfXJe"
-    }
+    },
+    "plugins": ["expo-font"]
   }
 }

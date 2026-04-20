@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "tertiary-container": "#ff9837",
+                    "surface-container-lowest": "#ffffff",
+                    "secondary-fixed": "#e3e2df",
+                    "background": "#faf9f5",
+                    "inverse-primary": "#ffb95f",
+                    "secondary": "#5e5f5c",
+                    "inverse-surface": "#2f312e",
+                    "surface-container-low": "#f4f4f0",
+                    "surface-tint": "#855300",
+                    "tertiary-fixed-dim": "#ffb77d",
+                    "inverse-on-surface": "#f2f1ed",
+                    "primary-fixed-dim": "#ffb95f",
+                    "surface-container-high": "#e9e8e4",
+                    "primary-fixed": "#ffddb8",
+                    "outline": "#867461",
+                    "on-secondary-fixed": "#1b1c1a",
+                    "error-container": "#ffdad6",
+                    "on-secondary-container": "#626361",
+                    "surface-variant": "#e3e2df",
+                    "on-background": "#1b1c1a",
+                    "tertiary": "#904d00",
+                    "on-secondary": "#ffffff",
+                    "primary": "#855300",
+                    "on-primary-container": "#613b00",
+                    "outline-variant": "#d8c3ad",
+                    "surface-container": "#efeeea",
+                    "tertiary-fixed": "#ffdcc3",
+                    "on-primary-fixed": "#2a1700",
+                    "surface-dim": "#dbdad6",
+                    "on-surface-variant": "#534434",
+                    "on-secondary-fixed-variant": "#464745",
+                    "on-tertiary-fixed": "#2f1500",
+                    "on-error": "#ffffff",
+                    "on-error-container": "#93000a",
+                    "on-primary": "#ffffff",
+                    "primary-container": "#f59e0b",
+                    "on-tertiary-container": "#6a3700",
+                    "secondary-fixed-dim": "#c7c6c4",
+                    "on-surface": "#1b1c1a",
+                    "error": "#ba1a1a",
+                    "on-tertiary-fixed-variant": "#6e3900",
+                    "surface-container-highest": "#e3e2df",
+                    "on-tertiary": "#ffffff",
+                    "secondary-container": "#e0e0dd",
+                    "surface": "#faf9f5",
+                    "surface-bright": "#faf9f5",
+                    "on-primary-fixed-variant": "#653e00"
+            },
+            "borderRadius": {
+                    "DEFAULT": "1rem",
+                    "lg": "2rem",
+                    "xl": "3rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Plus Jakarta Sans"],
+                    "body": ["Plus Jakarta Sans"],
+                    "label": ["Plus Jakarta Sans"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .amber-aura {
+            background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+        }
+        .glass-nav {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background font-body text-on-surface antialiased min-h-screen pb-32">
+<!-- TopAppBar -->
+<header class="bg-[#FDFCF8] flex justify-between items-center w-full px-6 py-4 mt-2 sticky top-0 z-40">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[#F59E0B] text-2xl" data-icon="church">church</span>
+<h1 class="text-[1.75rem] font-bold text-[#111827] tracking-tight font-['Rubik']">Gather</h1>
+</div>
+<div class="w-10 h-10 rounded-full bg-surface-container overflow-hidden">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="close-up portrait of a smiling person in a bright airy studio with warm natural lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuChxPPslrq5-h5I-PYZunDck6VgGQpu7KZfEy-kqv82rTFRcLGdtIJbvKz6IFdnRHCuF7cJHap9Le-KDCSJopZmhqBoXq8lmp20saJ7nq7LzutnU2JtiKFdaBoCoXOwSX4F3M851cbxpUFF36RPvBbJEnPZbBDzRUo2QDJ9mqNpCKutr3F_IBtilmtQtr_DAdyJWqCmJ7HFgQoW3mR7JKif32MJjD8F-5aTvuj9_o8eaEcu0Iikxfnh5xuVXUOVk7cW0RsBw_UaCs0"/>
+</div>
+</header>
+<main class="px-6 max-w-5xl mx-auto space-y-8">
+<!-- Hero Header -->
+<section class="mt-8">
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+<div>
+<span class="text-primary font-bold label-md uppercase tracking-wider block mb-2">Current Bulletin</span>
+<h2 class="text-4xl md:text-5xl font-extrabold text-on-surface tracking-tight font-headline">Sunday Morning Service</h2>
+<p class="text-on-surface-variant body-lg mt-2 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-xl">event</span>
+                        October 22, 2023 • 10:30 AM
+                    </p>
+</div>
+<div class="flex gap-3">
+<button class="bg-surface-container-high text-on-surface font-medium px-6 py-3 rounded-full hover:bg-surface-container-highest transition-all">
+                        Print PDF
+                    </button>
+<button class="amber-aura text-white font-bold px-6 py-3 rounded-full hover:scale-95 transition-all shadow-lg">
+                        Check In
+                    </button>
+</div>
+</div>
+</section>
+<!-- Assignments Banner -->
+<section class="amber-aura rounded-lg p-6 text-white shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6 overflow-hidden relative">
+<div class="relative z-10">
+<h3 class="text-2xl font-bold mb-1">Your Assignments</h3>
+<p class="opacity-90">You have 2 roles today. Please be at the stage by 10:15 AM.</p>
+<div class="mt-4 flex gap-4">
+<div class="bg-white/20 rounded-full px-4 py-2 flex items-center gap-2 backdrop-blur-sm">
+<span class="material-symbols-outlined text-sm">mic</span>
+<span class="font-medium">Worship Lead</span>
+</div>
+<div class="bg-white/20 rounded-full px-4 py-2 flex items-center gap-2 backdrop-blur-sm">
+<span class="material-symbols-outlined text-sm">record_voice_over</span>
+<span class="font-medium">Scripture Reading</span>
+</div>
+</div>
+</div>
+<div class="absolute -right-10 -top-10 opacity-10">
+<span class="material-symbols-outlined text-[12rem]">volunteer_activism</span>
+</div>
+</section>
+<!-- Main Content Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+<!-- Order of Service -->
+<section class="lg:col-span-8 space-y-4">
+<div class="flex items-center justify-between mb-2">
+<h3 class="headline-md font-bold text-on-surface">Order of Service</h3>
+<span class="bg-[#FFF7E6] text-primary px-3 py-1 rounded-full text-xs font-bold">60 MIN TOTAL</span>
+</div>
+<div class="space-y-3">
+<!-- Item 1 -->
+<div class="bg-surface-container-lowest p-6 rounded-lg transition-all hover:translate-x-1 group">
+<div class="flex justify-between items-start">
+<div class="flex gap-4">
+<span class="text-outline-variant font-bold text-xl mt-1">01</span>
+<div>
+<h4 class="text-xl font-bold text-on-surface group-hover:text-primary transition-colors">Opening Hymn: Amazing Grace</h4>
+<p class="text-on-surface-variant body-lg mt-1">Standard arrangement with acoustic guitar intro.</p>
+</div>
+</div>
+<div class="flex flex-col items-end">
+<span class="bg-surface-container-low text-on-surface px-3 py-1 rounded-full text-xs font-bold">5 MIN</span>
+</div>
+</div>
+</div>
+<!-- Item 2 -->
+<div class="bg-surface-container-lowest p-6 rounded-lg border-l-4 border-primary shadow-sm">
+<div class="flex justify-between items-start">
+<div class="flex gap-4">
+<span class="text-primary font-bold text-xl mt-1">02</span>
+<div>
+<h4 class="text-xl font-bold text-on-surface">Call to Worship</h4>
+<p class="text-on-surface-variant body-lg mt-1 italic">Read Psalm 100 together as a congregation.</p>
+<div class="mt-3 inline-flex items-center gap-2 text-primary font-bold text-sm">
+<span class="material-symbols-outlined text-sm">person</span>
+                                        Assigned to You
+                                    </div>
+</div>
+</div>
+<div class="flex flex-col items-end">
+<span class="bg-primary-container text-on-primary-container px-3 py-1 rounded-full text-xs font-bold">3 MIN</span>
+</div>
+</div>
+</div>
+<!-- Item 3 -->
+<div class="bg-surface-container-lowest p-6 rounded-lg transition-all hover:translate-x-1 group">
+<div class="flex justify-between items-start">
+<div class="flex gap-4">
+<span class="text-outline-variant font-bold text-xl mt-1">03</span>
+<div>
+<h4 class="text-xl font-bold text-on-surface group-hover:text-primary transition-colors">Pastoral Prayer</h4>
+<p class="text-on-surface-variant body-lg mt-1">Lead by Elder Thompson.</p>
+</div>
+</div>
+<div class="flex flex-col items-end">
+<span class="bg-surface-container-low text-on-surface px-3 py-1 rounded-full text-xs font-bold">7 MIN</span>
+</div>
+</div>
+</div>
+<!-- Item 4 -->
+<div class="bg-surface-container-lowest p-6 rounded-lg transition-all hover:translate-x-1 group">
+<div class="flex justify-between items-start">
+<div class="flex gap-4">
+<span class="text-outline-variant font-bold text-xl mt-1">04</span>
+<div>
+<h4 class="text-xl font-bold text-on-surface group-hover:text-primary transition-colors">Sermon: The Way Home</h4>
+<p class="text-on-surface-variant body-lg mt-1">Sermon notes available in the mobile app downloads section.</p>
+</div>
+</div>
+<div class="flex flex-col items-end">
+<span class="bg-surface-container-low text-on-surface px-3 py-1 rounded-full text-xs font-bold">30 MIN</span>
+</div>
+</div>
+</div>
+<!-- Item 5 -->
+<div class="bg-surface-container-lowest p-6 rounded-lg transition-all hover:translate-x-1 group">
+<div class="flex justify-between items-start">
+<div class="flex gap-4">
+<span class="text-outline-variant font-bold text-xl mt-1">05</span>
+<div>
+<h4 class="text-xl font-bold text-on-surface group-hover:text-primary transition-colors">Closing &amp; Benediction</h4>
+<p class="text-on-surface-variant body-lg mt-1">Dismissal with quiet organ postlude.</p>
+</div>
+</div>
+<div class="flex flex-col items-end">
+<span class="bg-surface-container-low text-on-surface px-3 py-1 rounded-full text-xs font-bold">5 MIN</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Role Slots / Side Card -->
+<aside class="lg:col-span-4 space-y-6">
+<div class="bg-[#F5F4F1] p-8 rounded-lg">
+<h3 class="headline-md font-bold text-on-surface mb-6">Service Team</h3>
+<div class="space-y-6">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-[#FFF7E6] text-primary flex items-center justify-center font-bold text-sm">
+                                    LW
+                                </div>
+<div>
+<p class="text-xs font-bold text-outline uppercase tracking-widest">Worship Lead</p>
+<p class="font-bold text-on-surface">Lucas Walker</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline-variant">check_circle</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-[#FFF7E6] text-primary flex items-center justify-center font-bold text-sm">
+                                    ST
+                                </div>
+<div>
+<p class="text-xs font-bold text-outline uppercase tracking-widest">A/V Tech</p>
+<p class="font-bold text-on-surface">Sarah Tanner</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline-variant">check_circle</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-[#FFF7E6] text-primary flex items-center justify-center font-bold text-sm">
+                                    MJ
+                                </div>
+<div>
+<p class="text-xs font-bold text-outline uppercase tracking-widest">Piano</p>
+<p class="font-bold text-on-surface">Michael J.</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline-variant">check_circle</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-outline-variant/20 text-outline flex items-center justify-center font-bold text-sm">
+                                    ??
+                                </div>
+<div>
+<p class="text-xs font-bold text-outline uppercase tracking-widest">Greeter</p>
+<p class="font-bold text-on-surface-variant italic">Unassigned</p>
+</div>
+</div>
+<button class="text-primary text-sm font-bold underline">Claim</button>
+</div>
+</div>
+<div class="mt-10 pt-6 border-t border-outline-variant/10">
+<div class="bg-surface-container-lowest rounded-md p-4">
+<p class="text-sm font-bold text-on-surface mb-2">Stage Map</p>
+<img alt="Stage Map" class="w-full rounded-sm grayscale opacity-60" data-alt="minimalist architectural floor plan of a church sanctuary stage showing microphone and instrument placement" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDWMkElw_8skVOBcitR29dT72_8XHX9Y3Aptq4mCh7TskZq0EWFBnu91jbpAxczS1QYe7EVBAul5BbCQWv9SaFPlL-O6EXJUVMsJVIasqjnfBhQu54mqXEAX29sO_ugm-N6ktXmBSvuNdbZoZjbxVsgsc5m1KQ_7GhG9ZjoqOtrVFvn8PMSK6cuEvKhJ23tyYBhcAn_2VP3nwx9JsjTX3xkMXCDpkeoZUPTWxNQc5Vt0AfrwNC3LsRldzMnkbvtB02iEMpHhIu1eR4"/>
+</div>
+</div>
+</div>
+</aside>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-3 left-3 right-3 z-50 flex justify-around items-center py-3 bg-white/85 backdrop-blur-xl rounded-full mx-4 mb-4 shadow-[0_32px_32px_-4px_rgba(245,158,11,0.08)]">
+<a class="flex flex-col items-center justify-center text-[#4B5563] px-4 py-2 hover:scale-105 transition-transform duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+<span class="font-['Rubik'] label-md uppercase tracking-wider mt-1">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#4B5563] px-4 py-2 hover:scale-105 transition-transform duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="newspaper">newspaper</span>
+<span class="font-['Rubik'] label-md uppercase tracking-wider mt-1">News</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#4B5563] px-4 py-2 hover:scale-105 transition-transform duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="calendar_month">calendar_month</span>
+<span class="font-['Rubik'] label-md uppercase tracking-wider mt-1">Events</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-[#FFF7E6] text-[#F59E0B] rounded-full px-4 py-2 hover:scale-105 transition-transform duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="article">article</span>
+<span class="font-['Rubik'] label-md uppercase tracking-wider mt-1">Bulletin</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#4B5563] px-4 py-2 hover:scale-105 transition-transform duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="volunteer_activism">volunteer_activism</span>
+<span class="font-['Rubik'] label-md uppercase tracking-wider mt-1">Serve</span>
+</a>
+</nav>
+</body></html>

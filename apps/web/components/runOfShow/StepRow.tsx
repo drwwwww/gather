@@ -1,18 +1,23 @@
 import { useState } from "react";
-import type { Database, ServicePlanStatus } from "@gather/lib";
+import type { ServicePlanStatus } from "@gather/lib";
 import clsx from "clsx";
 import StepNumberBadge from "./StepNumberBadge";
 import { Input } from "../ui/input";
-
-type RoleRow = Database["public"]["Tables"]["volunteer_roles"]["Row"];
 
 export type RunOfShowStep = {
   id: string;
   title: string;
   duration_minutes: number | null;
   notes: string;
-  owner_role_id: string | null;
+  assigned_user_id: string | null;
+  backup_user_id: string | null;
   status?: ServicePlanStatus;
+};
+
+export type StepMemberOption = {
+  id: string;
+  full_name: string | null;
+  email: string | null;
 };
 
 const statusOptions: ServicePlanStatus[] = ["PLANNED", "DONE", "SKIPPED"];
@@ -20,7 +25,7 @@ const statusOptions: ServicePlanStatus[] = ["PLANNED", "DONE", "SKIPPED"];
 export default function StepRow({
   step,
   index,
-  roles,
+  members = [],
   selected,
   autoFocus,
   showStatus = false,
@@ -31,7 +36,7 @@ export default function StepRow({
 }: {
   step: RunOfShowStep;
   index: number;
-  roles: RoleRow[];
+  members?: StepMemberOption[];
   selected?: boolean;
   autoFocus?: boolean;
   showStatus?: boolean;
@@ -45,21 +50,21 @@ export default function StepRow({
   return (
     <div
       className={clsx(
-        "rounded-xl border border-[rgba(60,40,20,0.12)] bg-[var(--gather-surface)] p-4 transition-all duration-200 ease-out",
-        "hover:-translate-y-[2px] hover:border-[rgba(60,40,20,0.18)]",
-        "hover:[box-shadow:0_6px_14px_rgba(31,26,20,0.08),inset_3px_0_0_0_rgba(196,138,42,0.8)]",
-        "focus-within:-translate-y-[2px] focus-within:border-[rgba(60,40,20,0.18)]",
-        "focus-within:[box-shadow:0_6px_14px_rgba(31,26,20,0.08),inset_3px_0_0_0_rgba(196,138,42,0.8)]",
+        "rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 transition-all duration-200 ease-out",
+        "hover:-translate-y-[2px] hover:border-[var(--border-hover,var(--border))]",
+        "hover:[box-shadow:0_6px_14px_rgba(0,0,0,0.06),inset_3px_0_0_0_var(--primary)]",
+        "focus-within:-translate-y-[2px] focus-within:border-[var(--border-hover,var(--border))]",
+        "focus-within:[box-shadow:0_6px_14px_rgba(0,0,0,0.06),inset_3px_0_0_0_var(--primary)]",
         "motion-reduce:transform-none",
-        selected && "bg-[var(--gather-primary-weak)]",
-        selected && "[box-shadow:inset_3px_0_0_0_rgba(196,138,42,0.9)]"
+        selected && "bg-[var(--primary-soft)]",
+        selected && "[box-shadow:inset_3px_0_0_0_var(--primary)]"
       )}
       onClick={onSelect}
     >
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex items-center gap-3">
             <StepNumberBadge index={index} />
-            <div className="text-xs uppercase tracking-[0.2em] text-[var(--gather-muted)]">Step</div>
+            <div className="text-xs uppercase tracking-[0.2em] text-[var(--text-muted)]">Step</div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <button className="btn btn-outline btn-sm" onClick={() => onMove("up")}>Up</button>
@@ -67,18 +72,18 @@ export default function StepRow({
             <button className="btn btn-outline btn-sm" onClick={onRemove}>Remove</button>
           </div>
         </div>
-        <div className="mt-3 grid gap-3 lg:grid-cols-[2fr_1fr_1fr]">
+        <div className="mt-3 grid gap-3 lg:grid-cols-[2fr_1fr]">
           <div>
-            <label className="text-xs uppercase tracking-[0.2em] text-[var(--gather-muted)]">Title</label>
+            <label className="text-xs uppercase tracking-[0.2em] text-[var(--text-muted)]">Title</label>
             <Input
               value={step.title}
               onChange={(event) => onUpdate({ title: event.target.value })}
-              className="bg-[var(--gather-surface)]"
+              className="bg-[var(--surface)]"
               autoFocus={autoFocus}
             />
           </div>
           <div>
-            <label className="text-xs uppercase tracking-[0.2em] text-[var(--gather-muted)]">Duration (min)</label>
+            <label className="text-xs uppercase tracking-[0.2em] text-[var(--text-muted)]">Duration (min)</label>
             <Input
               type="number"
               min={0}
@@ -87,29 +92,50 @@ export default function StepRow({
                 const value = event.target.value;
                 onUpdate({ duration_minutes: value ? Number(value) : null });
               }}
-              className="bg-[var(--gather-surface)]"
+              className="bg-[var(--surface)]"
             />
           </div>
-          <div>
-            <label className="text-xs uppercase tracking-[0.2em] text-[var(--gather-muted)]">Owner role</label>
-            <select
-              className="select select-bordered w-full"
-              value={step.owner_role_id ?? ""}
-              onChange={(event) => onUpdate({ owner_role_id: event.target.value || null })}
-            >
-              <option value="">Unassigned</option>
-              {roles.map((role) => (
-                <option key={role.id} value={role.id}>
-                  {role.name}
-                </option>
-              ))}
-            </select>
-          </div>
         </div>
+        {members.length > 0 ? (
+          <div className="mt-3 grid gap-3 md:grid-cols-2">
+            <div>
+              <label className="text-xs uppercase tracking-[0.2em] text-[var(--text-muted)]">Assigned person</label>
+              <select
+                className="select select-bordered w-full mt-1"
+                value={step.assigned_user_id ?? ""}
+                onChange={(event) => onUpdate({ assigned_user_id: event.target.value || null })}
+              >
+                <option value="">— Open —</option>
+                {members.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.full_name?.trim() || m.email || m.id.slice(0, 8)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs uppercase tracking-[0.2em] text-[var(--text-muted)]">Backup</label>
+              <select
+                className="select select-bordered w-full mt-1"
+                value={step.backup_user_id ?? ""}
+                onChange={(event) => onUpdate({ backup_user_id: event.target.value || null })}
+              >
+                <option value="">— None —</option>
+                {members
+                  .filter((m) => m.id !== step.assigned_user_id)
+                  .map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.full_name?.trim() || m.email || m.id.slice(0, 8)}
+                    </option>
+                  ))}
+              </select>
+            </div>
+          </div>
+        ) : null}
         {showStatus ? (
           <div className="mt-3 grid gap-3 lg:grid-cols-[1fr_auto]">
             <div>
-              <label className="text-xs uppercase tracking-[0.2em] text-[var(--gather-muted)]">Status</label>
+              <label className="text-xs uppercase tracking-[0.2em] text-[var(--text-muted)]">Status</label>
               <select
                 className="select select-bordered w-full"
                 value={step.status ?? "PLANNED"}
@@ -137,7 +163,7 @@ export default function StepRow({
         )}
         {notesOpen ? (
           <div className="mt-3">
-            <label className="text-xs uppercase tracking-[0.2em] text-[var(--gather-muted)]">Notes</label>
+            <label className="text-xs uppercase tracking-[0.2em] text-[var(--text-muted)]">Notes</label>
             <textarea
               className="textarea textarea-bordered w-full mt-1"
               rows={3}

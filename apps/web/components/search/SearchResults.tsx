@@ -21,7 +21,7 @@ export default function SearchResults({ query, profiles, events, announcements }
         <div className="flex h-full flex-col">
           <div className="flex items-center justify-between">
             <div className="card-title">Members</div>
-            <span className="text-xs text-[var(--gather-muted)]">{profiles.length} found</span>
+            <span className="text-xs text-[var(--text-muted)]">{profiles.length} found</span>
           </div>
 
           <div className="mt-4 flex-1 space-y-3 text-sm">
@@ -39,8 +39,8 @@ export default function SearchResults({ query, profiles, events, announcements }
                       {(profile.full_name || profile.email || "?").slice(0, 1).toUpperCase()}
                     </div>
                     <div>
-                      <p className="font-semibold text-[var(--gather-ink)]">{profile.full_name || profile.email}</p>
-                      <p className="text-xs text-[var(--gather-muted)]">{profile.email}</p>
+                      <p className="font-semibold text-[var(--text-primary)]">{profile.full_name || profile.email}</p>
+                      <p className="text-xs text-[var(--text-muted)]">{profile.email}</p>
                     </div>
                   </div>
                   <span className="badge badge-outline text-xs">{profile.role}</span>
@@ -66,7 +66,7 @@ export default function SearchResults({ query, profiles, events, announcements }
         <div className="flex h-full flex-col">
           <div className="flex items-center justify-between">
             <div className="card-title">Events</div>
-            <span className="text-xs text-[var(--gather-muted)]">{events.length} found</span>
+            <span className="text-xs text-[var(--text-muted)]">{events.length} found</span>
           </div>
 
           <div className="mt-4 flex-1 space-y-3 text-sm">
@@ -81,8 +81,8 @@ export default function SearchResults({ query, profiles, events, announcements }
             ) : (
               events.map((event) => (
                 <div key={event.id} className="rounded-lg bg-[var(--surface)] p-3">
-                  <p className="font-semibold text-[var(--gather-ink)]">{event.title}</p>
-                  <p className="text-xs text-[var(--gather-muted)]">
+                  <p className="font-semibold text-[var(--text-primary)]">{event.title}</p>
+                  <p className="text-xs text-[var(--text-muted)]">
                     {event.start_at ? new Date(event.start_at).toLocaleString() : ""}
                     {event.location ? ` - ${event.location}` : ""}
                   </p>
@@ -97,7 +97,7 @@ export default function SearchResults({ query, profiles, events, announcements }
         <div className="flex h-full flex-col">
           <div className="flex items-center justify-between">
             <div className="card-title">Announcements</div>
-            <span className="text-xs text-[var(--gather-muted)]">{announcements.length} found</span>
+            <span className="text-xs text-[var(--text-muted)]">{announcements.length} found</span>
           </div>
 
           <div className="mt-4 flex-1 space-y-3 text-sm">
@@ -112,8 +112,8 @@ export default function SearchResults({ query, profiles, events, announcements }
             ) : (
               announcements.map((announcement) => (
                 <div key={announcement.id} className="rounded-lg bg-[var(--surface)] p-3">
-                  <p className="font-semibold text-[var(--gather-ink)]">{announcement.title}</p>
-                  <p className="text-xs text-[var(--gather-muted)]">
+                  <p className="font-semibold text-[var(--text-primary)]">{announcement.title}</p>
+                  <p className="text-xs text-[var(--text-muted)]">
                     {announcement.publish_at ? new Date(announcement.publish_at).toLocaleString() : "Draft"}
                   </p>
                 </div>
@@ -140,16 +140,16 @@ function EmptyState({
   actionHref?: string;
 }) {
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-[var(--border)] bg-[var(--surface)] p-6 text-center">
-      <div className="flex h-10 w-10 items-center justify-center rounded-full" style={{ background: 'var(--gather-primary-weak)', color: 'var(--gather-primary)' }}>
-        <Icon className="h-5 w-5" style={{ color: 'var(--gather-primary)' }} />
+    <div className="flex h-full flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-[var(--border)] bg-[var(--surface)] p-6 text-center">
+      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--surface-2)]">
+        <Icon className="h-5 w-5" style={{ color: "var(--text-muted)" }} />
       </div>
       <div>
-        <p className="text-sm font-semibold text-[var(--gather-ink)]">{title}</p>
-        <p className="text-xs text-[var(--gather-muted)]">{body}</p>
+        <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>{title}</p>
+        <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>{body}</p>
       </div>
       {actionLabel && actionHref ? (
-        <Link href={actionHref} className="btn btn-outline btn-sm">
+        <Link href={actionHref} className="btn btn-outline btn-sm mt-2">
           {actionLabel}
         </Link>
       ) : null}

@@ -1,0 +1,365 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans,sans-serif)}
+.cal-wrap{padding:8px 0 32px}
+.week-nav{display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.week-btn{font-size:12px;padding:4px 12px;border-radius:20px;border:0.5px solid var(--color-border-secondary);background:transparent;color:var(--color-text-secondary);cursor:pointer;transition:all .15s}
+.week-btn.active{background:var(--color-background-secondary);color:var(--color-text-primary);border-color:var(--color-border-primary)}
+.week-grid{display:flex;flex-direction:column;gap:8px}
+.day-row{border:0.5px solid var(--color-border-tertiary);border-radius:12px;overflow:hidden}
+.day-header{display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;user-select:none;background:var(--color-background-secondary)}
+.day-header:hover{opacity:.85}
+.day-label{font-size:13px;font-weight:500;color:var(--color-text-primary);min-width:110px}
+.day-date{font-size:11px;color:var(--color-text-tertiary);min-width:60px}
+.day-phase-badge{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:500;white-space:nowrap}
+.day-hours{font-size:11px;color:var(--color-text-secondary);margin-left:auto;white-space:nowrap}
+.day-chevron{font-size:10px;color:var(--color-text-tertiary);transition:transform .2s;margin-left:4px}
+.day-chevron.open{transform:rotate(90deg)}
+.day-body{padding:10px 14px 12px;display:none;border-top:0.5px solid var(--color-border-tertiary)}
+.day-body.open{display:block}
+.task-row{display:flex;align-items:flex-start;gap:8px;padding:5px 0;border-bottom:0.5px solid var(--color-border-tertiary);font-size:12px;color:var(--color-text-primary);line-height:1.5}
+.task-row:last-child{border-bottom:none}
+.task-dot{width:6px;height:6px;border-radius:50%;margin-top:5px;flex-shrink:0}
+.task-main{flex:1}
+.task-note{font-size:11px;color:var(--color-text-tertiary);margin-top:1px}
+.hours-bar{display:flex;align-items:center;gap:8px;margin-top:8px}
+.bar-track{flex:1;height:4px;background:var(--color-border-tertiary);border-radius:2px;overflow:hidden}
+.bar-fill{height:100%;border-radius:2px;transition:width .3s}
+.bar-label{font-size:11px;color:var(--color-text-secondary);white-space:nowrap}
+.milestone-tag{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:3px 10px;border-radius:20px;background:var(--color-background-success);color:var(--color-text-success);margin-top:8px;font-weight:500}
+.phase-legend{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--color-text-secondary)}
+.leg-dot{width:8px;height:8px;border-radius:50%}
+.total-bar{background:var(--color-background-secondary);border-radius:8px;padding:10px 14px;margin-bottom:14px;display:flex;gap:16px;flex-wrap:wrap}
+.total-item{font-size:12px;color:var(--color-text-secondary)}
+.total-item span{font-weight:500;color:var(--color-text-primary)}
+</style>
+
+<div class="cal-wrap">
+<div class="phase-legend">
+  <div class="leg-item"><div class="leg-dot" style="background:#EF9F27"></div>Audit</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#1D9E75"></div>Mobile</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#534AB7"></div>Web+Data</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#D85A30"></div>Testing</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#888780"></div>Launch</div>
+</div>
+
+<div class="total-bar">
+  <div class="total-item">Total days: <span>45</span></div>
+  <div class="total-item">Est. hours: <span>~250</span></div>
+  <div class="total-item">Avg/day: <span>5.5 hrs</span></div>
+  <div class="total-item">Buffer days built in: <span>6</span></div>
+</div>
+
+<div class="week-nav" id="week-nav"></div>
+<div class="week-grid" id="week-grid"></div>
+</div>
+
+<script>
+const PHASES = {
+  audit:  {color:'#EF9F27', bg:'#FAEEDA', text:'#BA7517', label:'Audit'},
+  mobile: {color:'#1D9E75', bg:'#E1F5EE', text:'#085041', label:'Mobile'},
+  web:    {color:'#534AB7', bg:'#EEEDFE', text:'#3C3489', label:'Web+Data'},
+  test:   {color:'#D85A30', bg:'#FAECE7', text:'#712B13', label:'Testing'},
+  launch: {color:'#888780', bg:'#F1EFE8', text:'#444441', label:'Launch'},
+  buffer: {color:'#B4B2A9', bg:'#F1EFE8', text:'#5F5E5A', label:'Buffer'},
+};
+
+const days = [
+  {date:'Tue Apr 1',  phase:'audit',  hrs:5, milestone:null, tasks:[
+    {t:'Open the mobile app on a real device — attempt the full member journey cold', note:'Expect friction; document every issue without fixing yet'},
+    {t:'Create a master bug/gap spreadsheet: Web tab, Mobile tab, Email tab', note:'You need one canonical list to track everything'},
+    {t:'Web audit pass 1: Dashboard + People pages — click every action, log every error', note:''},
+  ]},
+  {date:'Wed Apr 2',  phase:'audit',  hrs:5, milestone:null, tasks:[
+    {t:'Web audit pass 2: Volunteers page — schedule builder, generate, copy last service flows', note:''},
+    {t:'Web audit pass 3: Service Plans + Service Presets — create from preset RPC flow', note:''},
+    {t:'Web audit pass 4: Announcements + Events + Notifications pages', note:''},
+  ]},
+  {date:'Thu Apr 3',  phase:'audit',  hrs:5, milestone:null, tasks:[
+    {t:'Web audit pass 5: Account, auth flows, onboarding create-church flow end-to-end', note:''},
+    {t:'Add Next.js middleware.ts — server-side route protection for /admin/* routes', note:'Client-only redirects are a known gap — fix this early'},
+    {t:'Confirm Resend domain verification status — initiate DNS records if not done', note:'Email can take 24–48 hrs to verify'},
+  ]},
+  {date:'Fri Apr 4',  phase:'audit',  hrs:5, milestone:null, tasks:[
+    {t:'Mobile audit: Auth flows — sign up, sign in, church select, profile creation', note:''},
+    {t:'Mobile audit: Home tab + Announcements tab — list, detail, pull-to-refresh', note:''},
+    {t:'Mobile audit: Events tab — list, detail, RSVP flow (GOING / MAYBE / NO)', note:''},
+  ]},
+  {date:'Sat Apr 5',  phase:'audit',  hrs:4, milestone:null, tasks:[
+    {t:'Mobile audit: Serve tab (SERVICE/ADMIN) — assignment list, detail, confirmation flow', note:''},
+    {t:'Mobile audit: Notifications screen — read_at marking, refresh behavior', note:''},
+    {t:'Mobile audit: Profile menu, Church Info screen, stack navigation edge cases', note:''},
+  ]},
+  {date:'Sun Apr 6',  phase:'audit',  hrs:4, milestone:'Web audit complete', tasks:[
+    {t:'Review and triage full bug list — label P0 (demo-breaking), P1 (important), P2 (nice-to-have)', note:''},
+    {t:'Prioritize: cut P2 scope entirely, schedule P1 for Phases 2–3, P0 starts Monday', note:''},
+    {t:'Document known gaps: ServicePlan mobile nav, disabled field, email dispatch', note:''},
+  ]},
+  {date:'Mon Apr 7',  phase:'audit',  hrs:6, milestone:null, tasks:[
+    {t:'Register ServicePlanScreen in AppNavigator — wire tab for SERVICE/ADMIN', note:'Dossier flagged this as known gap'},
+    {t:'Add disabled field to mobile AuthContext profile type', note:'Gate disabled users from accessing the app on mobile'},
+    {t:'Wire Resend in /api/notifications/dispatch — replace stub with real sendEmail call', note:''},
+  ]},
+  {date:'Tue Apr 8',  phase:'audit',  hrs:6, milestone:null, tasks:[
+    {t:'Test Resend email end-to-end: trigger dispatch route, verify email received', note:'Check spam folder; check Resend dashboard for delivery status'},
+    {t:'Fix top 2–3 P0 web bugs identified in audit', note:''},
+    {t:'Fix top 2–3 P0 mobile bugs identified in audit', note:''},
+  ]},
+  {date:'Wed Apr 9',  phase:'audit',  hrs:5, milestone:null, tasks:[
+    {t:'Continue P0 fixes — web and mobile', note:''},
+    {t:'Spot-check: RLS security — log in as MEMBER, confirm no admin data is accessible', note:'Run this now, not at the end'},
+    {t:'Verify QR code join flow works in dev environment', note:''},
+  ]},
+  {date:'Thu Apr 10', phase:'audit',  hrs:5, milestone:null, tasks:[
+    {t:'Continue P0 + P1 fixes', note:''},
+    {t:'Build and install TestFlight (iOS) or APK (Android) — get app on physical device', note:'Critical: simulator misses real-device issues like keyboard, notch, scroll inertia'},
+    {t:'Smoke test the TestFlight/APK build on device', note:''},
+  ]},
+  {date:'Fri Apr 11', phase:'audit',  hrs:5, milestone:null, tasks:[
+    {t:'Full web regression after middleware + P0 fixes — click every page again', note:''},
+    {t:'Mobile: full member journey on real device (not simulator)', note:''},
+    {t:'Update bug list — check off resolved items, re-triage any new findings', note:''},
+  ]},
+  {date:'Sat Apr 12', phase:'audit',  hrs:4, milestone:null, tasks:[
+    {t:'Fix any new regressions found during regression pass', note:''},
+    {t:'Stitch design QA: scan all mobile screens for token/spacing regressions from recent refactors', note:''},
+    {t:'Review Resend delivery rates in dashboard — look for bounces or spam flags', note:''},
+  ]},
+  {date:'Sun Apr 13', phase:'audit',  hrs:4, milestone:'Mobile audit + ServicePlan wired', tasks:[
+    {t:'Phase 1 wrap-up: review bug list, confirm all P0s resolved or have a plan', note:''},
+    {t:'Write short summary of what was fixed and what remains for Phases 2–3', note:'Keeps you grounded going into the heavy build week'},
+    {t:'Rest + plan week ahead', note:''},
+  ]},
+
+  {date:'Mon Apr 14', phase:'mobile', hrs:6, milestone:null, tasks:[
+    {t:'Mobile P1 fixes — batch 1: navigation, empty states, loading states', note:''},
+    {t:'ServicePlanScreen smoke test on real device — verify SERVICE and ADMIN roles see correct data', note:''},
+    {t:'Verify church join via slug works on mobile in dev', note:''},
+  ]},
+  {date:'Tue Apr 15', phase:'mobile', hrs:6, milestone:null, tasks:[
+    {t:'End-to-end member journey test: sign up → join church → announcements → event RSVP → assignment', note:'Run this 3 times, with 3 different role permutations'},
+    {t:'Log any new issues found during E2E — add to bug list', note:''},
+    {t:'Fix issues found during E2E that are P0 or P1', note:''},
+  ]},
+  {date:'Wed Apr 16', phase:'mobile', hrs:6, milestone:null, tasks:[
+    {t:'Serve tab full test: ADMIN assigns volunteer on web → SERVICE user sees it on mobile', note:'Cross-platform sync test'},
+    {t:'Assignment confirmation flow: volunteer confirms/declines on mobile → admin sees updated status on web', note:''},
+    {t:'Fix any sync or real-time issues found', note:''},
+  ]},
+  {date:'Thu Apr 17', phase:'mobile', hrs:5, milestone:null, tasks:[
+    {t:'Mobile P1 fixes — batch 2: profile, church info, edge cases from audit list', note:''},
+    {t:'Test notification pipeline on mobile: dispatch triggers → notification_log row → mobile screen shows it', note:''},
+    {t:'Mark-as-read flow: user taps notification → read_at updates → badge clears', note:''},
+  ]},
+  {date:'Fri Apr 18', phase:'mobile', hrs:5, milestone:null, tasks:[
+    {t:'Mobile P1 fixes — batch 3: remaining items', note:''},
+    {t:'Perform full Stitch UI review — Button, Card, Text, Badge primitives across all screens', note:''},
+    {t:'Fix any visual inconsistencies found in Stitch review', note:''},
+  ]},
+  {date:'Sat Apr 19', phase:'mobile', hrs:4, milestone:null, tasks:[
+    {t:'Full mobile regression pass — every tab, every screen, on real device', note:''},
+    {t:'Update TestFlight/APK with latest fixes', note:''},
+    {t:'Rest + review', note:''},
+  ]},
+  {date:'Sun Apr 20', phase:'mobile', hrs:4, milestone:'Core member journey green on device', tasks:[
+    {t:'Milestone check: can a fresh user sign up, join a church, and use all tabs without errors?', note:'If no: identify remaining blockers and address Monday'},
+    {t:'Document the mobile state — what works, what is polish-only', note:''},
+  ]},
+  {date:'Mon Apr 21', phase:'mobile', hrs:6, milestone:null, tasks:[
+    {t:'Any remaining mobile P1 blockers from milestone check', note:''},
+    {t:'Start web P1 fixes in parallel — dashboard aggregate data accuracy', note:'Phases 2 and 3 overlap this week'},
+    {t:'Web: People page — full CRUD test: add, edit role, disable, re-enable member', note:''},
+  ]},
+  {date:'Tue Apr 22', phase:'web',    hrs:6, milestone:null, tasks:[
+    {t:'Web P1 fixes — Volunteers page: generate schedule, assign volunteer, send reminders', note:''},
+    {t:'Web: events page — create event, cancel event, view RSVP breakdown', note:''},
+    {t:'Web: announcements — create, audience targeting, publish_at scheduling', note:''},
+  ]},
+  {date:'Wed Apr 23', phase:'web',    hrs:6, milestone:null, tasks:[
+    {t:'Web: full admin journey E2E — onboard church → add people → create service plan → assign volunteers → send reminders', note:'This is your demo script skeleton'},
+    {t:'Fix any blockers found during admin E2E', note:''},
+    {t:'Web: notifications page — admin sees all, mark read, log display', note:''},
+  ]},
+  {date:'Thu Apr 24', phase:'web',    hrs:5, milestone:null, tasks:[
+    {t:'Set up Church 1 in production Supabase — name, slug, timezone, address, service times', note:'Use a real church you know well'},
+    {t:'Seed Church 1: 8–10 realistic member profiles with names, emails, roles', note:''},
+    {t:'Seed Church 1: 3–4 ministries, volunteer roles, 1 service preset', note:''},
+  ]},
+  {date:'Fri Apr 25', phase:'web',    hrs:5, milestone:null, tasks:[
+    {t:'Seed Church 1: 2–3 upcoming events with realistic titles, descriptions, audience', note:''},
+    {t:'Seed Church 1: 2–3 recent announcements (one per audience type)', note:''},
+    {t:'Create demo accounts: 1 ADMIN, 1 SERVICE, 2 MEMBER — test login for each', note:''},
+  ]},
+  {date:'Sat Apr 26', phase:'web',    hrs:4, milestone:null, tasks:[
+    {t:'Verify Church 1 QR code and slug join flow work in production', note:''},
+    {t:'Log in as each demo account role — spot check data visibility and RLS', note:''},
+    {t:'Fix any production-env-specific issues found', note:''},
+  ]},
+  {date:'Sun Apr 27', phase:'mobile', hrs:4, milestone:'All mobile P0/P1 fixed · TestFlight ready', tasks:[
+    {t:'Mobile milestone check: install latest build, run full member journey as MEMBER demo account on Church 1 production data', note:''},
+    {t:'Log any remaining issues', note:''},
+  ]},
+  {date:'Mon Apr 28', phase:'web',    hrs:6, milestone:'Church 1 demo data complete', tasks:[
+    {t:'Church 1 final data polish — ensure volunteer schedule has a realistic upcoming service with 3–4 assignments', note:'This is the most impressive demo moment'},
+    {t:'Create a service plan for Church 1 from preset — verify it looks good in admin', note:''},
+    {t:'Set up Church 2 in production Supabase (if applicable) — different size, different ministries', note:''},
+  ]},
+  {date:'Tue Apr 29', phase:'web',    hrs:6, milestone:null, tasks:[
+    {t:'Seed Church 2: members, ministries, events, announcements', note:'Make it feel distinct from Church 1'},
+    {t:'Church 2 demo accounts: ADMIN + SERVICE + 2 MEMBER', note:''},
+    {t:'Test QR join for Church 2', note:''},
+  ]},
+  {date:'Wed Apr 30', phase:'web',    hrs:5, milestone:null, tasks:[
+    {t:'Full web regression after all Phase 3 changes — every admin page', note:''},
+    {t:'Confirm Resend emails are landing from production env (not just dev)', note:'Send a test reminder from production dispatch route'},
+    {t:'Fix any production-specific issues found', note:''},
+  ]},
+  {date:'Thu May 1',  phase:'web',    hrs:5, milestone:null, tasks:[
+    {t:'Web P1 fixes — final batch, anything remaining on the list', note:'After today, freeze new code unless it is a demo-breaking issue'},
+    {t:'Review service preset → plan flow one more time — this is a key admin demo beat', note:''},
+    {t:'Code freeze prep: tag the release, write brief release notes', note:''},
+  ]},
+  {date:'Fri May 2',  phase:'web',    hrs:5, milestone:null, tasks:[
+    {t:'Full production smoke test: log in to both churches as each role (web + mobile)', note:'8 logins total — should all work cleanly'},
+    {t:'RLS security check in production: MEMBER cannot see other church data', note:''},
+    {t:'Fix any remaining P1 issues found in smoke test', note:''},
+  ]},
+  {date:'Sat May 3',  phase:'buffer', hrs:4, milestone:null, tasks:[
+    {t:'Buffer day: address overflow from Phase 3', note:'Use for whatever is still open — do not introduce new features'},
+    {t:'If on track: start drafting 10-minute demo walkthrough script', note:'Outline the "wow" moments: next service card, volunteer scheduling, mobile sync'},
+  ]},
+  {date:'Sun May 4',  phase:'web',    hrs:4, milestone:'Web P0/P1 fixed · Both churches seeded', tasks:[
+    {t:'Phase 3 milestone check: both churches have realistic data, all P0/P1 bugs resolved', note:''},
+    {t:'Brief planning session for testing week — identify the 5 highest-risk things to stress test', note:''},
+  ]},
+
+  {date:'Mon May 5',  phase:'test',   hrs:6, milestone:null, tasks:[
+    {t:'Run complete admin demo script as Church 1 ADMIN on web — time it, note any friction', note:'Pretend you are showing it to a church admin for the first time'},
+    {t:'Run it again — fix the worst 1–2 friction points found', note:''},
+    {t:'Repeat for Church 2 ADMIN', note:''},
+  ]},
+  {date:'Tue May 6',  phase:'test',   hrs:6, milestone:null, tasks:[
+    {t:'Run complete member journey on mobile — Church 1 MEMBER demo account', note:''},
+    {t:'Run complete SERVICE journey on mobile — Church 1 SERVICE demo account', note:''},
+    {t:'Log any remaining issues', note:''},
+  ]},
+  {date:'Wed May 7',  phase:'test',   hrs:6, milestone:null, tasks:[
+    {t:'Cross-platform sync test: admin assigns volunteer on web → SERVICE user sees assignment on mobile instantly', note:'This is the most impressive live demo beat'},
+    {t:'Volunteer confirms on mobile → admin web page reflects confirmed status without refresh', note:''},
+    {t:'Fix any sync latency or display issues', note:''},
+  ]},
+  {date:'Thu May 8',  phase:'test',   hrs:5, milestone:'Full demo script passes E2E', tasks:[
+    {t:'Notification E2E: trigger cron/dispatch → notification_log row created → email lands in inbox → mobile notifications screen updates', note:''},
+    {t:'Fix any notification pipeline gaps', note:''},
+    {t:'Milestone check: can you run the full demo from start to finish without hitting a single error?', note:''},
+  ]},
+  {date:'Fri May 9',  phase:'test',   hrs:5, milestone:null, tasks:[
+    {t:'Hand device to someone unfamiliar with the app — watch them try to use it without guidance', note:'Do not help them. Just watch and take notes.'},
+    {t:'Fix the worst 2–3 confusion points found', note:'UX polish only — no new features'},
+    {t:'Security audit: MEMBER account — try to access /admin routes, other church data', note:''},
+  ]},
+  {date:'Sat May 10', phase:'test',   hrs:4, milestone:null, tasks:[
+    {t:'Final RLS + security pass in production', note:''},
+    {t:'Finalize demo walkthrough script — 10 minutes, rehearse it out loud', note:''},
+    {t:'Polish demo data: make sure volunteer schedule has pending + confirmed slots for visual variety', note:''},
+  ]},
+  {date:'Sun May 11', phase:'buffer', hrs:4, milestone:null, tasks:[
+    {t:'Buffer day: fix any issues surfaced during testing week', note:''},
+    {t:'If on track: prep onboarding guide for church admins — 1-page PDF or doc', note:''},
+    {t:'Rehearse demo script one more time', note:''},
+  ]},
+  {date:'Mon May 12', phase:'test',   hrs:5, milestone:'All issues resolved · Demo-ready', tasks:[
+    {t:'Final full regression: web + mobile, both churches, all roles', note:'Last chance to catch anything'},
+    {t:'Confirm TestFlight / APK is up to date with latest build', note:''},
+    {t:'Milestone check: everything is green — declare demo-ready', note:''},
+  ]},
+  {date:'Tue May 13', phase:'launch', hrs:4, milestone:null, tasks:[
+    {t:'Prepare Church 1 handoff package: admin login, app install link, walkthrough guide', note:''},
+    {t:'Internal final rehearsal of demo script', note:''},
+    {t:'Set up Supabase monitoring / error alerts for launch window', note:''},
+  ]},
+  {date:'Wed May 14', phase:'launch', hrs:4, milestone:null, tasks:[
+    {t:'Hand off Church 1 credentials + walkthrough guide to church admin contact', note:''},
+    {t:'Walk them through onboarding their first real member via QR / slug', note:''},
+    {t:'Monitor Supabase logs after first real user activity', note:''},
+  ]},
+  {date:'Thu May 15', phase:'launch', hrs:3, milestone:'May 15 — Demo production live', tasks:[
+    {t:'Church 2 handoff if applicable', note:''},
+    {t:'Monitor logs and error tracking — be ready to hotfix anything critical', note:''},
+    {t:'Note all early feedback for post-May-15 AI phase', note:'You made it — start collecting what to build next'},
+  ]},
+];
+
+const weeks = [
+  {label:'Wk 1 · Apr 1–6',   days:[0,1,2,3,4,5]},
+  {label:'Wk 2 · Apr 7–13',  days:[6,7,8,9,10,11,12]},
+  {label:'Wk 3 · Apr 14–20', days:[13,14,15,16,17,18,19]},
+  {label:'Wk 4 · Apr 21–27', days:[20,21,22,23,24,25,26]},
+  {label:'Wk 5 · Apr 28–May 4', days:[27,28,29,30,31,32,33]},
+  {label:'Wk 6 · May 5–11',  days:[34,35,36,37,38,39,40]},
+  {label:'Wk 7 · May 12–15', days:[41,42,43,44]},
+];
+
+let activeWeek = 0;
+
+function renderWeekNav() {
+  const nav = document.getElementById('week-nav');
+  nav.innerHTML = weeks.map((w,i) =>
+    `<button class="week-btn${i===activeWeek?' active':''}" onclick="switchWeek(${i})">${w.label}</button>`
+  ).join('');
+}
+
+function renderWeek(wi) {
+  const grid = document.getElementById('week-grid');
+  const wDays = weeks[wi].days.map(i => days[i]);
+  grid.innerHTML = wDays.map((d,li) => {
+    const p = PHASES[d.phase];
+    const di = weeks[wi].days[li];
+    const totalPct = Math.round((d.hrs / 7) * 100);
+    const milestone = d.milestone ? `<div class="milestone-tag">&#10003; ${d.milestone}</div>` : '';
+    const tasks = d.tasks.map(t =>
+      `<div class="task-row">
+        <div class="task-dot" style="background:${p.color}"></div>
+        <div class="task-main">${t.t}${t.note ? `<div class="task-note">${t.note}</div>` : ''}</div>
+      </div>`
+    ).join('');
+    return `<div class="day-row" id="day-${di}">
+      <div class="day-header" onclick="toggleDay(${di})">
+        <span class="day-label">${d.date.split(' ').slice(0,2).join(' ')}</span>
+        <span class="day-date">${d.date.split(' ').slice(2).join(' ')}</span>
+        <span class="day-phase-badge" style="background:${p.bg};color:${p.text}">${p.label}</span>
+        <span class="day-hours">${d.hrs} hrs</span>
+        <span class="day-chevron" id="dchev-${di}">&#9654;</span>
+      </div>
+      <div class="day-body" id="dbody-${di}">
+        ${tasks}
+        <div class="hours-bar">
+          <span class="bar-label" style="font-size:11px;color:var(--color-text-tertiary)">Est. hours</span>
+          <div class="bar-track"><div class="bar-fill" style="width:${totalPct}%;background:${p.color}"></div></div>
+          <span class="bar-label">${d.hrs} / 7</span>
+        </div>
+        ${milestone}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function switchWeek(wi) {
+  activeWeek = wi;
+  renderWeekNav();
+  renderWeek(wi);
+}
+
+function toggleDay(di) {
+  const body = document.getElementById('dbody-'+di);
+  const chev = document.getElementById('dchev-'+di);
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  if(chev) chev.classList.toggle('open', !isOpen);
+}
+
+renderWeekNav();
+renderWeek(0);
+</script>

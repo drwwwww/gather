@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, Modal } from 'react-native';
 import { StyleSheet } from 'react-native';
 import { theme } from '../../theme/theme';
 
@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.error,
   },
   signOutText: {
-    color: '#fff',
+    color: theme.colors.onPrimary,
     fontWeight: theme.typography.fontWeight.bold,
   },
 });

@@ -27,7 +27,7 @@ type AnnouncementTemplatesProps = {
 
 export default function AnnouncementTemplates({ onSelect }: AnnouncementTemplatesProps) {
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap justify-center gap-2">
       {templates.map((template) => (
         <button
           key={template.title}

@@ -11,6 +11,7 @@ import EventsList, { type EventListTab } from "../../../components/events/Events
 import RsvpPanel from "../../../components/events/RsvpPanel";
 import AttendeeListDialog from "../../../components/events/AttendeeListDialog";
 import type { EventTemplate } from "../../../components/events/EventTemplates";
+import { PageGrid, PageGridFull, PageGridRowTwoOne } from "../../../components/layout/PageGrid";
 import type { Database } from "@gather/lib";
 
 type EventItem = Database["public"]["Tables"]["events"]["Row"];
@@ -279,64 +280,73 @@ export default function EventsPage() {
   };
 
   return (
-    <div className="space-y-8">
-      <div>
+    <PageGrid>
+      <PageGridFull className="animate-fade-in-up">
         <AdminHeader
           title="Events"
           subtitle="Create events and track RSVP counts."
         />
-      </div>
-      <div>
-        <section className="grid gap-6 xl:grid-cols-[1.3fr_0.9fr]">
-          <EventForm
-            values={formValues}
-            timezoneLabel={timezoneLabel}
-            isEditing={!!selectedEventId}
-            onChange={(patch) => setFormValues((prev) => ({ ...prev, ...patch }))}
-            onSubmit={handleCreateOrUpdate}
-            onCancelEdit={resetForm}
-            onTemplateSelect={handleTemplateSelect}
-            error={error}
-          />
+      </PageGridFull>
 
-          <div className="space-y-6">
-            <EventsList
-              upcoming={upcomingEvents}
-              past={pastEvents}
-              selectedEventId={selectedEventId}
-              activeTab={activeTab}
-              rsvpCounts={rsvpGoingCounts}
-              onTabChange={setActiveTab}
-              onSelect={handleSelectEvent}
-              onEdit={handleSelectEvent}
-              onDuplicate={handleDuplicate}
-              onCancel={handleCancelEvent}
+      <PageGridRowTwoOne
+        className="animate-fade-in-up [animation-delay:100ms] opacity-0"
+        main={
+          loading && events.length === 0 ? (
+            <div className="card h-[600px] bg-[var(--surface)] animate-pulse-subtle" />
+          ) : (
+            <EventForm
+              values={formValues}
+              timezoneLabel={timezoneLabel}
+              isEditing={!!selectedEventId}
+              onChange={(patch) => setFormValues((prev) => ({ ...prev, ...patch }))}
+              onSubmit={handleCreateOrUpdate}
+              onCancelEdit={resetForm}
               onTemplateSelect={handleTemplateSelect}
+              error={error}
             />
-            <RsvpPanel
-              selectedEventTitle={selectedEvent?.title ?? null}
-              going={selectedCounts.GOING}
-              maybe={selectedCounts.MAYBE}
-              no={selectedCounts.NO}
-              onViewAttendees={() => setViewAttendees(true)}
-            />
-          </div>
-        </section>
-      </div>
-
-      <AttendeeListDialog
-        open={viewAttendees}
-        attendees={attendees}
-        onClose={() => setViewAttendees(false)}
+          )
+        }
+        side={
+          loading && events.length === 0 ? (
+            <div className="space-y-6 animate-pulse-subtle">
+              <div className="card h-[400px] bg-[var(--surface)]" />
+              <div className="card h-[200px] bg-[var(--surface)]" />
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <EventsList
+                upcoming={upcomingEvents}
+                past={pastEvents}
+                selectedEventId={selectedEventId}
+                activeTab={activeTab}
+                rsvpCounts={rsvpGoingCounts}
+                onTabChange={setActiveTab}
+                onSelect={handleSelectEvent}
+                onEdit={handleSelectEvent}
+                onDuplicate={handleDuplicate}
+                onCancel={handleCancelEvent}
+                onTemplateSelect={handleTemplateSelect}
+              />
+              <RsvpPanel
+                selectedEventTitle={selectedEvent?.title ?? null}
+                going={selectedCounts.GOING}
+                maybe={selectedCounts.MAYBE}
+                no={selectedCounts.NO}
+                onViewAttendees={() => setViewAttendees(true)}
+              />
+            </div>
+          )
+        }
       />
 
-      {loading ? (
-        <div className="flex flex-col items-center justify-center gap-4 py-8">
-          <Loader />
-          <p className="text-sm" style={{ color: "var(--text-muted)" }}>Loading events...</p>
-        </div>
-      ) : null}
-    </div>
+      <PageGridFull>
+        <AttendeeListDialog
+          open={viewAttendees}
+          attendees={attendees}
+          onClose={() => setViewAttendees(false)}
+        />
+      </PageGridFull>
+    </PageGrid>
   );
 }
 

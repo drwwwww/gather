@@ -5,23 +5,27 @@ import { useParams, useRouter } from "next/navigation";
 import AdminHeader from "../../../../../components/admin/AdminHeader";
 import PageLoader from "../../../../../components/ui/PageLoader";
 import PlanEditor from "../../../../../components/servicePlans/PlanEditor";
+import ServicePlanRoleSlotsSection from "../../../../../components/servicePlans/ServicePlanRoleSlotsSection";
+import { PageGrid, PageGridFull } from "../../../../../components/layout/PageGrid";
 import { getCurrentContext } from "../../../../../lib/supabaseData";
 import { supabase } from "../../../../../lib/supabaseClient";
+import {
+  fetchPlanRoleSlots,
+  replacePlanItems,
+  replacePlanRoleSlots,
+  adjustPlanRoleSlotCount,
+  reindexPlanRoleSlots,
+  type PlanItemDraft,
+  type PlanRoleSlotDraft,
+  type ServicePlanRoleSlot
+} from "../../../../../lib/db/servicePlans";
 import type { Database, ServicePlanStatus } from "@gather/lib";
 
 type ServicePlan = Database["public"]["Tables"]["service_plans"]["Row"];
 type PlanItemRow = Database["public"]["Tables"]["service_plan_items"]["Row"];
 type RoleRow = Database["public"]["Tables"]["volunteer_roles"]["Row"];
-type PresetRow = Database["public"]["Tables"]["service_presets"]["Row"];
 
-type PlanItem = {
-  id: string;
-  title: string;
-  duration_minutes: number | null;
-  notes: string;
-  owner_role_id: string | null;
-  status: ServicePlanStatus;
-};
+type PlanItem = PlanItemDraft;
 
 type PageState = "loading" | "ready" | "restricted";
 
@@ -38,6 +42,8 @@ export default function ServicePlanEditorPage() {
   const [plan, setPlan] = useState<ServicePlan | null>(null);
   const [items, setItems] = useState<PlanItem[]>([]);
   const [roles, setRoles] = useState<RoleRow[]>([]);
+  const [members, setMembers] = useState<{ id: string; full_name: string | null; email: string | null }[]>([]);
+  const [roleSlotDrafts, setRoleSlotDrafts] = useState<PlanRoleSlotDraft[]>([]);
   const [presetName, setPresetName] = useState<string | null>(null);
   const [status, setStatus] = useState<PageState>("loading");
   const [saving, setSaving] = useState(false);
@@ -69,8 +75,18 @@ export default function ServicePlanEditorPage() {
       return;
     }
 
+    let slotRows: ServicePlanRoleSlot[] = [];
+    try {
+      slotRows = await fetchPlanRoleSlots(planId);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not load role slots.");
+      return;
+    }
+
+    setError(null);
     setPlan(planData);
     setRoles(roleData ?? []);
+    setRoleSlotDrafts(mapRoleSlotRows(slotRows));
     setItems(
       (itemData ?? []).map((item: PlanItemRow) => ({
         id: item.id,
@@ -78,6 +94,8 @@ export default function ServicePlanEditorPage() {
         duration_minutes: item.duration_minutes,
         notes: item.notes ?? "",
         owner_role_id: item.owner_role_id,
+        assigned_user_id: item.assigned_user_id ?? null,
+        backup_user_id: item.backup_user_id ?? null,
         status: item.status as ServicePlanStatus
       }))
     );
@@ -113,6 +131,28 @@ export default function ServicePlanEditorPage() {
     load();
   }, [router, planId]);
 
+  useEffect(() => {
+    if (!supabase || !plan?.church_id) {
+      setMembers([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, full_name, email")
+        .eq("church_id", plan.church_id)
+        .eq("disabled", false)
+        .order("full_name", { ascending: true });
+      if (!cancelled && !error && data) {
+        setMembers(data);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [plan?.church_id]);
+
   const handleAddItem = () => {
     setItems((prev) => [
       ...prev,
@@ -122,6 +162,8 @@ export default function ServicePlanEditorPage() {
         duration_minutes: null,
         notes: "",
         owner_role_id: null,
+        assigned_user_id: null,
+        backup_user_id: null,
         status: "PLANNED"
       }
     ]);
@@ -147,74 +189,104 @@ export default function ServicePlanEditorPage() {
       return;
     }
 
-    const { error: deleteError } = await supabase
-      .from("service_plan_items")
-      .delete()
-      .eq("plan_id", planId);
-
-    if (deleteError) {
-      setError(deleteError.message);
+    try {
+      await replacePlanItems(planId, items);
+      await replacePlanRoleSlots(planId, roleSlotDrafts);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Save failed.");
       setSaving(false);
       return;
-    }
-
-    if (items.length) {
-      const payload = items.map((item, index) => ({
-        plan_id: planId,
-        position: index + 1,
-        title: item.title.trim() || "Untitled",
-        duration_minutes: item.duration_minutes ?? null,
-        notes: item.notes ?? "",
-        owner_role_id: item.owner_role_id,
-        status: item.status
-      }));
-
-      const { error: insertError } = await supabase
-        .from("service_plan_items")
-        .insert(payload);
-
-      if (insertError) {
-        setError(insertError.message);
-        setSaving(false);
-        return;
-      }
     }
 
     setSaving(false);
   };
 
   if (status === "loading") {
-    return <PageLoader message="Loading plan..." />;
+    return (
+      <PageGrid className="animate-pulse-subtle">
+        <PageGridFull className="space-y-4">
+          <div className="h-8 w-48 rounded-md bg-[var(--surface-2)]" />
+          <div className="h-4 w-64 rounded-md bg-[var(--surface-2)]" />
+        </PageGridFull>
+        <PageGridFull>
+          <div className="card h-[600px] bg-[var(--surface)]" />
+        </PageGridFull>
+      </PageGrid>
+    );
   }
 
   if (status === "restricted") {
     return (
       <main className="mx-auto flex min-h-[60vh] max-w-3xl flex-col items-center justify-center gap-4 px-6">
-        <h1 className="text-2xl font-semibold">Access restricted</h1>
-        <p className="text-sm text-base-content/70">Only admins can manage service plans.</p>
+        <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-[var(--border)] bg-[var(--surface)] px-6 py-12 text-center w-full">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--surface-2)]">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" style={{ color: "var(--text-muted)" }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>Access restricted</p>
+            <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>Only admins can manage service plans.</p>
+          </div>
+        </div>
       </main>
     );
   }
 
   return (
-    <>
-      <AdminHeader
-        title={title}
-        subtitle="Adjust this service plan without changing the preset."
-      />
-      <PlanEditor
-        planTitle={plan?.title ?? ""}
-        basedOnPresetName={presetName}
-        items={items}
-        roles={roles}
-        onTitleChange={(value) => setPlan((prev) => (prev ? { ...prev, title: value } : prev))}
-        onItemsChange={setItems}
-        onAddItem={handleAddItem}
-        onDeleteItem={handleDeleteItem}
-        onSave={handleSave}
-        saving={saving}
-        error={error}
-      />
-    </>
+    <PageGrid>
+      <PageGridFull className="animate-fade-in-up">
+        <AdminHeader
+          title={title}
+          subtitle="Adjust this service plan without changing the preset."
+        />
+      </PageGridFull>
+      <PageGridFull className="animate-fade-in-up [animation-delay:100ms] opacity-0 space-y-6">
+        <ServicePlanRoleSlotsSection
+          slots={roleSlotDrafts}
+          roles={roles}
+          members={members}
+          onChange={(id, patch) =>
+            setRoleSlotDrafts((prev) =>
+              reindexPlanRoleSlots(
+                prev.map((s) => (s.id === id ? { ...s, ...patch } : s)),
+                roles
+              )
+            )
+          }
+          onAdjustRoleCount={(roleId, delta) =>
+            setRoleSlotDrafts((prev) => adjustPlanRoleSlotCount(prev, roles, roleId, delta, createLocalId))
+          }
+          onRemoveSlot={(id) =>
+            setRoleSlotDrafts((prev) => reindexPlanRoleSlots(prev.filter((s) => s.id !== id), roles))
+          }
+        />
+        <PlanEditor
+          planTitle={plan?.title ?? ""}
+          basedOnPresetName={presetName}
+          items={items}
+          members={members}
+          onTitleChange={(value) => setPlan((prev) => (prev ? { ...prev, title: value } : prev))}
+          onItemsChange={setItems}
+          onAddItem={handleAddItem}
+          onDeleteItem={handleDeleteItem}
+          onSave={handleSave}
+          saving={saving}
+          error={error}
+        />
+      </PageGridFull>
+    </PageGrid>
   );
+}
+
+function mapRoleSlotRows(rows: ServicePlanRoleSlot[]): PlanRoleSlotDraft[] {
+  return (rows ?? []).map((r) => ({
+    id: r.id,
+    role_id: r.role_id,
+    sort_order: r.sort_order,
+    assigned_user_id: r.assigned_user_id,
+    backup_user_id: r.backup_user_id,
+    status: r.status,
+    notes: r.notes ?? ""
+  }));
 }

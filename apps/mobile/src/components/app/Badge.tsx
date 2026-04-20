@@ -5,9 +5,18 @@ import { theme } from '../../theme/theme';
 export function Badge({ label, type = 'default' }: { label: string; type?: 'default' | 'gold' | 'success' | 'danger' }) {
   let backgroundColor = theme.colors.secondary;
   let color = theme.colors.primaryText;
-  if (type === 'gold') backgroundColor = theme.colors.primary;
-  if (type === 'success') backgroundColor = '#C7E8C7';
-  if (type === 'danger') backgroundColor = theme.colors.error;
+  if (type === 'gold') {
+    backgroundColor = theme.colors.primary;
+    color = theme.colors.onPrimary;
+  }
+  if (type === 'success') {
+    backgroundColor = theme.colors.successSoft;
+    color = theme.colors.successOnSoft;
+  }
+  if (type === 'danger') {
+    backgroundColor = theme.colors.danger;
+    color = theme.colors.onPrimary;
+  }
   return (
     <View style={[styles.badge, { backgroundColor }]}> 
       <Text style={[styles.text, { color }]}>{label}</Text>

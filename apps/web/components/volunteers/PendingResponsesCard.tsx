@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { CheckCircle2 } from "lucide-react";
 import type { PendingRow } from "../dashboard/PendingConfirmationsCard";
 import Badge from "../ui/Badge";
 
@@ -13,9 +14,9 @@ export default function PendingResponsesCard({ items, onFollowUp }: PendingRespo
   const safeItems = Array.isArray(items) ? items : [];
 
   return (
-    <div className="border rounded bg-white p-6">
-      <div className="flex items-center justify-between mb-8">
-        <h2 className="text-lg font-medium text-[var(--ink)]">Pending Responses</h2>
+    <div className="card shadow-sm p-6">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="card-title">Pending Responses</h2>
         <div className="flex items-center gap-3">
           {safeItems.length > 0 ? (
             <button
@@ -32,23 +33,27 @@ export default function PendingResponsesCard({ items, onFollowUp }: PendingRespo
         </div>
       </div>
       {safeItems.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 p-6">
-          <span className="text-[var(--muted)]">
-            No pending responses. All assignments confirmed.
-          </span>
+        <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-[var(--border)] bg-[var(--surface)] px-6 py-8 text-center">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--surface-2)]">
+            <CheckCircle2 className="h-5 w-5" style={{ color: "var(--text-muted)" }} />
+          </div>
+          <div>
+            <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>All caught up</p>
+            <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>No pending responses. All assignments confirmed.</p>
+          </div>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-[var(--border)]">
-          <table className="w-full text-sm">
+        <div className="overflow-hidden rounded-xl border" style={{ borderColor: "var(--border)" }}>
+          <table className="table w-full text-sm">
             <thead>
               <tr>
-                <th className="text-xs text-[var(--muted)] font-medium uppercase tracking-wide">
+                <th className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>
                   Role
                 </th>
-                <th className="text-xs text-[var(--muted)] font-medium uppercase tracking-wide">
+                <th className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>
                   Assigned
                 </th>
-                <th className="text-xs text-[var(--muted)] font-medium uppercase tracking-wide">
+                <th className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>
                   Status
                 </th>
               </tr>

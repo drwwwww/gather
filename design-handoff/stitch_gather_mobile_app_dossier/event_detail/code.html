@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;700;800&amp;family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "tertiary-container": "#ff9837",
+                    "surface-container-lowest": "#ffffff",
+                    "secondary-fixed": "#e3e2df",
+                    "background": "#faf9f5",
+                    "inverse-primary": "#ffb95f",
+                    "secondary": "#5e5f5c",
+                    "inverse-surface": "#2f312e",
+                    "surface-container-low": "#f4f4f0",
+                    "surface-tint": "#855300",
+                    "tertiary-fixed-dim": "#ffb77d",
+                    "inverse-on-surface": "#f2f1ed",
+                    "primary-fixed-dim": "#ffb95f",
+                    "surface-container-high": "#e9e8e4",
+                    "primary-fixed": "#ffddb8",
+                    "outline": "#867461",
+                    "on-secondary-fixed": "#1b1c1a",
+                    "error-container": "#ffdad6",
+                    "on-secondary-container": "#626361",
+                    "surface-variant": "#e3e2df",
+                    "on-background": "#1b1c1a",
+                    "tertiary": "#904d00",
+                    "on-secondary": "#ffffff",
+                    "primary": "#855300",
+                    "on-primary-container": "#613b00",
+                    "outline-variant": "#d8c3ad",
+                    "surface-container": "#efeeea",
+                    "tertiary-fixed": "#ffdcc3",
+                    "on-primary-fixed": "#2a1700",
+                    "surface-dim": "#dbdad6",
+                    "on-surface-variant": "#534434",
+                    "on-secondary-fixed-variant": "#464745",
+                    "on-tertiary-fixed": "#2f1500",
+                    "on-error": "#ffffff",
+                    "on-error-container": "#93000a",
+                    "on-primary": "#ffffff",
+                    "primary-container": "#f59e0b",
+                    "on-tertiary-container": "#6a3700",
+                    "secondary-fixed-dim": "#c7c6c4",
+                    "on-surface": "#1b1c1a",
+                    "error": "#ba1a1a",
+                    "on-tertiary-fixed-variant": "#6e3900",
+                    "surface-container-highest": "#e3e2df",
+                    "on-tertiary": "#ffffff",
+                    "secondary-container": "#e0e0dd",
+                    "surface": "#faf9f5",
+                    "surface-bright": "#faf9f5",
+                    "on-primary-fixed-variant": "#653e00"
+            },
+            "borderRadius": {
+                    "DEFAULT": "1rem",
+                    "lg": "2rem",
+                    "xl": "3rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Rubik", "sans-serif"],
+                    "body": ["Plus Jakarta Sans", "sans-serif"],
+                    "label": ["Rubik", "sans-serif"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .amber-aura-gradient {
+            background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+        }
+        .glass-nav {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(24px);
+        }
+        body {
+            background-color: #FDFCF8;
+            color: #111827;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="font-body selection:bg-primary-container/30">
+<!-- TopAppBar -->
+<header class="bg-[#FDFCF8] w-full top-0 sticky z-40">
+<div class="flex justify-between items-center w-full px-6 py-4 mt-2">
+<div class="flex items-center gap-3">
+<div class="flex items-center justify-center w-10 h-10 rounded-full hover:bg-[#FFF7E6] transition-all duration-300 cursor-pointer">
+<span class="material-symbols-outlined text-[#F59E0B]">arrow_back</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[#F59E0B]">church</span>
+<h1 class="text-[1.75rem] font-bold text-[#111827] tracking-tight font-['Rubik']">Gather</h1>
+</div>
+</div>
+<div class="w-10 h-10 rounded-full overflow-hidden border-2 border-primary-container/20 hover:scale-95 transition-all duration-300 ease-in-out cursor-pointer">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="Close up portrait of a friendly man with a warm smile, soft natural studio lighting, clean background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA1fPv2nEAZn7z9a6eDGjkUA_lspfCRIZ1jiQBaxyymKa18lYQpzGJj1NppeAmOrEtPGeVRnqtUJ6dhydNiAYfnv0AJ7okl_DTqhPJLqC15T1dOyIqsxzW130-OGH4oQqR8RJ6mLz4vXMgEi85FEyRGKyqt0ZUdOhjzOHn8RdXdiXlyVNYS-WirrlNccBPRvogv84F3HFZb1CtrakL_rKHdKoNUJ2FTznKRtjTceREgSN7vwMXMc58pd2mETOt_q1u67cGHn1GhBJA"/>
+</div>
+</div>
+</header>
+<main class="pb-32">
+<!-- Hero Section -->
+<section class="px-4 md:px-8 mb-8">
+<div class="relative w-full h-[353px] md:h-[442px] rounded-xl overflow-hidden group">
+<img alt="Event Header" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" data-alt="Community gathering in a sunlit open space with warm amber lighting, people interacting joyfully in a sophisticated modern setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCVnk4UHN2ZgweY0FnQFQGu0FoPwaxaou3qdMfsxxQk8aqYqqIH3Zo32TPhteXyL4zKbpN0vkWSSAu53PDVwqo1heRPlRKujtcrlu-bDZJM_7lLipaJkcxrdZWqWCv5vB_G8bTgcFc05H9Iax5b6wpcRE9w33Deg3iHNgGDouVpkdjjNPuXWG_uM3gdloFFgmUaLavbInnx0Pci6YVbkHxfi-HkRZDQp-uuwwFLkS9p349flryH1c1UpDATPlYCcN9EQs8XumZLrK8"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+<div class="absolute bottom-8 left-8 right-8">
+<span class="inline-block px-4 py-1 rounded-full bg-primary-container text-white text-xs font-bold uppercase tracking-widest mb-4">Featured Event</span>
+<h2 class="text-white text-4xl md:text-6xl font-extrabold font-headline leading-tight tracking-tight">Community Harvest Dinner</h2>
+</div>
+</div>
+</section>
+<!-- Details Bento Grid -->
+<section class="px-4 md:px-8 max-w-6xl mx-auto">
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<!-- Main Content Area -->
+<div class="md:col-span-2 space-y-8">
+<!-- Event Meta Info -->
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+<div class="flex items-center gap-4 p-5 rounded-lg bg-surface-container-low">
+<div class="w-12 h-12 flex items-center justify-center rounded-full bg-primary-container/10 text-primary">
+<span class="material-symbols-outlined">calendar_today</span>
+</div>
+<div>
+<p class="text-xs font-bold text-on-surface-variant uppercase tracking-wider font-label">Date</p>
+<p class="text-lg font-bold text-on-surface">Oct 24, 2024</p>
+</div>
+</div>
+<div class="flex items-center gap-4 p-5 rounded-lg bg-surface-container-low">
+<div class="w-12 h-12 flex items-center justify-center rounded-full bg-primary-container/10 text-primary">
+<span class="material-symbols-outlined">schedule</span>
+</div>
+<div>
+<p class="text-xs font-bold text-on-surface-variant uppercase tracking-wider font-label">Time</p>
+<p class="text-lg font-bold text-on-surface">6:00 PM</p>
+</div>
+</div>
+<div class="flex items-center gap-4 p-5 rounded-lg bg-surface-container-low">
+<div class="w-12 h-12 flex items-center justify-center rounded-full bg-primary-container/10 text-primary">
+<span class="material-symbols-outlined">location_on</span>
+</div>
+<div>
+<p class="text-xs font-bold text-on-surface-variant uppercase tracking-wider font-label">Location</p>
+<p class="text-lg font-bold text-on-surface">The Great Hall</p>
+</div>
+</div>
+</div>
+<!-- Description Text -->
+<div class="space-y-6">
+<h3 class="text-2xl font-bold font-headline text-on-surface">About the Event</h3>
+<p class="text-lg leading-relaxed text-secondary font-body">
+                            Join us for our annual Community Harvest Dinner, a night dedicated to gratitude and togetherness. We're bringing together local artisans, families, and neighbors for a curated seasonal menu prepared by our volunteer chefs. 
+                        </p>
+<p class="text-lg leading-relaxed text-secondary font-body">
+                            This year, we're focusing on the "Illuminated Sanctuary" theme—creating a space that feels like a warm exhale. Expect live acoustic music, communal tables adorned with local flora, and stories shared across generations. Whether you're a long-time member or a first-time visitor, there's a seat at the table for you.
+                        </p>
+<!-- Map Preview -->
+<div class="w-full h-64 rounded-lg overflow-hidden bg-surface-container-high relative">
+<img alt="Map location" class="w-full h-full object-cover opacity-50 grayscale hover:grayscale-0 transition-all duration-500" data-alt="Stylized map showing a specific neighborhood with soft amber markers and minimalist design aesthetic" data-location="Austin, Texas" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAqFfR-kC9us40Pljg5dUzLcoH6qcUU816I9DrNO6ToUT1vG1mYzY6296VaOdSHZi4nMesqe8eNm3VMPh5MmcWcyuY4dRK_xVDR-a2NAJ6sY3TTeaAJt9Va5YiH9djq9loeG78zqY4LU1h3g68i-OHlYdpGNznAy6q1myODYd5zdcgSurDPf6Np7TumOlrwjrFygy9vJBBgKOGPeGPHJwwNdiQfCLRL3VCgEF4wig-nxwYyG8hCY-PqdG_4jK-YmzRVfil5kpLXArk"/>
+<div class="absolute inset-0 flex items-center justify-center">
+<div class="bg-white px-6 py-3 rounded-full shadow-lg flex items-center gap-2 border border-primary-container/20">
+<span class="material-symbols-outlined text-primary">directions</span>
+<span class="font-bold text-on-surface">Open in Maps</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Sidebar RSVP Card -->
+<div class="md:col-span-1">
+<div class="sticky top-24 p-8 rounded-lg bg-white shadow-[0_32px_32px_-4px_rgba(245,158,11,0.08)] space-y-8">
+<div class="text-center">
+<h4 class="text-xl font-bold font-headline text-on-surface mb-2">Are you joining us?</h4>
+<p class="text-sm text-secondary">34 members are already going!</p>
+</div>
+<!-- Attendee Avatars -->
+<div class="flex justify-center -space-x-3">
+<img class="w-10 h-10 rounded-full border-2 border-white object-cover" data-alt="Portrait of a smiling woman in warm lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBVBkSJ9gRH0hQb3g-Vg2QjCoIbfgCwRwd56m8XUEU-vQ5zdxwMrZUU9uprVEMxxS9kcqPZ3JKKBJRk5U_R2O949zOF0AdRV78TT2uMlnrk0-v1X5IwuyPEtToNowcdZaGhkmvZKdj23oqjIms6AGlO5ms5Me2Cm70wtIw0FcLPIZfqfDV3Q8Cx1HUhrOr-XCwMhdfZK6NShukl2bwqv5myiBsPEUEsGNZkoFyMKNgBd-fGURnSbOV80hrLUs1RM0OV-WWFu71B2yQ"/>
+<img class="w-10 h-10 rounded-full border-2 border-white object-cover" data-alt="Portrait of a young man with a friendly expression" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAKtOm0CrOy6BtlHpeA3mABjkuaw0yCsaUZd7i7asfd8qPPoxytUfmJGV0b2cXy_c4wq0z_OjQbW2MN-zIxcroy_oloxUjzod8N9Php4Fr8PwbufdKXK4gS2K3Dtn-21DJDiXUPujDU8LKUiw1vU3omR6Zl2QdoElYlmbvqmj4BpPv_tjSIAs7fCU5gCufDoMx25iw1Yi3sn2L8ZPVsVkfQIs69VnrpEow9lCSC8KkoxKZN6JTgZ9kSS-JNWjCgh1TL-7OIrJrdnEA"/>
+<img class="w-10 h-10 rounded-full border-2 border-white object-cover" data-alt="Portrait of a thoughtful woman with soft natural light" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAcMWYSiT8ITg_ksY68a2YRy1H9p3jyLiHyoR91T0lYm021aSFqvIRGldKEgGNd6_ievTVaERA1jbfRJYiku9OyRAXWVREjmyZPN4RS8KnhtGX6CpMpHyJJ886TQA3TBzGEdJu1vtCQ58d2USjGjtYlrc5wlMnJSnj65opaoqJnQKwJIwp_SrxykN_3EYBGMEFE_Kg-Bx7ZowJ_IiGb6obW2-zKqaD44AFgmcowOnZubQYBEoiR-DfEn4MBMB0ysZ5Mw9J7CAQRO30"/>
+<div class="w-10 h-10 rounded-full border-2 border-white bg-primary-container flex items-center justify-center text-[10px] font-bold text-white tracking-tighter">+31</div>
+</div>
+<!-- RSVP Buttons -->
+<div class="space-y-3">
+<button class="w-full py-4 amber-aura-gradient rounded-full text-white font-bold tracking-wide hover:scale-[0.98] transition-all duration-300 shadow-[0_12px_24px_-8px_rgba(245,158,11,0.4)]">
+                                Going
+                            </button>
+<button class="w-full py-4 rounded-full border-2 border-outline-variant/40 text-on-surface font-bold tracking-wide hover:bg-[#FFF7E6] hover:border-primary-container/40 transition-all duration-300">
+                                Maybe
+                            </button>
+<button class="w-full py-4 rounded-full text-secondary font-medium tracking-wide hover:text-error transition-colors duration-300">
+                                Can't go
+                            </button>
+</div>
+<div class="pt-6 border-t border-surface-container-low">
+<button class="w-full flex items-center justify-center gap-2 text-primary font-bold text-sm">
+<span class="material-symbols-outlined text-sm">share</span>
+                                Share with friends
+                            </button>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-3 left-3 right-3 z-50 glass-nav rounded-full mx-4 mb-4 flex justify-around items-center py-3 shadow-[0_32px_32px_-4px_rgba(245,158,11,0.08)]">
+<a class="flex flex-col items-center justify-center text-[#4B5563] px-4 py-2 hover:scale-105 transition-transform duration-300" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="font-['Rubik'] text-[0.65rem] uppercase tracking-wider mt-1">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#4B5563] px-4 py-2 hover:scale-105 transition-transform duration-300" href="#">
+<span class="material-symbols-outlined">newspaper</span>
+<span class="font-['Rubik'] text-[0.65rem] uppercase tracking-wider mt-1">News</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-[#FFF7E6] text-[#F59E0B] rounded-full px-4 py-2 hover:scale-105 transition-transform duration-300" href="#">
+<span class="material-symbols-outlined">calendar_month</span>
+<span class="font-['Rubik'] text-[0.65rem] uppercase tracking-wider mt-1">Events</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#4B5563] px-4 py-2 hover:scale-105 transition-transform duration-300" href="#">
+<span class="material-symbols-outlined">article</span>
+<span class="font-['Rubik'] text-[0.65rem] uppercase tracking-wider mt-1">Bulletin</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#4B5563] px-4 py-2 hover:scale-105 transition-transform duration-300" href="#">
+<span class="material-symbols-outlined">volunteer_activism</span>
+<span class="font-['Rubik'] text-[0.65rem] uppercase tracking-wider mt-1">Serve</span>
+</a>
+</nav>
+</body></html>

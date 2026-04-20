@@ -1,7 +1,7 @@
-import type { Database } from "@gather/lib";
 import { useMemo, useState } from "react";
-// ...existing code...
+import { List } from "lucide-react";
 import StepList from "../runOfShow/StepList";
+import type { RunOfShowStep } from "../runOfShow/StepRow";
 import StepEditorToolbar from "../runOfShow/StepEditorToolbar";
 
 export type PresetItemDraft = {
@@ -12,15 +12,11 @@ export type PresetItemDraft = {
   notes: string;
 };
 
-type RoleRow = Database["public"]["Tables"]["volunteer_roles"]["Row"];
-
 export default function PresetStepsEditor({
   items,
-  roles,
   onItemsChange
 }: {
   items: PresetItemDraft[];
-  roles: RoleRow[];
   onItemsChange: (items: PresetItemDraft[]) => void;
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -38,18 +34,24 @@ export default function PresetStepsEditor({
         id: item.id,
         title: item.title,
         duration_minutes: item.duration_minutes,
-        owner_role_id: item.owner_role_id,
+        assigned_user_id: null,
+        backup_user_id: null,
         notes: item.notes,
         status: undefined
       })),
     [items]
   );
 
-  const handleUpdate = (id: string, patch: Partial<PresetItemDraft>) => {
-    onItemsChange(items.map((item) => (item.id === id ? { ...item, ...patch } : item)));
+  const handleUpdate = (id: string, patch: Partial<RunOfShowStep>) => {
+    const safe: Partial<PresetItemDraft> = {
+      ...(patch.title !== undefined ? { title: patch.title } : {}),
+      ...(patch.duration_minutes !== undefined ? { duration_minutes: patch.duration_minutes } : {}),
+      ...(patch.notes !== undefined ? { notes: patch.notes } : {})
+    };
+    onItemsChange(items.map((item) => (item.id === id ? { ...item, ...safe } : item)));
   };
 
-  const handleReorder = (nextSteps: typeof steps) => {
+  const handleReorder = (nextSteps: RunOfShowStep[]) => {
     const order = new Map(nextSteps.map((step, index) => [step.id, index]));
     const updated = [...items].sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
     onItemsChange(updated);
@@ -93,8 +95,8 @@ export default function PresetStepsEditor({
     <div className="card shadow-sm p-4 rounded-2xl">
       <div className="space-y-4">
         <div>
-          <p className="text-sm font-semibold text-[var(--gather-ink)]">Run-of-show steps</p>
-          <p className="text-xs text-[var(--gather-muted)]">Shape the service flow with consistent steps.</p>
+          <p className="text-sm font-semibold text-[var(--text-primary)]">Run-of-show steps</p>
+          <p className="text-xs text-[var(--text-muted)]">Shape the service flow with consistent steps.</p>
         </div>
         <StepEditorToolbar
           saving={false}
@@ -102,14 +104,18 @@ export default function PresetStepsEditor({
           onAddQuickStep={handleQuickAdd}
         />
         {steps.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-[var(--border)] p-5 text-center">
-            <p className="text-sm text-[var(--gather-muted)]">No steps yet.</p>
-            <p className="text-xs text-[var(--gather-muted)] mt-1">Add the first step to start the flow.</p>
+          <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-[var(--border)] bg-[var(--surface)] px-6 py-8 text-center mt-4">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--surface-2)]">
+              <List className="h-5 w-5" style={{ color: "var(--text-muted)" }} />
+            </div>
+            <div>
+              <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>No steps yet</p>
+              <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>Add the first step to start the flow.</p>
+            </div>
           </div>
         ) : (
           <StepList
             items={steps}
-            roles={roles}
             selectedId={selectedId}
             onSelect={(id) => setSelectedId(id)}
             onUpdate={(id, patch) => handleUpdate(id, patch)}

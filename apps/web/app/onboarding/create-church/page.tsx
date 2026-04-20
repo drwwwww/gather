@@ -76,6 +76,8 @@ export default function CreateChurchOnboardingPage() {
 
       if (profile?.church_id) {
         router.push("/admin");
+      } else if (profile && !profile.church_id) {
+        router.push("/onboarding/rejoin-church");
       }
     };
 
@@ -239,7 +241,7 @@ export default function CreateChurchOnboardingPage() {
                   key={option.value}
                   type="button"
                   size="sm"
-                  variant={serviceDayChoice === option.value ? "primary" : "outline"}
+                  variant={serviceDayChoice === option.value ? "primary" : "secondary"}
                   onClick={() => setServiceDayChoice(option.value as ServiceDayChoice)}
                 >
                   {option.label}

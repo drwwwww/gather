@@ -1,22 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Database } from "@gather/lib";
-// ...existing code...
-// ...existing code...
-// ...existing code...
-// ...existing code...
 import { formatDurationMinutes } from "../../lib/format";
 import PresetStepsEditor, { type PresetItemDraft } from "./PresetStepsEditor";
-import { Badge } from "../ui/badge";
+import Badge from "../ui/Badge";
 
 type ServicePreset = Database["public"]["Tables"]["service_presets"]["Row"];
 type PresetItemRow = Database["public"]["Tables"]["service_preset_items"]["Row"];
-type RoleRow = Database["public"]["Tables"]["volunteer_roles"]["Row"];
-
 type PresetWithItems = ServicePreset & { items: PresetItemRow[] };
 
 type PresetCardProps = {
   preset: PresetWithItems;
-  roles: RoleRow[];
   isExpanded: boolean;
   saving?: boolean;
   onToggle: () => void;
@@ -28,7 +21,6 @@ type PresetCardProps = {
 
 export default function PresetCard({
   preset,
-  roles,
   isExpanded,
   saving,
   onToggle,
@@ -68,72 +60,74 @@ export default function PresetCard({
   }, [preset.items]);
 
   return (
-    <Rail active={isExpanded} soft className="rounded-xl">
-      <AccordionItem>
-      <AccordionTrigger onClick={onToggle}>
+    <div
+      className={`card shadow-sm overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] ${isExpanded ? "ring-2 ring-[var(--primary-soft)]" : ""}`}
+    >
+      <button
+        type="button"
+        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-[var(--surface-2)]"
+        onClick={onToggle}
+      >
         <div className="flex flex-wrap items-center gap-3">
-          <p className="text-sm font-semibold text-[var(--gather-ink)]">{preset.name}</p>
+          <p className="text-sm font-semibold text-[var(--text-primary)]">{preset.name}</p>
           {preset.is_default ? <Badge>DEFAULT</Badge> : null}
         </div>
-        <span className="text-xs text-[var(--gather-muted)]">{isExpanded ? "Hide" : "Edit"}</span>
-      </AccordionTrigger>
-      <div className="px-4 pb-4">
+        <span className="text-xs text-[var(--text-muted)] shrink-0">{isExpanded ? "Hide" : "Edit"}</span>
+      </button>
+      <div className="border-t border-[var(--border)] px-4 pb-4 pt-2">
         <div className="space-y-2 text-sm">
-          <p className="text-[var(--gather-muted)]">
+          <p className="text-[var(--text-muted)]">
             {stepCount} {stepCount === 1 ? "step" : "steps"}
             {durationLabel ? ` • ${durationLabel}` : ""}
           </p>
-          <p className="text-xs text-[var(--gather-muted)]">{preview}</p>
+          <p className="text-xs text-[var(--text-muted)]">{preview}</p>
         </div>
         <div className="mt-4 flex flex-wrap items-center gap-2">
           {preset.is_default ? (
-            <button className="btn btn-outline btn-sm" disabled>
+            <button type="button" className="btn btn-outline btn-sm" disabled>
               Default
             </button>
           ) : (
-            <button className="btn btn-outline btn-sm" onClick={() => onSetDefault(preset.id)}>
+            <button type="button" className="btn btn-outline btn-sm" onClick={() => onSetDefault(preset.id)}>
               Set default
             </button>
           )}
-          <button className="btn btn-outline btn-sm" onClick={() => onDuplicate(preset)}>
+          <button type="button" className="btn btn-outline btn-sm" onClick={() => onDuplicate(preset)}>
             Duplicate
           </button>
-          <button className="btn btn-outline btn-sm" onClick={() => setDeleteOpen(true)}>
+          <button type="button" className="btn btn-outline btn-sm" onClick={() => setDeleteOpen(true)}>
             Delete
           </button>
         </div>
       </div>
 
-      <AccordionContent isOpen={isExpanded}>
-        <div className="space-y-4">
+      {isExpanded ? (
+        <div className="space-y-4 border-t border-[var(--border)] px-4 py-4">
           <div className="grid gap-2">
-            <label className="text-xs uppercase tracking-[0.2em] text-[var(--gather-muted)]">Preset name</label>
+            <label className="text-xs uppercase tracking-[0.2em] text-[var(--text-muted)]">Preset name</label>
             <input value={draftName} onChange={(event) => setDraftName(event.target.value)} className="input input-bordered w-full" placeholder="Preset name" disabled={saving} />
           </div>
-          <PresetStepsEditor
-            items={draftItems}
-            roles={roles}
-            onItemsChange={setDraftItems}
-          />
+          <PresetStepsEditor items={draftItems} onItemsChange={setDraftItems} />
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-xs text-[var(--gather-muted)]">Changes save to the preset and update the preview.</p>
-            <button className="btn btn-primary btn-sm" onClick={() => onSave(preset.id, draftName, draftItems)} disabled={saving}>
+            <p className="text-xs text-[var(--text-muted)]">Changes save to the preset and update the preview.</p>
+            <button type="button" className="btn btn-primary btn-sm" onClick={() => onSave(preset.id, draftName, draftItems)} disabled={saving}>
               {saving ? "Saving..." : "Save changes"}
             </button>
           </div>
         </div>
-      </AccordionContent>
+      ) : null}
 
-      {deleteOpen && (
+      {deleteOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
           <div className="modal-box w-full max-w-md">
             <h3 className="font-bold text-lg mb-2">Delete preset?</h3>
             <p className="mb-4">This removes the preset and its steps. You can not undo this action.</p>
             <div className="modal-action flex gap-2 justify-end">
-              <button className="btn btn-outline" onClick={() => setDeleteOpen(false)}>
+              <button type="button" className="btn btn-outline" onClick={() => setDeleteOpen(false)}>
                 Cancel
               </button>
               <button
+                type="button"
                 className="btn btn-error"
                 onClick={() => {
                   setDeleteOpen(false);
@@ -145,8 +139,7 @@ export default function PresetCard({
             </div>
           </div>
         </div>
-      )}
-      </AccordionItem>
-    </Rail>
+      ) : null}
+    </div>
   );
 }

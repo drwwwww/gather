@@ -9,52 +9,21 @@ export interface BadgeProps {
   className?: string;
 }
 
-const variantStyles: Record<
-  BadgeVariant,
-  { className: string; style?: React.CSSProperties }
-> = {
-  default: {
-    className: "bg-[var(--surface-2)] text-[var(--text-muted)]",
-  },
-  neutral: {
-    className: "bg-[var(--surface-2)] text-[var(--text-secondary)]",
-  },
-  success: {
-    className: "text-[var(--success)]",
-    style: {
-      backgroundColor: "color-mix(in srgb, var(--success) 16%, transparent)",
-    },
-  },
-  warning: {
-    className: "text-[var(--warning)]",
-    style: {
-      backgroundColor: "color-mix(in srgb, var(--warning) 16%, transparent)",
-    },
-  },
-  danger: {
-    className: "text-[var(--danger)]",
-    style: {
-      backgroundColor: "color-mix(in srgb, var(--danger) 16%, transparent)",
-    },
-  },
-  info: {
-    className: "text-[var(--info)]",
-    style: {
-      backgroundColor: "color-mix(in srgb, var(--info) 16%, transparent)",
-    },
-  },
+const BASE =
+  "inline-flex items-center justify-center h-6 px-[10px] text-[11px] font-semibold tracking-wide rounded-full whitespace-nowrap";
+
+const VARIANTS: Record<BadgeVariant, React.CSSProperties> = {
+  default:  { color: "#374151", background: "#F3F4F6", border: "1px solid #E5E7EB" },
+  neutral:  { color: "#374151", background: "#F3F4F6", border: "1px solid #E5E7EB" },
+  success:  { color: "#15803d", background: "#dcfce7", border: "1px solid #bbf7d0" },
+  warning:  { color: "#c2410c", background: "#fff7ed", border: "1px solid #fed7aa" },
+  danger:   { color: "#b91c1c", background: "#fef2f2", border: "1px solid #fecaca" },
+  info:     { color: "#1d4ed8", background: "#eff6ff", border: "1px solid #bfdbfe" },
 };
 
 export default function Badge({ children, variant = "default", className }: BadgeProps) {
-  const resolved = variantStyles[variant];
-  const base =
-    "inline-flex items-center justify-center h-6 px-3 text-xs font-semibold rounded-full whitespace-nowrap";
-
   return (
-    <span
-      className={clsx(base, resolved.className, className)}
-      style={resolved.style}
-    >
+    <span className={clsx(BASE, className)} style={VARIANTS[variant]}>
       {children}
     </span>
   );

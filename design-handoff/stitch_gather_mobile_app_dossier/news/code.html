@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;700;800&amp;family=Plus+Jakarta+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "tertiary-container": "#ff9837",
+                    "surface-container-lowest": "#ffffff",
+                    "secondary-fixed": "#e3e2df",
+                    "background": "#fdfcf8",
+                    "inverse-primary": "#ffb95f",
+                    "secondary": "#5e5f5c",
+                    "inverse-surface": "#2f312e",
+                    "surface-container-low": "#f4f4f0",
+                    "surface-tint": "#855300",
+                    "tertiary-fixed-dim": "#ffb77d",
+                    "inverse-on-surface": "#f2f1ed",
+                    "primary-fixed-dim": "#ffb95f",
+                    "surface-container-high": "#e9e8e4",
+                    "primary-fixed": "#ffddb8",
+                    "outline": "#867461",
+                    "on-secondary-fixed": "#1b1c1a",
+                    "error-container": "#ffdad6",
+                    "on-secondary-container": "#626361",
+                    "surface-variant": "#e3e2df",
+                    "on-background": "#1b1c1a",
+                    "tertiary": "#904d00",
+                    "on-secondary": "#ffffff",
+                    "primary": "#855300",
+                    "on-primary-container": "#613b00",
+                    "outline-variant": "#d8c3ad",
+                    "surface-container": "#efeeea",
+                    "tertiary-fixed": "#ffdcc3",
+                    "on-primary-fixed": "#2a1700",
+                    "surface-dim": "#dbdad6",
+                    "on-surface-variant": "#534434",
+                    "on-secondary-fixed-variant": "#464745",
+                    "on-tertiary-fixed": "#2f1500",
+                    "on-error": "#ffffff",
+                    "on-error-container": "#93000a",
+                    "on-primary": "#ffffff",
+                    "primary-container": "#f59e0b",
+                    "on-tertiary-container": "#6a3700",
+                    "secondary-fixed-dim": "#c7c6c4",
+                    "on-surface": "#1b1c1a",
+                    "error": "#ba1a1a",
+                    "on-tertiary-fixed-variant": "#6e3900",
+                    "surface-container-highest": "#e3e2df",
+                    "on-tertiary": "#ffffff",
+                    "secondary-container": "#e0e0dd",
+                    "surface": "#faf9f5",
+                    "surface-bright": "#faf9f5",
+                    "on-primary-fixed-variant": "#653e00"
+            },
+            "borderRadius": {
+                    "DEFAULT": "1rem",
+                    "lg": "2rem",
+                    "xl": "3rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Rubik", "Plus Jakarta Sans"],
+                    "body": ["Rubik", "Plus Jakarta Sans"],
+                    "label": ["Rubik", "Plus Jakarta Sans"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .amber-aura {
+            background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+        }
+        .glass-nav {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(24px);
+        }
+        body {
+            background-color: #FDFCF8;
+            font-family: 'Rubik', sans-serif;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="text-on-surface">
+<!-- TopAppBar from JSON -->
+<header class="fixed top-0 w-full z-50 bg-[#FDFCF8] flex justify-between items-center px-6 py-4 mt-2">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[#F59E0B] text-2xl">church</span>
+<h1 class="text-[1.75rem] font-bold text-[#111827] tracking-tight">Gather</h1>
+</div>
+<div class="w-10 h-10 rounded-full overflow-hidden bg-surface-container">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="Close up portrait of a smiling man with friendly eyes in soft natural morning light, minimalist background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD9mWpf2ViCo5XSgYwuSCna9zLqmssLNof_QGFE6_XRgDmLCk8VOJioKFeaouZDzZrY-ERBgQiGmdRnnp5Ux8GSGGSGS6WcchEn4mWzilu_sqUQo03WrDgqEvL-3aYAxYuLdetpoiJ0Ncx0oYEtRJ3yFEuViYaRhmQMqSaLXi4eTGMeLGq808LulHS3DHEkgO6W5mPLPMzcV2M-fvJjHonw8M2j-W-aFKm6UeQfVJBqpwEqzjz8GmOyoCkO3HH4ZHrmHbZZeFF2ApA"/>
+</div>
+</header>
+<main class="pt-24 pb-32 px-6 max-w-2xl mx-auto min-h-screen">
+<!-- Refresh Indicator Hint (Asymmetric Design) -->
+<div class="flex justify-center mb-8 opacity-40">
+<span class="material-symbols-outlined animate-bounce">expand_more</span>
+</div>
+<!-- Editorial Header -->
+<section class="mb-12">
+<h2 class="text-[3.5rem] leading-none font-extrabold tracking-tight text-on-surface mb-4">News</h2>
+<p class="text-on-surface-variant body-lg leading-relaxed max-w-md">
+                Stay connected with the heart of our sanctuary. Updates, stories, and seasonal announcements.
+            </p>
+</section>
+<!-- Announcements Feed -->
+<div class="space-y-12">
+<!-- Featured Announcement (Bento Style) -->
+<article class="group relative bg-surface-container-low rounded-lg p-8 hover:bg-surface-container transition-all duration-300">
+<div class="flex justify-between items-start mb-6">
+<span class="label-md uppercase tracking-wider text-primary font-bold">Featured</span>
+<span class="text-on-surface-variant text-sm font-medium">Today</span>
+</div>
+<h3 class="text-2xl font-bold mb-3 group-hover:text-primary transition-colors">Spring Community Garden Launch</h3>
+<p class="text-on-surface-variant body-lg leading-relaxed mb-6">
+                    Join us this Saturday as we break ground on our new organic community garden. We're looking for volunteers of all skill levels to help plant seeds and prepare the soil for a season of growth.
+                </p>
+<div class="w-full h-48 rounded-md overflow-hidden mb-6">
+<img alt="Community Garden" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" data-alt="Sun-drenched community garden with wooden raised beds, lush green seedlings, and warm atmospheric golden hour lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBK_aQJwflINtVWyC3C3ASy9CLAkCtB9Nhdt-iJwOPTCAymMoMMPpd2lJVbfopt-KlXyuHxf-z9gI8J1WGG46aW62a7dgVti7VUPOT5K6dpmcVvzspC5_NqW43bfngLcpX3BAD6uRj-RQoU8OypRKvw4WUep_qfv5s3HNadamJEgiqWpoKpKVtmTNg1WNgqJf3VUPVm310uyxeNSS39l4lREVZyHvkE9E9v0NfhyIOpJ2zvbXkONXgSbbukSRx58VLwu_svfwnKyGE"/>
+</div>
+<button class="amber-aura text-white px-8 py-3 rounded-full font-medium scale-100 active:scale-95 transition-all">
+                    Register to Help
+                </button>
+</article>
+<!-- Standard List Items (No Borders, Spacing used as separator) -->
+<article class="px-2">
+<div class="flex items-center gap-2 mb-2">
+<span class="material-symbols-outlined text-primary text-sm" style="font-variation-settings: 'FILL' 1;">circle</span>
+<span class="text-on-surface-variant text-sm font-medium">2 days ago</span>
+</div>
+<h3 class="text-xl font-bold mb-2">Renovations in the North Wing</h3>
+<p class="text-on-surface-variant body-lg leading-relaxed">
+                    Starting Monday, the North Wing will be closed for floor polishing and repainting. Mid-week studies will move to the Main Hall temporarily.
+                </p>
+</article>
+<article class="px-2">
+<span class="text-on-surface-variant text-sm font-medium block mb-2">4 days ago</span>
+<h3 class="text-xl font-bold mb-2">Summer Youth Retreat: Early Bird</h3>
+<p class="text-on-surface-variant body-lg leading-relaxed">
+                    Registration is now open for the Wilderness Seekers retreat. Secure your spot before May 1st to receive the commemorative t-shirt and discounted rate.
+                </p>
+</article>
+<article class="bg-[#FFF7E6] rounded-md p-8">
+<div class="flex items-center gap-4 mb-4">
+<div class="w-12 h-12 rounded-full bg-white flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">volunteer_activism</span>
+</div>
+<div>
+<h3 class="text-xl font-bold">Food Bank Collection</h3>
+<span class="text-on-surface-variant text-sm">Last week</span>
+</div>
+</div>
+<p class="text-on-surface-variant body-lg leading-relaxed mb-4">
+                    Our monthly drive was a huge success. Thanks to your generosity, we collected over 500lbs of dry goods for the local pantry.
+                </p>
+<div class="flex gap-2">
+<span class="px-3 py-1 bg-white rounded-full text-xs font-bold text-primary-container uppercase tracking-tight">Gratitude</span>
+<span class="px-3 py-1 bg-white rounded-full text-xs font-bold text-primary-container uppercase tracking-tight">Mission</span>
+</div>
+</article>
+<article class="px-2">
+<span class="text-on-surface-variant text-sm font-medium block mb-2">1 week ago</span>
+<h3 class="text-xl font-bold mb-2">Choir Practice Schedule Change</h3>
+<p class="text-on-surface-variant body-lg leading-relaxed">
+                    Please note that Thursday rehearsals will now begin at 6:30 PM instead of 7:00 PM to allow for more time on the Easter cantata pieces.
+                </p>
+</article>
+</div>
+</main>
+<!-- BottomNavBar from JSON -->
+<nav class="fixed bottom-3 left-3 right-3 z-50 flex justify-around items-center py-3 bg-white/85 backdrop-blur-xl rounded-full mx-4 mb-4 shadow-[0_32px_32px_-4px_rgba(245,158,11,0.08)]">
+<a class="flex flex-col items-center justify-center text-[#4B5563] px-4 py-2 hover:scale-105 transition-transform duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+<span class="font-['Rubik'] text-[0.75rem] uppercase tracking-wider mt-1">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-[#FFF7E6] text-[#F59E0B] rounded-full px-4 py-2 transition-all duration-300 ease-in-out" href="#">
+<span class="material-symbols-outlined" data-icon="newspaper" style="font-variation-settings: 'FILL' 1;">newspaper</span>
+<span class="font-['Rubik'] text-[0.75rem] uppercase tracking-wider mt-1">News</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#4B5563] px-4 py-2 hover:scale-105 transition-transform duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="calendar_month">calendar_month</span>
+<span class="font-['Rubik'] text-[0.75rem] uppercase tracking-wider mt-1">Events</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#4B5563] px-4 py-2 hover:scale-105 transition-transform duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="article">article</span>
+<span class="font-['Rubik'] text-[0.75rem] uppercase tracking-wider mt-1">Bulletin</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#4B5563] px-4 py-2 hover:scale-105 transition-transform duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="volunteer_activism">volunteer_activism</span>
+<span class="font-['Rubik'] text-[0.75rem] uppercase tracking-wider mt-1">Serve</span>
+</a>
+</nav>
+</body></html>

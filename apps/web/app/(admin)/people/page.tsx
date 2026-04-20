@@ -5,15 +5,13 @@ import { useRouter } from "next/navigation";
 import AdminHeader from "../../../components/admin/AdminHeader";
 import PageLoader from "../../../components/ui/PageLoader";
 // DaisyUI migration: use className markup for all UI
-import { buildJoinLink } from "../../../lib/format";
 import { supabase } from "../../../lib/supabaseClient";
+import { readPendingInvites } from "../../../lib/pendingInvitesStorage";
 import { getCurrentContext, listProfilesByChurch } from "../../../lib/supabaseData";
-import JoinInstructionsCard from "../../../components/people/JoinInstructionsCard";
-import JoinQrCodeCard from "../../../components/people/JoinQrCodeCard";
 import MemberFilters, { type MemberTab } from "../../../components/people/MemberFilters";
-import InviteMembersDialog from "../../../components/people/InviteMembersDialog";
 import MembersTable from "../../../components/people/MembersTable";
 import MemberDetailsDrawer from "../../../components/people/MemberDetailsDrawer";
+import { PageGrid, PageGridFull } from "../../../components/layout/PageGrid";
 import {
   buildMemberEntries,
   getUpcomingAssignments,
@@ -39,13 +37,10 @@ export default function PeoplePage() {
   const [assignments, setAssignments] = useState<AssignmentRow[]>([]);
   const [serviceTimes, setServiceTimes] = useState<ServiceTimeRow[]>([]);
   const [volunteerRoles, setVolunteerRoles] = useState<RoleRow[]>([]);
-  const [joinLink, setJoinLink] = useState("");
-  const [qrUrl, setQrUrl] = useState("");
   const [church, setChurch] = useState<ChurchRow | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [inviteOpen, setInviteOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<MemberTab>("ALL");
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState<RoleFilter>("ALL");
@@ -91,12 +86,7 @@ export default function PeoplePage() {
       setMembers((profiles ?? []) as ProfileRow[]);
       setAssignments((assignmentsResult.data ?? []) as AssignmentRow[]);
       setVolunteerRoles((rolesResult.data ?? []) as RoleRow[]);
-
-      if (typeof window !== "undefined") {
-        const link = buildJoinLink(window.location.origin, context.church.slug);
-        setJoinLink(link);
-        setQrUrl(`https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(link)}`);
-      }
+      setInvites(readPendingInvites(context.profile.church_id));
 
       setLoading(false);
     } catch (err) {
@@ -108,6 +98,14 @@ export default function PeoplePage() {
   useEffect(() => {
     refresh();
   }, []);
+
+  useEffect(() => {
+    if (!church?.id) return;
+    const syncInvites = () => setInvites(readPendingInvites(church.id));
+    const onFocus = () => syncInvites();
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [church?.id]);
 
   const memberEntries = useMemo<MemberEntryWithFlags[]>(
     () => buildMemberEntries(members, invites, currentUserId),
@@ -171,15 +169,6 @@ export default function PeoplePage() {
     }));
   }, [assignments, selectedMember, serviceTimes, volunteerRoles]);
 
-  const handleCopyLink = async () => {
-    if (!joinLink) return;
-    try {
-      await navigator.clipboard.writeText(joinLink);
-    } catch {
-      setError("Unable to copy link. Please copy manually.");
-    }
-  };
-
   const handleRoleChange = async (userId: string, role: Role) => {
     const member = memberEntries.find((entry) => entry.id === userId);
     if (!member || member.source === "invite") return;
@@ -226,25 +215,34 @@ export default function PeoplePage() {
     refresh();
   };
 
-  const handleInviteCreate = (emails: string[], role: Role, message: string) => {
-    const now = new Date().toISOString();
-    const existingEmails = new Set(invites.map((invite) => invite.email.toLowerCase()));
-    const newInvites: InviteEntry[] = emails
-      .filter((email) => !existingEmails.has(email.toLowerCase()))
-      .map((email) => ({
-        id: `invite-${email.toLowerCase()}`,
-        email,
-        role,
-        message,
-        createdAt: now
-      }));
-
-    if (!newInvites.length) {
-      setError("Invites already exist for those emails.");
+  const handleRemoveFromChurch = async (userId: string) => {
+    const member = memberEntries.find((entry) => entry.id === userId);
+    if (!member || member.source === "invite") return;
+    if (member.isCurrentUser) {
+      setError("You cannot remove yourself from the church.");
       return;
     }
+    if (member.role === "ADMIN" && activeAdminCount <= 1) {
+      setError("You cannot remove the last administrator from the church.");
+      return;
+    }
+    if (!supabase) return;
+    const { error: rpcError } = await supabase.rpc("admin_remove_member_from_church", {
+      p_user_id: userId
+    });
+    if (rpcError) {
+      setError(rpcError.message);
+      return;
+    }
+    setSelectedMemberId(null);
+    setError(null);
+    refresh();
+  };
 
-    setInvites((prev) => [...newInvites, ...prev]);
+  const handleRemoveInvite = (inviteId: string) => {
+    setInvites((prev) => prev.filter((invite) => invite.id !== inviteId));
+    setSelectedMemberId((current) => (current === inviteId ? null : current));
+    setError(null);
   };
 
   const handleCopyInvite = async (memberId: string) => {
@@ -258,34 +256,41 @@ export default function PeoplePage() {
   };
 
   if (loading) {
-    return <PageLoader message="Loading people..." />;
+    return (
+      <PageGrid className="animate-pulse-subtle">
+        <PageGridFull className="space-y-4">
+          <div className="h-8 w-48 rounded-md bg-[var(--surface-2)]" />
+          <div className="h-4 w-64 rounded-md bg-[var(--surface-2)]" />
+        </PageGridFull>
+        <PageGridFull>
+          <div className="card h-[600px] bg-[var(--surface)]" />
+        </PageGridFull>
+      </PageGrid>
+    );
   }
 
   return (
-    <>
-      <AdminHeader
-        title="People & Roles"
-        subtitle="Manage members, roles, invites, and onboarding across the church."
-        actions={
-          <button
-            className="btn btn-primary"
-            onClick={() => setInviteOpen(true)}
-          >
-            Invite members
-          </button>
-        }
-      />
+    <PageGrid>
+      <PageGridFull className="animate-fade-in-up">
+        <AdminHeader
+          title="People & Roles"
+          subtitle="Manage members, roles, invites, and onboarding across the church."
+          actions={
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => {
+                const slug = church?.slug ?? "";
+                if (slug) router.push(`/join?code=${encodeURIComponent(slug)}`);
+              }}
+            >
+              Invite members
+            </button>
+          }
+        />
+      </PageGridFull>
 
-      <InviteMembersDialog
-        open={inviteOpen}
-        churchName={church?.name ?? "Your church"}
-        joinLink={joinLink}
-        joinCode={church?.slug ?? ""}
-        onClose={() => setInviteOpen(false)}
-        onCreateInvites={handleInviteCreate}
-      />
-
-      <section className="grid gap-6 xl:grid-cols-[1.6fr_1fr]">
+      <PageGridFull className="animate-fade-in-up [animation-delay:100ms] opacity-0">
         <div className="space-y-6">
           <MemberFilters
             activeTab={activeTab}
@@ -308,32 +313,39 @@ export default function PeoplePage() {
             onToggleStatus={handleStatusToggle}
             onViewDetails={(memberId) => setSelectedMemberId(memberId)}
             onCopyInvite={handleCopyInvite}
-            onGenerateSchedule={() => router.push("/volunteers")}
-            onCopyLast={() => router.push("/volunteers")}
+            onRemoveFromChurch={handleRemoveFromChurch}
+            onRemoveInvite={handleRemoveInvite}
             error={error}
           />
         </div>
+      </PageGridFull>
 
-        <div className="space-y-6">
-          <JoinInstructionsCard
-            churchSlug={church?.slug ?? ""}
-            onOpenPrintable={() => window.open(`/join?code=${encodeURIComponent(church?.slug ?? "")}`, "_blank")}
-            error={error}
-          />
-          <JoinQrCodeCard joinLink={joinLink} qrUrl={qrUrl} onCopyLink={handleCopyLink} />
-        </div>
-      </section>
-
-      <MemberDetailsDrawer
-        open={!!selectedMember}
-        memberName={selectedMember?.name || "Member"}
-        memberEmail={selectedMember?.email || ""}
-        roleLabel={selectedMember?.role || ""}
-        statusLabel={selectedMember?.status || ""}
-        assignments={selectedAssignments}
-        onClose={() => setSelectedMemberId(null)}
-      />
-    </>
+      <PageGridFull>
+        <MemberDetailsDrawer
+          open={!!selectedMember}
+          memberName={selectedMember?.name || "Member"}
+          memberEmail={selectedMember?.email || ""}
+          roleLabel={selectedMember?.role || ""}
+          statusLabel={selectedMember?.status || ""}
+          source={selectedMember?.source ?? "member"}
+          assignments={selectedAssignments}
+          onClose={() => setSelectedMemberId(null)}
+          onRemoveFromChurch={
+            selectedMember?.source === "member" && !selectedMember.isCurrentUser
+              ? () => handleRemoveFromChurch(selectedMember.id)
+              : undefined
+          }
+          onRemoveInvite={
+            selectedMember?.source === "invite" ? () => handleRemoveInvite(selectedMember.id) : undefined
+          }
+          removeFromChurchDisabled={
+            selectedMember?.source === "member" &&
+            selectedMember.role === "ADMIN" &&
+            activeAdminCount <= 1
+          }
+        />
+      </PageGridFull>
+    </PageGrid>
   );
 }
 

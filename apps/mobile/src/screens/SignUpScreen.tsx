@@ -1,6 +1,19 @@
 import { useState } from "react";
-import { View, Text, TextInput, Pressable, Image } from "react-native";
-import { ui } from "../ui";
+import {
+  View,
+  Text,
+  TextInput,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  TouchableOpacity,
+} from "react-native";
+import { AppShell } from "../components/app/AppShell";
+import { GatherMark } from "../components/app/GatherMark";
+import { StitchStackBackRow, StitchHero } from "../components/app/StitchStackChrome";
+import { GradientButton } from "../components/ui/GradientButton";
+import { theme } from "../theme/theme";
+import { STITCH_PAD_H, stitchTextField } from "../theme/stitch";
 import { supabase } from "../supabase";
 
 export default function SignUpScreen({ navigation }: any) {
@@ -21,17 +34,15 @@ export default function SignUpScreen({ navigation }: any) {
     const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: fullName } }
+      options: { data: { full_name: fullName } },
     });
     if (signUpError) {
       setError(signUpError.message);
       setLoading(false);
       return;
     }
-    // After sign up, go to church selection
     const user = data.user;
     if (user) {
-      navigation.replace("ChurchSelect", { userId: user.id, fullName, email });
       setLoading(false);
       return;
     }
@@ -40,51 +51,140 @@ export default function SignUpScreen({ navigation }: any) {
   };
 
   return (
-    <View style={[ui.screen, { justifyContent: "center" }]}> 
-      <View style={{ alignItems: "center", marginBottom: 24 }}>
-        <Image source={require("../../assets/logo.png")} style={{ width: 48, height: 48, marginBottom: 8 }} />
-        <Text style={[ui.title, { marginBottom: 4 }]}>Create your account</Text>
-        <Text style={ui.subtitle}>Create your member account to join your church.</Text>
-      </View>
-      <TextInput
-        placeholder="Full name"
-        placeholderTextColor="#7B735D"
-        value={fullName}
-        onChangeText={setFullName}
-        style={ui.input}
-      />
-      <TextInput
-        placeholder="Email"
-        placeholderTextColor="#7B735D"
-        value={email}
-        onChangeText={setEmail}
-        style={ui.input}
-        autoCapitalize="none"
-        keyboardType="email-address"
-      />
-      <TextInput
-        placeholder="Password"
-        placeholderTextColor="#7B735D"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-        style={ui.input}
-      />
-      {error ? <Text style={{ color: "#C46B5D", marginBottom: 12, textAlign: 'center' }}>{
-        error.includes('Supabase') && error.includes('key')
-          ? 'Something went wrong. Please try again later.'
-          : error
-      }</Text> : null}
-      <Pressable onPress={handleSignUp} style={[ui.button, loading && { opacity: 0.7 }]}
-        disabled={loading}
-      >
-        <Text style={ui.buttonText}>{loading ? "Creating..." : "Sign up"}</Text>
-      </Pressable>
-      <Pressable onPress={() => navigation.replace("SignIn")}
-        style={[ui.buttonGhost, { marginTop: 16 }]}
-      >
-        <Text style={ui.buttonText}>Already have an account? Sign in</Text>
-      </Pressable>
-    </View>
+    <AppShell>
+      <StitchStackBackRow navigation={navigation} rightAccessory={null} />
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+        <ScrollView
+          contentContainerStyle={{
+            paddingHorizontal: STITCH_PAD_H,
+            paddingBottom: theme.spacing.xl * 2,
+            paddingTop: theme.spacing.sm,
+          }}
+          keyboardShouldPersistTaps="handled"
+        >
+          <GatherMark layout="stacked" />
+
+          <StitchHero
+            title="Create your account"
+            subtitle="Create your member account to join your church."
+            marginBottom={theme.spacing.lg}
+          />
+
+          <Text
+            style={{
+              fontFamily: theme.typography.fontFamily,
+              fontSize: theme.typography.fontSize.sm,
+              fontWeight: theme.typography.fontWeight.medium as any,
+              color: theme.colors.textSecondary,
+              marginBottom: 8,
+              paddingLeft: 4,
+            }}
+          >
+            Full name
+          </Text>
+          <TextInput
+            placeholder="Your name"
+            placeholderTextColor={theme.colors.textMuted}
+            value={fullName}
+            onChangeText={setFullName}
+            style={[stitchTextField, { marginBottom: theme.spacing.md }]}
+          />
+
+          <Text
+            style={{
+              fontFamily: theme.typography.fontFamily,
+              fontSize: theme.typography.fontSize.sm,
+              fontWeight: theme.typography.fontWeight.medium as any,
+              color: theme.colors.textSecondary,
+              marginBottom: 8,
+              paddingLeft: 4,
+            }}
+          >
+            Email Address
+          </Text>
+          <TextInput
+            placeholder="yourname@domain.com"
+            placeholderTextColor={theme.colors.textMuted}
+            value={email}
+            onChangeText={setEmail}
+            style={[stitchTextField, { marginBottom: theme.spacing.md }]}
+            autoCapitalize="none"
+            keyboardType="email-address"
+          />
+
+          <Text
+            style={{
+              fontFamily: theme.typography.fontFamily,
+              fontSize: theme.typography.fontSize.sm,
+              fontWeight: theme.typography.fontWeight.medium as any,
+              color: theme.colors.textSecondary,
+              marginBottom: 8,
+              paddingLeft: 4,
+            }}
+          >
+            Password
+          </Text>
+          <TextInput
+            placeholder="••••••••"
+            placeholderTextColor={theme.colors.textMuted}
+            secureTextEntry
+            value={password}
+            onChangeText={setPassword}
+            style={[stitchTextField, { marginBottom: theme.spacing.md }]}
+          />
+
+          {error ? (
+            <Text
+              style={{
+                color: theme.colors.error,
+                marginBottom: theme.spacing.md,
+                textAlign: "center",
+                fontFamily: theme.typography.fontFamily,
+              }}
+            >
+              {error.includes("Supabase") && error.includes("key")
+                ? "Something went wrong. Please try again later."
+                : error}
+            </Text>
+          ) : null}
+
+          <GradientButton onPress={handleSignUp} disabled={loading}>
+            {loading ? "Creating…" : "Sign up"}
+          </GradientButton>
+
+          <View
+            style={{
+              marginTop: theme.spacing.lg,
+              flexDirection: "row",
+              justifyContent: "center",
+              alignItems: "center",
+              flexWrap: "wrap",
+            }}
+          >
+            <Text
+              style={{
+                fontFamily: theme.typography.fontFamily,
+                fontSize: theme.typography.fontSize.md,
+                color: theme.colors.textSecondary,
+              }}
+            >
+              Already have an account?{" "}
+            </Text>
+            <TouchableOpacity onPress={() => navigation.replace("SignIn")}>
+              <Text
+                style={{
+                  fontFamily: theme.typography.fontFamily,
+                  fontSize: theme.typography.fontSize.md,
+                  color: theme.colors.primary,
+                  fontWeight: theme.typography.fontWeight.bold as any,
+                }}
+              >
+                Sign in
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </AppShell>
   );
 }

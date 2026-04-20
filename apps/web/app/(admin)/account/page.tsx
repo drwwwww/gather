@@ -10,8 +10,11 @@ import SecurityCard from "../../../components/account/SecurityCard";
 import ChurchSettingsCard from "../../../components/account/ChurchSettingsCard";
 import TeamOverviewCard from "../../../components/account/TeamOverviewCard";
 import PlanCard from "../../../components/account/PlanCard";
+import ServiceTimesCard from "../../../components/account/ServiceTimesCard";
+import type { ServiceTimeItem } from "../../../components/account/ServiceTimesCard";
 import { formatTimezoneLabel, getTimezoneOptions } from "../../../lib/format";
 import { useToast } from "../../../lib/toast";
+import { PageGrid, PageGridFull, PageGridRowTwoOne } from "../../../components/layout/PageGrid";
 import type { Database } from "@gather/lib";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
@@ -32,6 +35,8 @@ export default function AccountPage() {
   const [teamCounts, setTeamCounts] = useState<TeamCounts>({ members: 0, service: 0, admins: 0 });
   const [profile, setProfile] = useState<Profile | null>(null);
   const [church, setChurch] = useState<Church | null>(null);
+  const [serviceTimes, setServiceTimes] = useState<ServiceTimeItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const { toast, pushToast } = useToast();
   const router = useRouter();
   const timezoneOptions = useMemo(() => {
@@ -42,6 +47,8 @@ export default function AccountPage() {
   }, [timezone]);
 
   const refresh = async () => {
+    const showSkeleton = profile === null && church === null;
+    if (showSkeleton) setLoading(true);
     try {
       const context = await getCurrentContext();
       if (!context) {
@@ -64,8 +71,20 @@ export default function AccountPage() {
         service: members.filter((member) => member.role === "SERVICE" && !member.disabled).length,
         admins: members.filter((member) => member.role === "ADMIN" && !member.disabled).length
       });
+
+      if (supabase) {
+        const { data: stData } = await supabase
+          .from("service_times")
+          .select("id, name, day_of_week, start_time, timezone")
+          .eq("church_id", context.profile.church_id)
+          .order("day_of_week", { ascending: true })
+          .order("start_time", { ascending: true });
+        setServiceTimes((stData ?? []) as ServiceTimeItem[]);
+      }
     } catch (err) {
       pushToast("Unable to load account settings.", "error");
+    } finally {
+      if (showSkeleton) setLoading(false);
     }
   };
 
@@ -148,60 +167,129 @@ export default function AccountPage() {
     router.push("/login");
   };
 
+  const handleAddServiceTime = async (draft: { name: string; day_of_week: number; start_time: string }) => {
+    if (!supabase || !profile) return;
+    const { error } = await supabase.from("service_times").insert({
+      church_id: profile.church_id,
+      name: draft.name.trim(),
+      day_of_week: draft.day_of_week,
+      start_time: draft.start_time,
+      timezone: timezone || initialTimezone,
+    });
+    if (error) { pushToast("Couldn't add service time.", "error"); return; }
+    pushToast("Service time added.", "success");
+    refresh();
+  };
+
+  const handleUpdateServiceTime = async (id: string, patch: { name?: string; day_of_week?: number; start_time?: string }) => {
+    if (!supabase) return;
+    const { error } = await supabase.from("service_times").update(patch).eq("id", id);
+    if (error) { pushToast("Couldn't update service time.", "error"); return; }
+    pushToast("Service time updated.", "success");
+    refresh();
+  };
+
+  const handleDeleteServiceTime = async (id: string) => {
+    if (!supabase) return;
+    const { error } = await supabase.from("service_times").delete().eq("id", id);
+    if (error) { pushToast("Couldn't delete service time.", "error"); return; }
+    pushToast("Service time deleted.", "success");
+    refresh();
+  };
+
   return (
-    <div className="space-y-8">
-      <div>
+    <PageGrid>
+      <PageGridFull className="animate-fade-in-up">
         <AdminHeader title="Account" subtitle="Church settings and account management." />
-      </div>
-      <div>
-        <section className="grid gap-6 xl:grid-cols-[1.1fr_1fr]">
-          <ProfileCard
-            name={profileName}
-            email={profile?.email ?? ""}
-            roleLabel={roleLabel}
-            onNameChange={setProfileName}
-            onSave={handleSaveProfile}
-            saveDisabled={profileSaveDisabled}
-          />
-          <div className="space-y-6">
+      </PageGridFull>
+
+      <PageGridRowTwoOne
+        className="animate-fade-in-up [animation-delay:50ms] opacity-0"
+        main={
+          loading ? (
+            <div className="card h-[300px] bg-[var(--surface)] animate-pulse-subtle" />
+          ) : (
+            <ProfileCard
+              name={profileName}
+              email={profile?.email ?? ""}
+              roleLabel={roleLabel}
+              onNameChange={setProfileName}
+              onSave={handleSaveProfile}
+              saveDisabled={profileSaveDisabled}
+            />
+          )
+        }
+        side={
+          loading ? (
+            <div className="card h-[200px] bg-[var(--surface)] animate-pulse-subtle" />
+          ) : (
             <SecurityCard
               onChangePassword={handleChangePassword}
               onSignOut={handleSignOut}
             />
-          </div>
-        </section>
-      </div>
+          )
+        }
+      />
 
-      <div>
-        <section className="grid gap-6 xl:grid-cols-[1.1fr_1fr]">
-          <ChurchSettingsCard
-            churchName={churchName}
-            joinCode={churchSlug}
-            timezone={timezone}
-            timezoneOptions={timezoneOptions}
-            onChurchNameChange={setChurchName}
-            onTimezoneChange={setTimezone}
-            onSave={handleSaveChurch}
-            saveDisabled={churchSaveDisabled}
-          />
-          <div className="space-y-6">
-            <TeamOverviewCard
-              admins={teamCounts.admins}
-              serviceTeam={teamCounts.service}
-              members={teamCounts.members}
-              onManageMembers={() => router.push("/people")}
-              onInviteMembers={() => router.push("/people")}
+      <PageGridRowTwoOne
+        className="animate-fade-in-up [animation-delay:100ms] opacity-0"
+        main={
+          loading ? (
+            <div className="card h-[400px] bg-[var(--surface)] animate-pulse-subtle" />
+          ) : (
+            <ChurchSettingsCard
+              churchName={churchName}
+              joinCode={churchSlug}
+              timezone={timezone}
+              timezoneOptions={timezoneOptions}
+              onChurchNameChange={setChurchName}
+              onTimezoneChange={setTimezone}
+              onSave={handleSaveChurch}
+              saveDisabled={churchSaveDisabled}
             />
-            <PlanCard />
-          </div>
-        </section>
-      </div>
+          )
+        }
+        side={
+          loading ? (
+            <div className="space-y-6 animate-pulse-subtle">
+              <div className="card h-[200px] bg-[var(--surface)]" />
+              <div className="card h-[200px] bg-[var(--surface)]" />
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <TeamOverviewCard
+                admins={teamCounts.admins}
+                serviceTeam={teamCounts.service}
+                members={teamCounts.members}
+                onManageMembers={() => router.push("/people")}
+                onInviteMembers={() => router.push("/people")}
+              />
+              <PlanCard />
+            </div>
+          )
+        }
+      />
+
+      <PageGridFull className="animate-fade-in-up [animation-delay:150ms] opacity-0">
+        {loading ? (
+          <div className="card h-[200px] bg-[var(--surface)] animate-pulse-subtle" />
+        ) : (
+          <ServiceTimesCard
+            serviceTimes={serviceTimes}
+            onAdd={handleAddServiceTime}
+            onUpdate={handleUpdateServiceTime}
+            onDelete={handleDeleteServiceTime}
+          />
+        )}
+      </PageGridFull>
 
       {toast ? (
-        <div className="fixed right-6 top-6 z-50 rounded-xl bg-[var(--surface-2)] px-4 py-3 text-sm shadow">
-          <p className={toast.tone === "error" ? "text-error" : "text-base-content"}>{toast.message}</p>
-        </div>
+        <PageGridFull>
+          <div className="fixed right-6 top-6 z-50 rounded-xl bg-[var(--surface-2)] px-4 py-3 text-sm shadow">
+            <p className={toast.tone === "error" ? "text-error" : "text-base-content"}>{toast.message}</p>
+          </div>
+        </PageGridFull>
       ) : null}
-    </div>
+    </PageGrid>
   );
 }

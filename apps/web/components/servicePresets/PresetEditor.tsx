@@ -2,11 +2,11 @@
 
 import type { Database } from "@gather/lib";
 import { useState } from "react";
+import { List } from "lucide-react";
 import { Input } from "../ui/input";
 
 type ServiceTime = Database["public"]["Tables"]["service_times"]["Row"];
 type ServicePreset = Database["public"]["Tables"]["service_presets"]["Row"];
-type RoleRow = Database["public"]["Tables"]["volunteer_roles"]["Row"];
 
 type PresetItem = {
   id: string;
@@ -19,7 +19,6 @@ type PresetItem = {
 type PresetEditorProps = {
   preset: ServicePreset | null;
   serviceTimes: ServiceTime[];
-  roles: RoleRow[];
   items: PresetItem[];
   onPresetChange: (patch: Partial<ServicePreset>) => void;
   onItemsChange: (items: PresetItem[]) => void;
@@ -34,7 +33,6 @@ type PresetEditorProps = {
 export default function PresetEditor({
   preset,
   serviceTimes,
-  roles,
   items,
   onPresetChange,
   onItemsChange,
@@ -72,14 +70,14 @@ export default function PresetEditor({
             <div className="text-lg font-semibold">Preset details</div>
             <div className="mt-3 space-y-3">
               <div>
-                <label className="text-xs uppercase tracking-widest text-[var(--gather-muted)]">Name</label>
+                <label className="text-xs uppercase tracking-widest text-[var(--text-muted)]">Name</label>
                 <Input
                   value={preset?.name ?? ""}
                   onChange={(event) => onPresetChange({ name: event.target.value })}
                 />
               </div>
               <div>
-                <label className="text-xs uppercase tracking-widest text-[var(--gather-muted)]">Service time</label>
+                <label className="text-xs uppercase tracking-widest text-[var(--text-muted)]">Service time</label>
                 <select
                   className="select select-bordered w-full"
                   value={preset?.service_time_id ?? ""}
@@ -117,9 +115,14 @@ export default function PresetEditor({
         </div>
         <div className="mt-4 space-y-4">
           {items.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-[var(--border)] p-6 text-center">
-              <p className="text-sm text-[var(--gather-muted)]">No steps yet.</p>
-              <p className="mt-1 text-xs text-[var(--gather-muted)]">Add a step to build your run of show.</p>
+            <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-[var(--border)] bg-[var(--surface)] px-6 py-8 text-center">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--surface-2)]">
+                <List className="h-5 w-5" style={{ color: "var(--text-muted)" }} />
+              </div>
+              <div>
+                <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>No steps yet</p>
+                <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>Add a step to build your run of show.</p>
+              </div>
             </div>
           ) : (
             items.map((item, index) => (
@@ -132,7 +135,7 @@ export default function PresetEditor({
                 onDrop={() => moveItem(item.id)}
               >
                 <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-[var(--gather-muted)]">
+                  <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-[var(--text-muted)]">
                     <span className="rounded-full bg-[var(--surface-2)] px-2 py-1">Step {index + 1}</span>
                     <span>Drag to reorder</span>
                   </div>
@@ -142,7 +145,7 @@ export default function PresetEditor({
                 </div>
                 <div className="mt-3 grid gap-3 md:grid-cols-[2fr_1fr]">
                   <div>
-                    <label className="text-xs uppercase tracking-widest text-[var(--gather-muted)]">Title</label>
+                    <label className="text-xs uppercase tracking-widest text-[var(--text-muted)]">Title</label>
                     <input
                       type="text"
                       value={item.title}
@@ -151,7 +154,7 @@ export default function PresetEditor({
                     />
                   </div>
                   <div>
-                    <label className="text-xs uppercase tracking-widest text-[var(--gather-muted)]">Duration (min)</label>
+                    <label className="text-xs uppercase tracking-widest text-[var(--text-muted)]">Duration (min)</label>
                     <input
                       type="number"
                       min={0}
@@ -164,34 +167,15 @@ export default function PresetEditor({
                     />
                   </div>
                 </div>
-                <div className="mt-3 grid gap-3 md:grid-cols-[1fr_1fr]">
-                  <div>
-                    <label className="text-xs uppercase tracking-widest text-[var(--gather-muted)]">Owner role</label>
-                    <select
-                      className="select select-bordered w-full"
-                      value={item.owner_role_id ?? ""}
-                      onChange={(event) =>
-                        handleItemChange(item.id, { owner_role_id: event.target.value || null })
-                      }
-                    >
-                      <option value="">Unassigned</option>
-                      {roles.map((role) => (
-                        <option key={role.id} value={role.id}>
-                          {role.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-xs uppercase tracking-widest text-[var(--gather-muted)]">Notes</label>
-                    <textarea
-                      className="textarea textarea-bordered w-full mt-1"
-                      rows={3}
-                      placeholder="Optional step notes..."
-                      value={item.notes}
-                      onChange={(event) => handleItemChange(item.id, { notes: event.target.value })}
-                    />
-                  </div>
+                <div className="mt-3">
+                  <label className="text-xs uppercase tracking-widest text-[var(--text-muted)]">Notes</label>
+                  <textarea
+                    className="textarea textarea-bordered w-full mt-1"
+                    rows={3}
+                    placeholder="Optional step notes..."
+                    value={item.notes}
+                    onChange={(event) => handleItemChange(item.id, { notes: event.target.value })}
+                  />
                 </div>
               </div>
             ))

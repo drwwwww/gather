@@ -40,7 +40,7 @@ export default function StepEditorToolbar({
           ))}
         </div>
       </div>
-      <div className="text-xs text-[var(--gather-muted)]">
+      <div className="text-xs text-[var(--text-muted)]">
         {saving ? "Saving..." : savedLabel}
       </div>
     </div>

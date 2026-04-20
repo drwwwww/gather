@@ -1,8 +1,9 @@
 "use client";
 
-// ...existing code...
+import { useEffect, useRef, useState } from "react";
 import { formatShortWeekdayDateTime } from "../../lib/format";
 import EventTemplates, { type EventTemplate } from "./EventTemplates";
+import { Calendar } from "lucide-react";
 import type { Database } from "@gather/lib";
 import { Button } from "../ui/button";
 import Badge from "../ui/Badge";
@@ -45,6 +46,21 @@ export default function EventsList({
   onCancel,
   onTemplateSelect
 }: EventsListProps) {
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!openMenuId) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (menuRef.current && !menuRef.current.contains(target)) {
+        setOpenMenuId(null);
+      }
+    };
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, [openMenuId]);
+
   const list = activeTab === "UPCOMING" ? upcoming : past;
 
   return (
@@ -71,10 +87,15 @@ export default function EventsList({
 
       <div className="mt-4 space-y-3 text-sm">
         {list.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-[var(--border)] p-4">
-            <p className="text-[var(--gather-muted)]">No events scheduled yet.</p>
-            <p className="text-xs text-[var(--gather-muted)] mt-1">Create your first event.</p>
-            <div className="mt-3">
+          <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-[var(--border)] bg-[var(--surface)] px-6 py-8 text-center">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--surface-2)]">
+              <Calendar className="h-5 w-5" style={{ color: "var(--text-muted)" }} />
+            </div>
+            <div>
+              <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>No events scheduled yet</p>
+              <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>Create your first event using a template below.</p>
+            </div>
+            <div className="mt-3 w-full max-w-md">
               <EventTemplates onSelect={onTemplateSelect} />
             </div>
           </div>
@@ -98,11 +119,11 @@ export default function EventsList({
               >
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <p className="font-medium text-[var(--gather-ink)]">
+                    <p className="font-medium text-[var(--text-primary)]">
                       {event.title}
                       {event.is_cancelled ? " (Cancelled)" : ""}
                     </p>
-                    <p className="mt-1 text-xs text-[var(--gather-muted)]">
+                    <p className="mt-1 text-xs text-[var(--text-muted)]">
                       {formatShortWeekdayDateTime(event.start_at)}
                     </p>
                     <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -111,38 +132,71 @@ export default function EventsList({
                       {event.is_cancelled ? <Badge variant="warning">CANCELLED</Badge> : null}
                     </div>
                   </div>
-                  <div className="dropdown dropdown-end">
-                    <Button size="sm" variant="secondary" onClick={(evt) => evt.stopPropagation()}>
+                  <div className="relative" ref={menuRef}>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      className="btn-icon"
+                      onClick={(evt) => {
+                        evt.stopPropagation();
+                        setOpenMenuId((id) => (id === event.id ? null : event.id));
+                      }}
+                      aria-haspopup="menu"
+                      aria-expanded={openMenuId === event.id}
+                    >
                       ⋮
                     </Button>
-                    <ul className="dropdown-content menu rounded-box w-40 bg-[var(--surface)] border border-[var(--border)] p-2 shadow">
-                      <li>
-                        <button type="button" onClick={(evt) => {
-                          evt.stopPropagation();
-                          onEdit(event);
-                        }}>
-                          Edit
-                        </button>
-                      </li>
-                      <li>
-                        <button type="button" onClick={(evt) => {
-                          evt.stopPropagation();
-                          onDuplicate(event);
-                        }}>
-                          Duplicate
-                        </button>
-                      </li>
-                      {!event.is_cancelled ? (
-                        <li>
-                          <button type="button" onClick={(evt) => {
-                            evt.stopPropagation();
-                            onCancel(event);
-                          }}>
-                            Cancel event
+                    {openMenuId === event.id ? (
+                      <ul
+                        className="dropdown-menu absolute right-0 top-full mt-2 flex w-40 flex-col gap-0.5 p-2"
+                        role="menu"
+                      >
+                        <li role="none" className="list-none">
+                          <button
+                            type="button"
+                            role="menuitem"
+                            className="dropdown-menu-item"
+                            onClick={(evt) => {
+                              evt.stopPropagation();
+                              onEdit(event);
+                              setOpenMenuId(null);
+                            }}
+                          >
+                            Edit
                           </button>
                         </li>
-                      ) : null}
-                    </ul>
+                        <li role="none" className="list-none">
+                          <button
+                            type="button"
+                            role="menuitem"
+                            className="dropdown-menu-item"
+                            onClick={(evt) => {
+                              evt.stopPropagation();
+                              onDuplicate(event);
+                              setOpenMenuId(null);
+                            }}
+                          >
+                            Duplicate
+                          </button>
+                        </li>
+                        {!event.is_cancelled ? (
+                          <li role="none" className="list-none">
+                            <button
+                              type="button"
+                              role="menuitem"
+                              className="dropdown-menu-item"
+                              onClick={(evt) => {
+                                evt.stopPropagation();
+                                onCancel(event);
+                                setOpenMenuId(null);
+                              }}
+                            >
+                              Cancel event
+                            </button>
+                          </li>
+                        ) : null}
+                      </ul>
+                    ) : null}
                   </div>
                 </div>
               </div>

@@ -37,7 +37,7 @@ export function buildMemberEntries(
     name: profile.full_name || "",
     email: profile.email || "",
     role: profile.role,
-    status: profile.disabled ? "INACTIVE" : "ACTIVE",
+    status: (profile.disabled ? "INACTIVE" : "ACTIVE") as MemberStatus,
     disabled: profile.disabled,
     source: "member" as const,
     profile

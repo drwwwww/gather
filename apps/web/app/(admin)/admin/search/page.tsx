@@ -8,6 +8,7 @@ import AdminHeader from "../../../../components/admin/AdminHeader";
 // DaisyUI migration: use className markup for all UI
 import SearchResults from "../../../../components/search/SearchResults";
 import { Input } from "../../../../components/ui/input";
+import { PageGrid, PageGridFull } from "../../../../components/layout/PageGrid";
 
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 type EventRow = Database["public"]["Tables"]["events"]["Row"];
@@ -111,16 +112,16 @@ export default function SearchPage() {
   }, [query, profiles.length, events.length, announcements.length]);
 
   return (
-    <div className="space-y-10">
-      <div>
+    <PageGrid>
+      <PageGridFull className="animate-fade-in-up">
         <AdminHeader
           title="Search Results"
           subtitle={query ? `Showing matches for "${query}"` : "Enter a search term to get started."}
           className="mb-8"
         />
-      </div>
+      </PageGridFull>
 
-      <div>
+      <PageGridFull className="animate-fade-in-up [animation-delay:50ms] opacity-0">
         <div className="card p-6 border border-primary/10">
           <form
             className="flex flex-wrap items-center gap-4"
@@ -142,21 +143,28 @@ export default function SearchPage() {
             {summary ? <p className="text-xs text-base-content/60">{summary}</p> : null}
           </form>
         </div>
-      </div>
+      </PageGridFull>
 
-      {error ? <p className="text-sm text-error">{error}</p> : null}
-      {loading ? <p className="text-sm text-base-content/60">Searching...</p> : null}
-
-      {!loading ? (
-        <div>
+      {error ? (
+        <PageGridFull>
+          <p className="text-sm text-error">{error}</p>
+        </PageGridFull>
+      ) : null}
+      
+      {loading ? (
+        <PageGridFull className="animate-pulse-subtle">
+          <div className="card h-[400px] bg-[var(--surface)]" />
+        </PageGridFull>
+      ) : (
+        <PageGridFull className="animate-fade-in-up [animation-delay:100ms] opacity-0">
           <SearchResults
             query={query}
             profiles={profiles}
             events={events}
             announcements={announcements}
           />
-        </div>
-      ) : null}
-    </div>
+        </PageGridFull>
+      )}
+    </PageGrid>
   );
 }

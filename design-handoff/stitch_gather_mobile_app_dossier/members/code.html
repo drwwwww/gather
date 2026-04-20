@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700&amp;family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "tertiary-container": "#ff9837",
+                    "surface-container-lowest": "#ffffff",
+                    "secondary-fixed": "#e3e2df",
+                    "background": "#faf9f5",
+                    "inverse-primary": "#ffb95f",
+                    "secondary": "#5e5f5c",
+                    "inverse-surface": "#2f312e",
+                    "surface-container-low": "#f4f4f0",
+                    "surface-tint": "#855300",
+                    "tertiary-fixed-dim": "#ffb77d",
+                    "inverse-on-surface": "#f2f1ed",
+                    "primary-fixed-dim": "#ffb95f",
+                    "surface-container-high": "#e9e8e4",
+                    "primary-fixed": "#ffddb8",
+                    "outline": "#867461",
+                    "on-secondary-fixed": "#1b1c1a",
+                    "error-container": "#ffdad6",
+                    "on-secondary-container": "#626361",
+                    "surface-variant": "#e3e2df",
+                    "on-background": "#1b1c1a",
+                    "tertiary": "#904d00",
+                    "on-secondary": "#ffffff",
+                    "primary": "#855300",
+                    "on-primary-container": "#613b00",
+                    "outline-variant": "#d8c3ad",
+                    "surface-container": "#efeeea",
+                    "tertiary-fixed": "#ffdcc3",
+                    "on-primary-fixed": "#2a1700",
+                    "surface-dim": "#dbdad6",
+                    "on-surface-variant": "#534434",
+                    "on-secondary-fixed-variant": "#464745",
+                    "on-tertiary-fixed": "#2f1500",
+                    "on-error": "#ffffff",
+                    "on-error-container": "#93000a",
+                    "on-primary": "#ffffff",
+                    "primary-container": "#f59e0b",
+                    "on-tertiary-container": "#6a3700",
+                    "secondary-fixed-dim": "#c7c6c4",
+                    "on-surface": "#1b1c1a",
+                    "error": "#ba1a1a",
+                    "on-tertiary-fixed-variant": "#6e3900",
+                    "surface-container-highest": "#e3e2df",
+                    "on-tertiary": "#ffffff",
+                    "secondary-container": "#e0e0dd",
+                    "surface": "#faf9f5",
+                    "surface-bright": "#faf9f5",
+                    "on-primary-fixed-variant": "#653e00"
+            },
+            "borderRadius": {
+                    "DEFAULT": "1rem",
+                    "lg": "2rem",
+                    "xl": "3rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Rubik", "sans-serif"],
+                    "body": ["Plus Jakarta Sans", "sans-serif"],
+                    "label": ["Plus Jakarta Sans", "sans-serif"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .amber-aura {
+            background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+        }
+        body {
+            background-color: #FDFCF8;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="min-h-screen text-on-surface">
+<!-- TopAppBar -->
+<header class="fixed top-0 z-50 w-full bg-[#FDFCF8] flex justify-between items-center px-6 py-4 mt-2">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[#F59E0B]">church</span>
+<span class="text-[1.75rem] font-bold text-[#111827] tracking-tight font-['Rubik']">Gather</span>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 hover:bg-[#FFF7E6] transition-all duration-300 rounded-full">
+<span class="material-symbols-outlined text-[#4B5563]">search</span>
+</button>
+<div class="w-10 h-10 rounded-full overflow-hidden border-2 border-primary-container">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="close-up portrait of a friendly smiling man with short beard in warm natural sunlight" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCt5DdHqO9yZFK2lWPHzo8QSLaxkFcQ8lJ-jeB6OLfPXfEwaV3WMG8PpmfsKfOAs9HHeVU0zGNml8qiJjwJVfgxPGYW47EhuCmzniJ-75Xbj-MzJlnKIiPLyyImgX17eh9wOhONzSW1_DC3MJqSU6aJYGb45Oj7WWPE6l_GOkdSexP1U8MpVZ7vBQZCpGZ6j82MewdA2SMZU3tcI7su4DDxab5CzVq3eL8eAMgBrgRnDoTeBzU48On6icEvz9fkQeubXuF7iLX8ooo"/>
+</div>
+</div>
+</header>
+<main class="pt-24 pb-32 px-6 max-w-4xl mx-auto">
+<!-- Search & Filter Header -->
+<div class="mb-10">
+<h1 class="font-headline text-[3.5rem] leading-tight font-bold tracking-tight mb-6 text-on-surface">Community Directory</h1>
+<div class="relative group">
+<div class="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-outline">search</span>
+</div>
+<input class="w-full bg-surface-container-low border-none rounded-sm py-4 pl-12 pr-6 focus:ring-2 focus:ring-primary/40 focus:bg-surface-container-lowest transition-all duration-300 text-body-lg" placeholder="Find a member by name or role..." type="text"/>
+</div>
+</div>
+<!-- Current User (Highlighted) -->
+<div class="mb-12">
+<h2 class="font-label text-[0.75rem] uppercase tracking-wider text-outline mb-4 ml-2">My Profile</h2>
+<div class="bg-primary-soft rounded-lg p-6 bg-[#FFF7E6] shadow-[0_8px_24px_-8px_rgba(245,158,11,0.12)] border border-primary-container/10 flex items-center justify-between group hover:scale-[1.01] transition-all duration-300">
+<div class="flex items-center gap-5">
+<div class="relative">
+<img alt="My Profile" class="w-16 h-16 rounded-full object-cover border-2 border-white shadow-sm" data-alt="close-up portrait of a smiling man with gentle eyes and light beard in warm lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB9Nk9QaUsC46itqcnvLik7QcCzuuGBEdhIkQ7gg3wljTcNXVg0ITsE62rafNTNlxv197iqn42sPsFZp7_qBLDF-MCFSa9qSXPBV1YRlvA2ZbwdgEk1QFE1e1IHbP9hMNPYR2TRlAUXsHaeM8-blwnxA5wVV4IOBq4ynariwl6cKZvLaS0zqCbUNhY8DJdX5H0_e9VI0zsLyHSz3UpB9TQQw2IW9T1hhEWtYz-1MRTC9ZE0625K-WLzSB-5DWBZxSujDrrtmyRdjDU"/>
+<div class="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></div>
+</div>
+<div>
+<div class="flex items-center gap-2">
+<h3 class="font-headline text-xl font-bold text-on-surface">David Miller</h3>
+<span class="px-3 py-0.5 bg-primary-container text-white text-[0.7rem] font-bold rounded-full uppercase tracking-tighter">Admin</span>
+</div>
+<p class="text-secondary text-sm">david.miller@sanctuary.org</p>
+</div>
+</div>
+<button class="p-3 rounded-full hover:bg-white transition-colors duration-300">
+<span class="material-symbols-outlined text-primary">edit_note</span>
+</button>
+</div>
+</div>
+<!-- Directory List -->
+<div class="space-y-4">
+<div class="flex justify-between items-center mb-6 ml-2">
+<h2 class="font-label text-[0.75rem] uppercase tracking-wider text-outline">Sanctuary Members</h2>
+<span class="text-xs text-outline">124 Members</span>
+</div>
+<!-- Member Rows -->
+<!-- Member 1 -->
+<div class="bg-surface-container-lowest rounded-md p-5 flex items-center justify-between hover:bg-[#FFF7E6] transition-all duration-300 group cursor-pointer">
+<div class="flex items-center gap-5">
+<img alt="Sarah Chen" class="w-12 h-12 rounded-full object-cover" data-alt="portrait of a young woman with a bright smile wearing a knitted sweater in a sunlit cozy room" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBnKnMNg7raWCm3tzE759Ke9ano4fEvxiMIUluaAYH-V94QfS21CgrCuewiz8Hy_Q8jSHQSmrZh3PNaFY-nTV71KNh9TaD-41S_294gR1UeCxOJTEnoE_w_hjELNyM7WJdgP8QGpNwtGWPE0gic0zm3S9omjX99xm4Hcoud2IxJjeJEmKjKAFyufm2o-PSU6FOTg3ev4vuAmus6IA_X7AgT1buYdWwhcwshGcRMnyh4sRP5cthFIcwrAXoHodBhrMLfs6abip_SL4w"/>
+<div>
+<h3 class="font-headline text-lg font-semibold text-on-surface group-hover:text-primary transition-colors">Sarah Chen</h3>
+<p class="text-secondary text-sm">sarah.c@community.com</p>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<span class="hidden md:inline px-3 py-1 bg-surface-container text-secondary text-[0.7rem] font-medium rounded-full uppercase tracking-wider">Service Team</span>
+<span class="material-symbols-outlined text-outline-variant group-hover:text-primary transition-colors">mail</span>
+</div>
+</div>
+<!-- Member 2 -->
+<div class="bg-surface-container-lowest rounded-md p-5 flex items-center justify-between hover:bg-[#FFF7E6] transition-all duration-300 group cursor-pointer">
+<div class="flex items-center gap-5">
+<img alt="Marcus Thompson" class="w-12 h-12 rounded-full object-cover" data-alt="middle-aged man with kind expression wearing glasses and a denim shirt against a soft bokeh background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBSF6kFFdlkvApB_aEaJP7kMCIEu25U0KT1hI8ok6J8lFeP0XV1OL8d2Ph89DOVfhkGpNhuUA5C642VbOxdUk9v2vnYmnNMZZEkJyG82IyLxmTRcHIhA03RsWMbujcwwt_3_YoLo1OrQkJdkfCXy3ZxFyfeHAyLfeKdURoOz8iLO3ombxe6iGgz3g3jgAEj2LUgVds0imGi_DyUnwS1GoCZA2t8KTTpVia2IlUw7TYEPD2J811ifWIZ_RkHvCzotl4VcyRPogSCePk"/>
+<div>
+<h3 class="font-headline text-lg font-semibold text-on-surface group-hover:text-primary transition-colors">Marcus Thompson</h3>
+<p class="text-secondary text-sm">m.thompson@email.net</p>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<span class="hidden md:inline px-3 py-1 bg-surface-container text-secondary text-[0.7rem] font-medium rounded-full uppercase tracking-wider">Member</span>
+<span class="material-symbols-outlined text-outline-variant group-hover:text-primary transition-colors">mail</span>
+</div>
+</div>
+<!-- Member 3 -->
+<div class="bg-surface-container-lowest rounded-md p-5 flex items-center justify-between hover:bg-[#FFF7E6] transition-all duration-300 group cursor-pointer">
+<div class="flex items-center gap-5">
+<img alt="Jonathan Wu" class="w-12 h-12 rounded-full object-cover" data-alt="young man with short dark hair smiling warmly in golden hour outdoor lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC_66t9XoM7DmuULCBqKK9qTjALi9FuwwWD3-q_f6d6bVoXIox8BffpYZrWvgfFZfVkCPxxr6g3QYm9yBVjoLOIVhGVBj9bOAvXvMOkRqw4kYGyl2t1LwAfxaIXwH6UXtcCWntqyTI_UdnlLptqnJL_lHHz2tYOcuVEE0E35joE-keDU5jkybWJGEbPXhP12ITj_U00ffbEW2B76eUHW_MLy7cxPvRYv-VujOH2jE8OZHq6AjZsfvYbBXcb3v4uReUlNKtanh1YM4U"/>
+<div>
+<h3 class="font-headline text-lg font-semibold text-on-surface group-hover:text-primary transition-colors">Jonathan Wu</h3>
+<p class="text-secondary text-sm">j.wu@sanctuary.org</p>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<span class="hidden md:inline px-3 py-1 bg-surface-container text-secondary text-[0.7rem] font-medium rounded-full uppercase tracking-wider">Service Team</span>
+<span class="material-symbols-outlined text-outline-variant group-hover:text-primary transition-colors">mail</span>
+</div>
+</div>
+<!-- Member 4 -->
+<div class="bg-surface-container-lowest rounded-md p-5 flex items-center justify-between hover:bg-[#FFF7E6] transition-all duration-300 group cursor-pointer">
+<div class="flex items-center gap-5">
+<img alt="Elena Rodriguez" class="w-12 h-12 rounded-full object-cover" data-alt="smiling woman with long hair in a peaceful outdoor setting with soft afternoon sun" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAVHovshyRVDcSXEEXXjyQ_NJLEGRuFM-jkEgT6LEEVBNa302ivYLNyHp5-7fSbUxtPL6qXeQJweUdJT_spBAjbfRrehg1KolIt0T7YZx8ksRPwIbaDzvMeXZfRJADkB5eFdmlrksrZ1bqaigJWCq59k7ILhgS9aEFWe7HE2xIimeia_UYCdb0rmgRxGXHo_gaTBhkHAdVL8pDmZJBwAGbTEgeEHfYvQc4LeX--im6TKMCW6ZNY80ihaWdklXMq-snbdZ02d2IN214"/>
+<div>
+<h3 class="font-headline text-lg font-semibold text-on-surface group-hover:text-primary transition-colors">Elena Rodriguez</h3>
+<p class="text-secondary text-sm">elena.r@webmail.com</p>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<span class="hidden md:inline px-3 py-1 bg-surface-container text-secondary text-[0.7rem] font-medium rounded-full uppercase tracking-wider">Member</span>
+<span class="material-symbols-outlined text-outline-variant group-hover:text-primary transition-colors">mail</span>
+</div>
+</div>
+<!-- Member 5 -->
+<div class="bg-surface-container-lowest rounded-md p-5 flex items-center justify-between hover:bg-[#FFF7E6] transition-all duration-300 group cursor-pointer">
+<div class="flex items-center gap-5">
+<img alt="Arthur P" class="w-12 h-12 rounded-full object-cover" data-alt="professional man with a friendly demeanor wearing a casual grey t-shirt in bright studio lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCNjThJpCO0UvQCb5XFbdypsOSeg2e0u6fKwJe7TfBl9wEqth2cXBUzDtVg2ezSVQ7T0AqgHHoQbgTp4pzzMj1piTD7RMMHqfZ4awRb2vo3Lse6SxEkMrauST7pyWih9ruCewCMc3rq5KmjXcK3BYp8Ony7QYrjz1UWNNAt6TrC6DxFVhsWT4QChQafUjBeSUlJeQiU4LTwkPFwdcG6F7F32E53Za8JJtelKftDYo0RSWusHB7KY-dMmBS8va_65ZuQ1MS8w0axnuo"/>
+<div>
+<h3 class="font-headline text-lg font-semibold text-on-surface group-hover:text-primary transition-colors">Arthur P</h3>
+<p class="text-secondary text-sm">arthur.p@church.org</p>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<span class="hidden md:inline px-3 py-1 bg-surface-container text-secondary text-[0.7rem] font-medium rounded-full uppercase tracking-wider">Admin</span>
+<span class="material-symbols-outlined text-outline-variant group-hover:text-primary transition-colors">mail</span>
+</div>
+</div>
+</div>
+<!-- Load More (Asymmetric Layout Moment) -->
+<div class="mt-12 flex justify-center">
+<button class="amber-aura text-white px-10 py-4 rounded-full font-bold shadow-lg shadow-primary-container/20 hover:scale-105 transition-all duration-300 flex items-center gap-2">
+                Show more members
+                <span class="material-symbols-outlined text-base">expand_more</span>
+</button>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-3 left-3 right-3 z-50 bg-white/85 backdrop-blur-xl rounded-full mx-4 mb-4 shadow-[0_32px_32px_-4px_rgba(245,158,11,0.08)] flex justify-around items-center py-3">
+<a class="flex flex-col items-center justify-center text-[#4B5563] px-4 py-2 hover:scale-105 transition-transform duration-300" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="font-['Rubik'] label-md uppercase tracking-wider text-[0.65rem] mt-1">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#4B5563] px-4 py-2 hover:scale-105 transition-transform duration-300" href="#">
+<span class="material-symbols-outlined">newspaper</span>
+<span class="font-['Rubik'] label-md uppercase tracking-wider text-[0.65rem] mt-1">News</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#4B5563] px-4 py-2 hover:scale-105 transition-transform duration-300" href="#">
+<span class="material-symbols-outlined">calendar_month</span>
+<span class="font-['Rubik'] label-md uppercase tracking-wider text-[0.65rem] mt-1">Events</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-[#FFF7E6] text-[#F59E0B] rounded-full px-4 py-2 hover:scale-105 transition-transform duration-300" href="#">
+<span class="material-symbols-outlined">article</span>
+<span class="font-['Rubik'] label-md uppercase tracking-wider text-[0.65rem] mt-1">Bulletin</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#4B5563] px-4 py-2 hover:scale-105 transition-transform duration-300" href="#">
+<span class="material-symbols-outlined">volunteer_activism</span>
+<span class="font-['Rubik'] label-md uppercase tracking-wider text-[0.65rem] mt-1">Serve</span>
+</a>
+</nav>
+</body></html>

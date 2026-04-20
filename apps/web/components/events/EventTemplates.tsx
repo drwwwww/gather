@@ -31,7 +31,7 @@ type EventTemplatesProps = {
 
 export default function EventTemplates({ onSelect }: EventTemplatesProps) {
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap justify-center gap-2">
       {templates.map((template) => (
         <button
           key={template.title}

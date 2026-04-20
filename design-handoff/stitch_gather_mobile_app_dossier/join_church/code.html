@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;700;800&amp;family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "tertiary-container": "#ff9837",
+                    "surface-container-lowest": "#ffffff",
+                    "secondary-fixed": "#e3e2df",
+                    "background": "#fdfcf8",
+                    "inverse-primary": "#ffb95f",
+                    "secondary": "#5e5f5c",
+                    "inverse-surface": "#2f312e",
+                    "surface-container-low": "#f4f4f0",
+                    "surface-tint": "#855300",
+                    "tertiary-fixed-dim": "#ffb77d",
+                    "inverse-on-surface": "#f2f1ed",
+                    "primary-fixed-dim": "#ffb95f",
+                    "surface-container-high": "#e9e8e4",
+                    "primary-fixed": "#ffddb8",
+                    "outline": "#867461",
+                    "on-secondary-fixed": "#1b1c1a",
+                    "error-container": "#ffdad6",
+                    "on-secondary-container": "#626361",
+                    "surface-variant": "#e3e2df",
+                    "on-background": "#1b1c1a",
+                    "tertiary": "#904d00",
+                    "on-secondary": "#ffffff",
+                    "primary": "#855300",
+                    "on-primary-container": "#613b00",
+                    "outline-variant": "#d8c3ad",
+                    "surface-container": "#efeeea",
+                    "tertiary-fixed": "#ffdcc3",
+                    "on-primary-fixed": "#2a1700",
+                    "surface-dim": "#dbdad6",
+                    "on-surface-variant": "#534434",
+                    "on-secondary-fixed-variant": "#464745",
+                    "on-tertiary-fixed": "#2f1500",
+                    "on-error": "#ffffff",
+                    "on-error-container": "#93000a",
+                    "on-primary": "#ffffff",
+                    "primary-container": "#f59e0b",
+                    "on-tertiary-container": "#6a3700",
+                    "secondary-fixed-dim": "#c7c6c4",
+                    "on-surface": "#1b1c1a",
+                    "error": "#ba1a1a",
+                    "on-tertiary-fixed-variant": "#6e3900",
+                    "surface-container-highest": "#e3e2df",
+                    "on-tertiary": "#ffffff",
+                    "secondary-container": "#e0e0dd",
+                    "surface": "#fdfcf8",
+                    "surface-bright": "#fdfcf8",
+                    "on-primary-fixed-variant": "#653e00"
+            },
+            "borderRadius": {
+                    "DEFAULT": "1rem",
+                    "lg": "2rem",
+                    "xl": "3rem",
+                    "full": "9999px"
+            },
+            "spacing": {},
+            "fontFamily": {
+                    "headline": ["Plus Jakarta Sans", "sans-serif"],
+                    "body": ["Plus Jakarta Sans", "sans-serif"],
+                    "label": ["Plus Jakarta Sans", "sans-serif"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .amber-aura-gradient {
+            background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+        }
+        .glass-nav {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-[#FDFCF8] font-body text-[#111827] min-h-screen">
+<!-- TopAppBar -->
+<header class="bg-[#FDFCF8] w-full top-0 z-40">
+<div class="flex justify-between items-center w-full px-6 py-4 mt-2">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[#F59E0B] text-2xl" data-icon="church">church</span>
+<h1 class="text-[1.75rem] font-bold text-[#111827] tracking-tight font-['Rubik']">Gather</h1>
+</div>
+<div class="w-10 h-10 rounded-full overflow-hidden border-2 border-primary-container/20">
+<img class="w-full h-full object-cover" data-alt="Portrait of a friendly smiling person in soft warm natural sunlight with a blurred outdoor background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB02MGsPsb9fdEtCvCURjX4sZWZGKoycmv-mUeRf6UM_fMCKmrwciO6ds2p12zauMKd_kv4q4AfWOodxS0EDZ_6Njqwj05baCMqKbQKxWgBhirq9kLwf4IAZPb-5wxSV3eDN2rkebU0bmBHsISvZsGgYQr5GrWPDX3E_AK1_O88dAOQupBxmWhEqqJsNNJuRFhT3GXUflxTJwYync5iypJzjV53on0AoPxE54IpkR1ByUWoD5MUgvtFkJzWmLcFV2Ll4PF5cKgX_jg"/>
+</div>
+</div>
+</header>
+<main class="max-w-2xl mx-auto px-6 pt-8 pb-32">
+<!-- Hero Section -->
+<div class="mb-12">
+<h2 class="text-[3.5rem] leading-tight font-extrabold tracking-tight text-[#111827] font-['Rubik'] mb-4">
+                Join your church
+            </h2>
+<p class="text-[#4B5563] text-lg leading-relaxed max-w-md">
+                Find your local community and stay connected with the heartbeat of your sanctuary.
+            </p>
+</div>
+<!-- Search Section -->
+<div class="relative mb-12 group">
+<div class="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-[#4B5563] group-focus-within:text-[#F59E0B] transition-colors" data-icon="search">search</span>
+</div>
+<input class="w-full pl-12 pr-6 py-5 bg-[#F5F4F1] border-none rounded-xl focus:ring-2 focus:ring-[#F59E0B]/40 focus:bg-white transition-all text-lg placeholder:text-[#4B5563]/50" placeholder="Search by name or slug (e.g. grace-church)" type="text"/>
+</div>
+<!-- Recommended / Featured Bento Grid -->
+<div class="mb-10">
+<h3 class="font-['Rubik'] font-bold text-xl mb-6 flex items-center gap-2">
+<span class="w-2 h-6 bg-[#F59E0B] rounded-full"></span>
+                Nearby Communities
+            </h3>
+<div class="space-y-4">
+<!-- Church Row Item 1 -->
+<div class="group flex items-center justify-between p-6 bg-white rounded-lg hover:shadow-[0_20px_40px_-12px_rgba(245,158,11,0.12)] transition-all duration-300">
+<div class="flex items-center gap-5">
+<div class="w-14 h-14 rounded-md overflow-hidden flex-shrink-0 bg-surface-container-low">
+<img class="w-full h-full object-cover" data-alt="Stained glass window inside a traditional church with sunlight streaming through, creating colorful patterns" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB3dIY1EB_a83D1XcT7Mg8QvCGWCrXvM09MbIugC4XZ8J4TxhSxemSUT6BXVza5_187Sv6cx3Bxv116U--Ez8Z7Z3Y0LRk0JpWoT6YPh8nh_YUyFcNfWQd7s-9vg7X7b_FtYrDRvBnHMoAaikqnBegF4LVyN0LAvDKVcD3w_BSfHbhWPkpC4bEBG68zOsZHjh7QnbSqnD9i-z-Y0r0VyJpGRZtwpN5_2Dw9pLpEVoaZDQV05Awcy_FuhdKVpL2MLKHVp_pANzZiQPs"/>
+</div>
+<div>
+<h4 class="font-['Rubik'] font-bold text-xl text-[#111827]">Grace Church</h4>
+<p class="text-[#4B5563] text-sm font-medium tracking-wide">@grace-church</p>
+</div>
+</div>
+<button class="amber-aura-gradient text-white font-bold py-3 px-8 rounded-full hover:scale-[1.02] active:scale-95 transition-all shadow-[0_8px_16px_-4px_rgba(245,158,11,0.3)]">
+                        Join
+                    </button>
+</div>
+<!-- Church Row Item 2 -->
+<div class="group flex items-center justify-between p-6 bg-white rounded-lg hover:shadow-[0_20px_40px_-12px_rgba(245,158,11,0.12)] transition-all duration-300">
+<div class="flex items-center gap-5">
+<div class="w-14 h-14 rounded-md overflow-hidden flex-shrink-0 bg-surface-container-low">
+<img class="w-full h-full object-cover" data-alt="Modern architectural detail of a community center with warm wood panels and large glass windows" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDJ1hyYRTxpyjRV8cZz_C-c-AtSDrQsLL0MXy-No3lWQVNN_E6ail8ZZWxBN1P9O8p2JeU7NuZP9SfdmlxC4AW9N55QPuFmpLapXFcwLm-HJ65NiG3wR9zInNEKIsYYDfAxqmwvfeIIOajXBuSiYAQeGu68j5Mg1FpHSOuIbd2YLeY1stUCqdEKwIhwB8bwx5w3ZgOadtiRWiDrft4BxoIcJ0i2YzIZrTydwDnQpBSiGNSUbkk-mS8MiWRoBJqRod1DZdBlOSBKn_0"/>
+</div>
+<div>
+<h4 class="font-['Rubik'] font-bold text-xl text-[#111827]">Redeemer Community</h4>
+<p class="text-[#4B5563] text-sm font-medium tracking-wide">@redeemer-city</p>
+</div>
+</div>
+<button class="amber-aura-gradient text-white font-bold py-3 px-8 rounded-full hover:scale-[1.02] active:scale-95 transition-all shadow-[0_8px_16px_-4px_rgba(245,158,11,0.3)]">
+                        Join
+                    </button>
+</div>
+<!-- Church Row Item 3 -->
+<div class="group flex items-center justify-between p-6 bg-white rounded-lg hover:shadow-[0_20px_40px_-12px_rgba(245,158,11,0.12)] transition-all duration-300">
+<div class="flex items-center gap-5">
+<div class="w-14 h-14 rounded-md overflow-hidden flex-shrink-0 bg-surface-container-low">
+<img class="w-full h-full object-cover" data-alt="Close up of a warm cup of coffee and an open bible on a rustic wooden table in a cozy cafe" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAUCbJHwPb4gQYX9wuoTDOuIKBZRKl8LFTQVyF8iSxGVLDbCCdmVFbGTzmxgBVkTYHWITQuhvUOYIUgNRTpGLq5-1TUFzfmm_l2jXT9BHOBn8bR5a4ikz38_mtYWiErwPSUnY8wYHTAkHtG_9_jJc2QfxVhUSqvwdGqouh51YfASmKcs3-Jj22rY7hQPvWpRQ2KAjHxYqK2Ovhe0naKGW8dkdH3Vpwkkoy9asG8sp8uTT-Bs_6Og9oEFPRkJrw7UosuE_G57JGRUl4"/>
+</div>
+<div>
+<h4 class="font-['Rubik'] font-bold text-xl text-[#111827]">The Well</h4>
+<p class="text-[#4B5563] text-sm font-medium tracking-wide">@the-well-campus</p>
+</div>
+</div>
+<button class="amber-aura-gradient text-white font-bold py-3 px-8 rounded-full hover:scale-[1.02] active:scale-95 transition-all shadow-[0_8px_16px_-4px_rgba(245,158,11,0.3)]">
+                        Join
+                    </button>
+</div>
+<!-- Church Row Item 4 -->
+<div class="group flex items-center justify-between p-6 bg-white rounded-lg hover:shadow-[0_20px_40px_-12px_rgba(245,158,11,0.12)] transition-all duration-300">
+<div class="flex items-center gap-5">
+<div class="w-14 h-14 rounded-md overflow-hidden flex-shrink-0 bg-surface-container-low">
+<img class="w-full h-full object-cover" data-alt="Beautiful sunrise over a quiet meadow with tall grass and soft golden light" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCQJ33WvzByz1xosR3_mgYj3NnsOsTav96t4kdT2qxD4rNxl-hIrsv4ruD1HYn6pXEMu2VZrKSmtM9iylyrw3VW6ZLs5S72rzZszl1h3273WnTf6_pQWO-6Q9hKkBmnUF-z0PGPJKtdFY30oZ6XIi0JDbW3tcJw45B1ONF8LnXpehHFuFuJW_otMZJ8c1y88aOxff2Zl9miRbZIYbRYrflYYNizbzZr_a72pdQEOtquJvIdXl1KN7j7vPK2CeGX2-1FOG18vC_qGbM"/>
+</div>
+<div>
+<h4 class="font-['Rubik'] font-bold text-xl text-[#111827]">Hope Chapel</h4>
+<p class="text-[#4B5563] text-sm font-medium tracking-wide">@hope-chapel-east</p>
+</div>
+</div>
+<button class="amber-aura-gradient text-white font-bold py-3 px-8 rounded-full hover:scale-[1.02] active:scale-95 transition-all shadow-[0_8px_16px_-4px_rgba(245,158,11,0.3)]">
+                        Join
+                    </button>
+</div>
+</div>
+</div>
+<!-- Asymmetric Promotional Banner -->
+<div class="relative overflow-hidden bg-[#FFF7E6] rounded-lg p-10 mt-16 flex flex-col md:flex-row items-center gap-8">
+<div class="flex-1 space-y-4">
+<h3 class="font-['Rubik'] font-extrabold text-2xl text-[#111827]">Don't see your church?</h3>
+<p class="text-[#4B5563] text-lg">Contact your ministry leaders to get your congregation added to Gather or start a new digital sanctuary today.</p>
+<button class="flex items-center gap-2 text-[#F59E0B] font-bold py-2 group">
+                    Register a new church
+                    <span class="material-symbols-outlined transition-transform group-hover:translate-x-1" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+<div class="w-full md:w-1/3 aspect-square rounded-md overflow-hidden">
+<img class="w-full h-full object-cover grayscale opacity-40 mix-blend-multiply" data-alt="Diverse group of people gathering in a bright modern community hall, talking and laughing together" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD75XmRvW8yY3YPCwDttOxUzK36MDyTMCuXhD6Nep2vF4Y6TLPwJyBz3pB5jI2aBqaaycN_Xgu0Hsj96IIXnFrnYjGj2v3eR6i0LfU2FKeaIMGiACbuzctXhDAKBoxfrWz5RJWkPfxSTCRS6pyDIzpXJUnBwcRFcuQCh2_W-8gXa8sP2kVXCyipNjKrAy4d8p9liYqji6nCm4rmWInENLCcy56dwKGui5Fk9I2-WwWG0PVjYhFPLT_edNGMLoOxjRev8zNoUJWNOjg"/>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Hidden on desktop as per rules) -->
+<nav class="fixed bottom-3 left-3 right-3 z-50 flex justify-around items-center py-3 bg-white/85 backdrop-blur-xl rounded-full mx-4 mb-4 shadow-[0_32px_32px_-4px_rgba(245,158,11,0.08)] md:hidden">
+<a class="flex flex-col items-center justify-center text-[#4B5563] px-4 py-2 hover:scale-105 transition-transform duration-300" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="home">home</span>
+<span class="font-['Rubik'] text-[0.6rem] uppercase tracking-wider font-bold">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#4B5563] px-4 py-2 hover:scale-105 transition-transform duration-300" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="newspaper">newspaper</span>
+<span class="font-['Rubik'] text-[0.6rem] uppercase tracking-wider font-bold">News</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#4B5563] px-4 py-2 hover:scale-105 transition-transform duration-300" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="calendar_month">calendar_month</span>
+<span class="font-['Rubik'] text-[0.6rem] uppercase tracking-wider font-bold">Events</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#4B5563] px-4 py-2 hover:scale-105 transition-transform duration-300" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="article">article</span>
+<span class="font-['Rubik'] text-[0.6rem] uppercase tracking-wider font-bold">Bulletin</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#4B5563] px-4 py-2 hover:scale-105 transition-transform duration-300" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="volunteer_activism">volunteer_activism</span>
+<span class="font-['Rubik'] text-[0.6rem] uppercase tracking-wider font-bold">Serve</span>
+</a>
+</nav>
+</body></html>

@@ -19,7 +19,7 @@ export default function ProfileCard({
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="card-title font-bold">My Profile</h2>
-          <p className="text-sm text-[var(--gather-muted)]">Update your name and view your role.</p>
+          <p className="text-sm text-[var(--text-muted)]">Update your name and view your role.</p>
         </div>
         <button
           type="button"
@@ -32,7 +32,7 @@ export default function ProfileCard({
       </div>
       <div className="mt-4 grid gap-3">
         <div className="grid gap-1">
-          <p className="text-xs uppercase tracking-[0.2em] text-[var(--gather-muted)]">Name</p>
+          <p className="text-xs uppercase tracking-[0.2em] text-[var(--text-muted)]">Name</p>
           <input
             type="text"
             placeholder="Full name"
@@ -42,17 +42,17 @@ export default function ProfileCard({
           />
         </div>
         <div className="grid gap-1">
-          <p className="text-xs uppercase tracking-[0.2em] text-[var(--gather-muted)]">Email</p>
+          <p className="text-xs uppercase tracking-[0.2em] text-[var(--text-muted)]">Email</p>
           <input
             type="email"
             placeholder="Email"
-            className="input input-bordered w-full bg-[var(--surface-2)]/60 text-[var(--gather-muted)]"
+            className="input input-bordered w-full bg-[var(--surface-2)]/60 text-[var(--text-muted)]"
             value={email}
             readOnly
           />
         </div>
       </div>
-      <div className="mt-4 grid gap-2 text-sm text-[var(--gather-muted)]">
+      <div className="mt-4 grid gap-2 text-sm text-[var(--text-muted)]">
         <span className="badge w-fit">Role: {roleLabel}</span>
         <p>Your role determines what you can manage in this church.</p>
       </div>

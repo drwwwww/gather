@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Database, ServicePlanStatus } from "@gather/lib";
+import type { ServicePlanStatus } from "@gather/lib";
 import { Button } from "../ui/button";
 
 export type PlanItemDraft = {
@@ -8,17 +8,16 @@ export type PlanItemDraft = {
   duration_minutes: number | null;
   notes: string;
   owner_role_id: string | null;
+  assigned_user_id: string | null;
+  backup_user_id: string | null;
   status: ServicePlanStatus;
 };
-
-type RoleRow = Database["public"]["Tables"]["volunteer_roles"]["Row"];
 
 const statusOptions: ServicePlanStatus[] = ["PLANNED", "DONE", "SKIPPED"];
 
 export default function ServicePlanStepRow({
   item,
   index,
-  roles,
   autoFocus,
   onChange,
   onMove,
@@ -26,7 +25,6 @@ export default function ServicePlanStepRow({
 }: {
   item: PlanItemDraft;
   index: number;
-  roles: RoleRow[];
   autoFocus?: boolean;
   onChange: (patch: Partial<PlanItemDraft>) => void;
   onMove: (direction: "up" | "down") => void;
@@ -38,15 +36,15 @@ export default function ServicePlanStepRow({
     <div
       className="rounded-xl border p-4"
       style={{
-        background: 'var(--gather-surface)',
-        borderColor: 'var(--gather-border)',
-        color: 'var(--gather-ink)'
+        background: 'var(--surface)',
+        borderColor: 'var(--border)',
+        color: 'var(--text-primary)'
       }}
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div
           className="flex items-center gap-2 text-xs uppercase tracking-[0.2em]"
-          style={{ color: 'var(--gather-muted)' }}
+          style={{ color: 'var(--text-muted)' }}
         >
           <span>Step {index + 1}</span>
         </div>
@@ -74,11 +72,11 @@ export default function ServicePlanStepRow({
           </button>
         </div>
       </div>
-      <div className="mt-3 grid gap-3 lg:grid-cols-[2fr_1fr_1fr]">
+      <div className="mt-3 grid gap-3 lg:grid-cols-[2fr_1fr]">
         <div>
           <label
             className="text-xs uppercase tracking-[0.2em]"
-            style={{ color: 'var(--gather-muted)' }}
+            style={{ color: 'var(--text-muted)' }}
           >
             Title
           </label>
@@ -93,7 +91,7 @@ export default function ServicePlanStepRow({
         <div>
           <label
             className="text-xs uppercase tracking-[0.2em]"
-            style={{ color: 'var(--gather-muted)' }}
+            style={{ color: 'var(--text-muted)' }}
           >
             Duration (min)
           </label>
@@ -108,46 +106,21 @@ export default function ServicePlanStepRow({
             className="input input-bordered w-full"
           />
         </div>
-        <div>
-          <label
-            className="text-xs uppercase tracking-[0.2em]"
-            style={{ color: 'var(--gather-muted)' }}
-          >
-            Owner role
-          </label>
-          <select
-            className="select select-bordered w-full"
-            style={{
-              background: 'var(--gather-surface)',
-              borderColor: 'var(--gather-border)',
-              color: 'var(--gather-ink)'
-            }}
-            value={item.owner_role_id ?? ""}
-            onChange={(event) => onChange({ owner_role_id: event.target.value || null })}
-          >
-            <option value="">Unassigned</option>
-            {roles.map((role) => (
-              <option key={role.id} value={role.id}>
-                {role.name}
-              </option>
-            ))}
-          </select>
-        </div>
       </div>
       <div className="mt-3 grid gap-3 lg:grid-cols-[1fr_auto]">
         <div>
           <label
             className="text-xs uppercase tracking-[0.2em]"
-            style={{ color: 'var(--gather-muted)' }}
+            style={{ color: 'var(--text-muted)' }}
           >
             Status
           </label>
           <select
             className="select select-bordered w-full"
             style={{
-              background: 'var(--gather-surface)',
-              borderColor: 'var(--gather-border)',
-              color: 'var(--gather-ink)'
+              background: 'var(--surface)',
+              borderColor: 'var(--border)',
+              color: 'var(--text-primary)'
             }}
             value={item.status}
             onChange={(event) => onChange({ status: event.target.value as ServicePlanStatus })}
@@ -167,7 +140,7 @@ export default function ServicePlanStepRow({
       </div>
       {notesOpen ? (
         <div className="mt-3">
-          <label className="text-xs uppercase tracking-[0.2em]" style={{ color: 'var(--gather-muted)' }}>Notes</label>
+          <label className="text-xs uppercase tracking-[0.2em]" style={{ color: 'var(--text-muted)' }}>Notes</label>
           <textarea
             className="textarea textarea-bordered w-full mt-1"
             rows={3}

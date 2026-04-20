@@ -11,7 +11,7 @@ export default function SecurityCard({
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="card-title font-bold">Security</h2>
-          <p className="text-sm text-[var(--gather-muted)]">Manage your login settings.</p>
+          <p className="text-sm text-[var(--text-muted)]">Manage your login settings.</p>
         </div>
       </div>
       <div className="mt-6 flex flex-wrap gap-3">

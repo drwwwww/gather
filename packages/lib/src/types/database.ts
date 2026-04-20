@@ -15,7 +15,7 @@ export type Database = {
       profiles: {
         Row: {
           id: string;
-          church_id: string;
+          church_id: string | null;
           full_name: string | null;
           email: string | null;
           role: Role;
@@ -24,7 +24,7 @@ export type Database = {
         };
         Insert: {
           id: string;
-          church_id: string;
+          church_id?: string | null;
           full_name?: string | null;
           email?: string | null;
           role?: Role;
@@ -32,6 +32,7 @@ export type Database = {
           created_at?: string;
         };
         Update: {
+          church_id?: string | null;
           full_name?: string | null;
           email?: string | null;
           role?: Role;
@@ -79,6 +80,7 @@ export type Database = {
           service_time_id: string;
           role_id: string;
           assigned_user_id: string | null;
+          backup_user_id: string | null;
           status: AssignmentStatus;
           notes: string | null;
           scheduled_date: string;
@@ -90,6 +92,7 @@ export type Database = {
           service_time_id: string;
           role_id: string;
           assigned_user_id?: string | null;
+          backup_user_id?: string | null;
           status?: AssignmentStatus;
           notes?: string | null;
           scheduled_date: string;
@@ -97,6 +100,7 @@ export type Database = {
         };
         Update: {
           assigned_user_id?: string | null;
+          backup_user_id?: string | null;
           status?: AssignmentStatus;
           notes?: string | null;
         };
@@ -265,7 +269,10 @@ export type Database = {
           duration_minutes: number | null;
           notes: string;
           owner_role_id: string | null;
+          assigned_user_id: string | null;
+          backup_user_id: string | null;
           status: ServicePlanStatus;
+          assignment_status: AssignmentStatus;
           created_at: string;
         };
         Insert: {
@@ -276,7 +283,10 @@ export type Database = {
           duration_minutes?: number | null;
           notes?: string;
           owner_role_id?: string | null;
+          assigned_user_id?: string | null;
+          backup_user_id?: string | null;
           status?: ServicePlanStatus;
+          assignment_status?: AssignmentStatus;
           created_at?: string;
         };
         Update: {
@@ -285,12 +295,51 @@ export type Database = {
           duration_minutes?: number | null;
           notes?: string;
           owner_role_id?: string | null;
+          assigned_user_id?: string | null;
+          backup_user_id?: string | null;
           status?: ServicePlanStatus;
+          assignment_status?: AssignmentStatus;
+        };
+      };
+      service_plan_role_slots: {
+        Row: {
+          id: string;
+          plan_id: string;
+          role_id: string;
+          sort_order: number;
+          assigned_user_id: string | null;
+          backup_user_id: string | null;
+          status: AssignmentStatus;
+          notes: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          plan_id: string;
+          role_id: string;
+          sort_order?: number;
+          assigned_user_id?: string | null;
+          backup_user_id?: string | null;
+          status?: AssignmentStatus;
+          notes?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          role_id?: string;
+          sort_order?: number;
+          assigned_user_id?: string | null;
+          backup_user_id?: string | null;
+          status?: AssignmentStatus;
+          notes?: string | null;
         };
       };
     };
     Views: {};
     Functions: {
+      admin_remove_member_from_church: {
+        Args: { p_user_id: string };
+        Returns: undefined;
+      };
       bootstrap_church: {
         Args: { p_name: string; p_slug: string; p_timezone: string };
         Returns: string;

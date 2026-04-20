@@ -5,13 +5,13 @@ import { useParams, useRouter } from "next/navigation";
 import AdminHeader from "../../../../../components/admin/AdminHeader";
 import PageLoader from "../../../../../components/ui/PageLoader";
 import PresetEditor from "../../../../../components/servicePresets/PresetEditor";
+import { PageGrid, PageGridFull } from "../../../../../components/layout/PageGrid";
 import { getCurrentContext } from "../../../../../lib/supabaseData";
 import { supabase } from "../../../../../lib/supabaseClient";
 import type { Database } from "@gather/lib";
 
 type ServicePreset = Database["public"]["Tables"]["service_presets"]["Row"];
 type ServiceTime = Database["public"]["Tables"]["service_times"]["Row"];
-type RoleRow = Database["public"]["Tables"]["volunteer_roles"]["Row"];
 type PresetItemRow = Database["public"]["Tables"]["service_preset_items"]["Row"];
 
 type PresetItem = {
@@ -36,7 +36,6 @@ export default function ServicePresetEditorPage() {
   const presetId = params?.presetId;
   const [preset, setPreset] = useState<ServicePreset | null>(null);
   const [serviceTimes, setServiceTimes] = useState<ServiceTime[]>([]);
-  const [roles, setRoles] = useState<RoleRow[]>([]);
   const [items, setItems] = useState<PresetItem[]>([]);
   const [status, setStatus] = useState<PageState>("loading");
   const [saving, setSaving] = useState(false);
@@ -47,10 +46,9 @@ export default function ServicePresetEditorPage() {
 
   const loadPreset = async (churchId: string) => {
     if (!supabase || !presetId) return;
-    const [{ data: presetData, error: presetError }, { data: itemData, error: itemError }, { data: roleData }] = await Promise.all([
+    const [{ data: presetData, error: presetError }, { data: itemData, error: itemError }] = await Promise.all([
       supabase.from("service_presets").select("*").eq("id", presetId).single(),
-      supabase.from("service_preset_items").select("*").eq("preset_id", presetId).order("position"),
-      supabase.from("volunteer_roles").select("*").eq("church_id", churchId).order("name")
+      supabase.from("service_preset_items").select("*").eq("preset_id", presetId).order("position")
     ]);
 
     if (presetError || !presetData) {
@@ -69,7 +67,6 @@ export default function ServicePresetEditorPage() {
     }
 
     setPreset(presetData);
-    setRoles(roleData ?? []);
     setItems(
       (itemData ?? []).map((item: PresetItemRow) => ({
         id: item.id,
@@ -200,7 +197,17 @@ export default function ServicePresetEditorPage() {
   };
 
   if (status === "loading") {
-    return <PageLoader message="Loading preset..." />;
+    return (
+      <PageGrid className="animate-pulse-subtle">
+        <PageGridFull className="space-y-4">
+          <div className="h-8 w-48 rounded-md bg-[var(--surface-2)]" />
+          <div className="h-4 w-64 rounded-md bg-[var(--surface-2)]" />
+        </PageGridFull>
+        <PageGridFull>
+          <div className="card h-[600px] bg-[var(--surface)]" />
+        </PageGridFull>
+      </PageGrid>
+    );
   }
 
   if (status === "restricted") {
@@ -213,25 +220,28 @@ export default function ServicePresetEditorPage() {
   }
 
   return (
-    <>
-      <AdminHeader
-        title={title}
-        subtitle="Define the ordered steps for this run of show."
-      />
-      <PresetEditor
-        preset={preset}
-        serviceTimes={serviceTimes}
-        roles={roles}
-        items={items}
-        onPresetChange={handlePresetChange}
-        onItemsChange={setItems}
-        onAddItem={handleAddItem}
-        onDeleteItem={handleDeleteItem}
-        onSave={handleSave}
-        onSetDefault={preset?.is_default ? undefined : handleSetDefault}
-        saving={saving}
-        error={error}
-      />
-    </>
+    <PageGrid>
+      <PageGridFull className="animate-fade-in-up">
+        <AdminHeader
+          title={title}
+          subtitle="Define the ordered steps for this run of show."
+        />
+      </PageGridFull>
+      <PageGridFull className="animate-fade-in-up [animation-delay:100ms] opacity-0">
+        <PresetEditor
+          preset={preset}
+          serviceTimes={serviceTimes}
+          items={items}
+          onPresetChange={handlePresetChange}
+          onItemsChange={setItems}
+          onAddItem={handleAddItem}
+          onDeleteItem={handleDeleteItem}
+          onSave={handleSave}
+          onSetDefault={preset?.is_default ? undefined : handleSetDefault}
+          saving={saving}
+          error={error}
+        />
+      </PageGridFull>
+    </PageGrid>
   );
 }

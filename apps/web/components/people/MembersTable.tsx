@@ -1,6 +1,7 @@
 "use client";
 
-import { useRef, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import { Users } from "lucide-react";
 import type { Role } from "@gather/lib";
 import Badge from "../ui/Badge";
 
@@ -24,8 +25,8 @@ type MembersTableProps = {
   onToggleStatus: (memberId: string, disabled: boolean) => void;
   onViewDetails: (memberId: string) => void;
   onCopyInvite: (memberId: string) => void;
-  onGenerateSchedule: () => void;
-  onCopyLast: () => void;
+  onRemoveFromChurch: (memberId: string) => void;
+  onRemoveInvite: (memberId: string) => void;
   error?: string | null;
 };
 
@@ -42,20 +43,19 @@ export default function MembersTable({
   onToggleStatus,
   onViewDetails,
   onCopyInvite,
-  onGenerateSchedule,
-  onCopyLast,
+  onRemoveFromChurch,
+  onRemoveInvite,
   error
 }: MembersTableProps) {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [openRoleMenuId, setOpenRoleMenuId] = useState<string | null>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
-  const roleMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      const target = e.target as Node;
-      if (menuRef.current && !menuRef.current.contains(target)) setOpenMenuId(null);
-      if (roleMenuRef.current && !roleMenuRef.current.contains(target)) setOpenRoleMenuId(null);
+      const target = e.target;
+      if (!(target instanceof Element)) return;
+      if (!target.closest("[data-members-role-menu]")) setOpenRoleMenuId(null);
+      if (!target.closest("[data-members-actions-menu]")) setOpenMenuId(null);
     };
     if (openMenuId || openRoleMenuId) {
       document.addEventListener("click", handleClickOutside);
@@ -63,35 +63,61 @@ export default function MembersTable({
     }
   }, [openMenuId, openRoleMenuId]);
 
+  const confirmRemoveFromChurch = (memberId: string, label: string) => {
+    if (
+      typeof window !== "undefined" &&
+      window.confirm(`Remove ${label} from this church? They can rejoin later with your church code.`)
+    ) {
+      onRemoveFromChurch(memberId);
+    }
+    setOpenMenuId(null);
+  };
+
+  const confirmRemoveInvite = (memberId: string, label: string) => {
+    if (typeof window !== "undefined" && window.confirm(`Remove the invite for ${label}?`)) {
+      onRemoveInvite(memberId);
+    }
+    setOpenMenuId(null);
+  };
+
   return (
-    <div className="card shadow-sm p-5">
-      <div className="flex items-center justify-between">
-        <div className="card-title">Members</div>
-        <span className="text-xs text-base-content/60">{members.length} total</span>
+    <div className="card shadow-sm p-5 min-w-0">
+      <div className="flex items-center justify-between gap-2 min-w-0">
+        <div className="card-title shrink-0">Members</div>
+        <span className="text-xs text-base-content/60 shrink-0">{members.length} total</span>
       </div>
 
       {error ? <p className="mt-3 text-sm text-error">{error}</p> : null}
 
-      <div className="mt-5 overflow-visible rounded-xl">
-        <table className="table">
+      <div className="mt-5 min-w-0 rounded-xl">
+        <table className="table table-fixed w-full min-w-0">
+          <colgroup>
+            <col style={{ width: "20%" }} />
+            <col style={{ width: "30%" }} />
+            <col style={{ width: "22%" }} />
+            <col style={{ width: "14%" }} />
+            <col style={{ width: "14%" }} />
+          </colgroup>
           <thead>
             <tr>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Role</th>
-              <th>Status</th>
-              <th>Actions</th>
+              <th className="min-w-0">Name</th>
+              <th className="min-w-0">Email</th>
+              <th className="min-w-0">Role</th>
+              <th className="min-w-0">Status</th>
+              <th className="min-w-0 text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
             {members.length === 0 ? (
               <tr>
-                <td colSpan={5} className="text-center text-sm text-[var(--gather-muted)]">
-                  <div className="space-y-2">
-                    <p>No members found.</p>
-                    <div className="flex flex-wrap justify-center gap-2">
-                      <button className="btn btn-sm btn-primary" onClick={onGenerateSchedule}>Generate schedule</button>
-                      <button className="btn btn-sm btn-outline" onClick={onCopyLast}>Copy last service</button>
+                <td colSpan={5} className="p-0 border-0">
+                  <div className="flex flex-col items-center justify-center gap-3 rounded-b-xl border-t-0 bg-[var(--surface)] px-6 py-12 text-center">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--surface-2)]">
+                      <Users className="h-5 w-5" style={{ color: "var(--text-muted)" }} />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>No members found</p>
+                      <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>Invite people to join your church.</p>
                     </div>
                   </div>
                 </td>
@@ -99,25 +125,33 @@ export default function MembersTable({
             ) : (
               members.map((member) => (
                 <tr key={member.id} className={member.disabled ? "opacity-60" : ""}>
-                  <td>
+                  <td className="min-w-0 align-middle">
                     <button
                       type="button"
-                      className="text-left font-medium text-base-content hover:underline"
+                      className="block max-w-full truncate text-left font-medium text-base-content hover:underline"
+                      title={member.name || "(No name)"}
                       onClick={() => onViewDetails(member.id)}
                     >
                       {member.name || "(No name)"}
                     </button>
                   </td>
-                  <td>{member.email}</td>
-                  <td className="relative">
+                  <td className="min-w-0 align-middle">
+                    <span className="block max-w-full truncate text-sm" title={member.email}>
+                      {member.email}
+                    </span>
+                  </td>
+                  <td className="relative min-w-0 align-middle">
                     {member.source === "invite" ? (
-                      <span className="text-xs text-base-content/60">{member.role}</span>
+                      <span
+                        className="inline-flex h-7 min-w-[7.5rem] items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-3 text-xs font-semibold leading-none whitespace-nowrap text-[var(--text-primary)]"
+                      >
+                        {member.role}
+                      </span>
                     ) : (
-                      <div ref={roleMenuRef} className="relative inline-block">
+                      <div data-members-role-menu className="relative inline-block shrink-0">
                         <button
                           type="button"
-                          className="select select-bordered select-sm flex min-w-[100px] items-center justify-between gap-2"
-                          style={{ borderRadius: "var(--radius-box)" }}
+                          className="inline-flex h-7 min-w-[7.5rem] items-center justify-between gap-2 rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-3 text-xs font-semibold leading-none whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed"
                           onClick={(e) => {
                             e.stopPropagation();
                             if (!member.isCurrentUser) setOpenRoleMenuId((id) => (id === member.id ? null : member.id));
@@ -127,13 +161,13 @@ export default function MembersTable({
                           aria-haspopup="listbox"
                         >
                           <span>{member.role}</span>
-                          <svg className="h-3.5 w-3.5 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="h-3.5 w-3.5 shrink-0 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                           </svg>
                         </button>
                         {openRoleMenuId === member.id ? (
                           <ul
-                            className="dropdown-menu absolute left-0 top-full mt-2 flex min-w-[100px] flex-col gap-0.5 p-2"
+                            className="dropdown-menu absolute left-0 top-full z-50 mt-2 flex min-w-[100px] flex-col gap-0.5 p-2"
                             role="listbox"
                           >
                             {roleOptions.map((role) => (
@@ -155,14 +189,14 @@ export default function MembersTable({
                       </div>
                     )}
                   </td>
-                  <td>
+                  <td className="min-w-0 align-middle">
                     <Badge variant={statusVariant[member.status]}>{member.status}</Badge>
                   </td>
-                  <td className="relative">
-                    <div ref={menuRef} className="relative inline-block">
+                  <td className="relative min-w-0 align-middle text-right">
+                    <div data-members-actions-menu className="relative inline-flex justify-end">
                       <button
                         type="button"
-                        className="btn btn-ghost btn-sm btn-square"
+                        className="btn btn-ghost btn-sm btn-square shrink-0"
                         onClick={(e) => {
                           e.stopPropagation();
                           setOpenMenuId((id) => (id === member.id ? null : member.id));
@@ -173,23 +207,92 @@ export default function MembersTable({
                         &#x22EF;
                       </button>
                       {openMenuId === member.id ? (
-                        <ul className="dropdown-menu absolute right-0 top-full mt-2 flex w-48 flex-col gap-0.5 p-2" role="menu">
+                        <ul
+                          className="dropdown-menu absolute right-0 top-full z-50 mt-2 flex w-52 flex-col gap-0.5 p-2"
+                          role="menu"
+                        >
                           <li role="none" className="list-none">
-                            <button type="button" role="menuitem" className="dropdown-menu-item" onClick={() => { onViewDetails(member.id); setOpenMenuId(null); }}>View</button>
+                            <button
+                              type="button"
+                              role="menuitem"
+                              className="dropdown-menu-item"
+                              onClick={() => {
+                                onViewDetails(member.id);
+                                setOpenMenuId(null);
+                              }}
+                            >
+                              View
+                            </button>
                           </li>
                           {member.source === "invite" ? (
-                            <li role="none" className="list-none">
-                              <button type="button" role="menuitem" className="dropdown-menu-item" onClick={() => { onCopyInvite(member.id); setOpenMenuId(null); }}>Copy invite</button>
-                            </li>
+                            <>
+                              <li role="none" className="list-none">
+                                <button
+                                  type="button"
+                                  role="menuitem"
+                                  className="dropdown-menu-item"
+                                  onClick={() => {
+                                    onCopyInvite(member.id);
+                                    setOpenMenuId(null);
+                                  }}
+                                >
+                                  Copy invite
+                                </button>
+                              </li>
+                              <li role="none" className="list-none">
+                                <button
+                                  type="button"
+                                  role="menuitem"
+                                  className="dropdown-menu-item text-error"
+                                  onClick={() => confirmRemoveInvite(member.id, member.email)}
+                                >
+                                  Remove invite
+                                </button>
+                              </li>
+                            </>
                           ) : (
-                            <li role="none" className="list-none">
-                              <button type="button" role="menuitem" className="dropdown-menu-item disabled:opacity-50 disabled:hover:bg-transparent" onClick={() => { onToggleStatus(member.id, !member.disabled); setOpenMenuId(null); }} disabled={member.isCurrentUser}>
-                                {member.disabled ? "Activate" : "Deactivate"}
-                              </button>
-                            </li>
+                            <>
+                              <li role="none" className="list-none">
+                                <button
+                                  type="button"
+                                  role="menuitem"
+                                  className="dropdown-menu-item disabled:opacity-50 disabled:hover:bg-transparent"
+                                  onClick={() => {
+                                    onToggleStatus(member.id, !member.disabled);
+                                    setOpenMenuId(null);
+                                  }}
+                                  disabled={member.isCurrentUser}
+                                >
+                                  {member.disabled ? "Activate" : "Deactivate"}
+                                </button>
+                              </li>
+                              <li role="none" className="list-none">
+                                <button
+                                  type="button"
+                                  role="menuitem"
+                                  className="dropdown-menu-item disabled:opacity-50 disabled:hover:bg-transparent"
+                                  onClick={() =>
+                                    confirmRemoveFromChurch(member.id, member.name || member.email)
+                                  }
+                                  disabled={member.isCurrentUser}
+                                >
+                                  Remove from church
+                                </button>
+                              </li>
+                            </>
                           )}
                           <li role="none" className="list-none">
-                            <button type="button" role="menuitem" className="dropdown-menu-item" onClick={() => { setOpenMenuId(null); window.location.href = "/volunteers"; }}>Scheduling</button>
+                            <button
+                              type="button"
+                              role="menuitem"
+                              className="dropdown-menu-item"
+                              onClick={() => {
+                                setOpenMenuId(null);
+                                window.location.href = "/volunteers";
+                              }}
+                            >
+                              Scheduling
+                            </button>
                           </li>
                         </ul>
                       ) : null}

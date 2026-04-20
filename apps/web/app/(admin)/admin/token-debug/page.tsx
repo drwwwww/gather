@@ -1,4 +1,7 @@
+"use client";
+
 import { useEffect, useState } from "react";
+import { PageGrid, PageGridFull } from "../../../../components/layout/PageGrid";
 
 function getTokenValues() {
   const root = document.documentElement;
@@ -14,12 +17,14 @@ function getTokenValues() {
 }
 
 export default function TokenDebugPage() {
-  const [tokens, setTokens] = useState({});
+  const [tokens, setTokens] = useState<Record<string, string>>({});
   useEffect(() => {
     setTokens(getTokenValues());
   }, []);
   return (
-    <div className="max-w-lg mx-auto mt-12 p-8 rounded-xl shadow-lg bg-[var(--surface)]">
+    <PageGrid>
+      <PageGridFull>
+    <div className="max-w-lg mx-auto w-full p-8 rounded-xl shadow-lg bg-[var(--surface)]">
       <h2 className="text-xl font-bold mb-4 text-[var(--ink)]">Theme Token Debug</h2>
       <div className="mb-6">
         <button
@@ -46,5 +51,7 @@ export default function TokenDebugPage() {
         </tbody>
       </table>
     </div>
+      </PageGridFull>
+    </PageGrid>
   );
 }

@@ -41,7 +41,7 @@ export default function EventForm({
     <div className="card shadow-sm p-4">
       <div className="flex items-center justify-between">
         <div className="card-title">{isEditing ? "Edit Event" : "Create Event"}</div>
-        <span className="text-xs text-[var(--gather-muted)]">Keep it simple</span>
+        <span className="text-xs text-[var(--text-muted)]">Keep it simple</span>
       </div>
       <div className="mt-4 space-y-4">
         <input
@@ -53,24 +53,24 @@ export default function EventForm({
         />
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-2">
-            <label className="text-xs text-[var(--gather-muted)]">Start date</label>
+            <label className="text-xs text-[var(--text-muted)]">Start date</label>
             <input type="date" value={values.startDate} onChange={(event) => onChange({ startDate: event.target.value })} className="input input-bordered w-full" />
           </div>
           {!values.allDay ? (
             <div className="space-y-2">
-              <label className="text-xs text-[var(--gather-muted)]">Start time</label>
+              <label className="text-xs text-[var(--text-muted)]">Start time</label>
               <input type="time" value={values.startTime} onChange={(event) => onChange({ startTime: event.target.value })} className="input input-bordered w-full" />
             </div>
           ) : null}
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-2">
-            <label className="text-xs text-[var(--gather-muted)]">End date</label>
+            <label className="text-xs text-[var(--text-muted)]">End date</label>
             <input type="date" value={values.endDate} onChange={(event) => onChange({ endDate: event.target.value })} className="input input-bordered w-full" />
           </div>
           {!values.allDay ? (
             <div className="space-y-2">
-              <label className="text-xs text-[var(--gather-muted)]">End time</label>
+              <label className="text-xs text-[var(--text-muted)]">End time</label>
               <input type="time" value={values.endTime} onChange={(event) => onChange({ endTime: event.target.value })} className="input input-bordered w-full" />
             </div>
           ) : null}
@@ -101,7 +101,7 @@ export default function EventForm({
           />
         </div>
         <div className="space-y-2">
-          <label className="text-xs text-[var(--gather-muted)]">Audience</label>
+          <label className="text-xs text-[var(--text-muted)]">Audience</label>
           <select
             className="select select-bordered w-full"
             value={values.audience}
@@ -112,9 +112,9 @@ export default function EventForm({
             <option value="SERVICE">SERVICE</option>
             <option value="ADMIN">ADMIN</option>
           </select>
-          <p className="text-xs text-[var(--gather-muted)]">Events appear in the Gather member app under Events.</p>
+          <p className="text-xs text-[var(--text-muted)]">Events appear in the Gather member app under Events.</p>
         </div>
-        <p className="text-xs text-[var(--gather-muted)]">Times shown in {timezoneLabel || "your local timezone"}.</p>
+        <p className="text-xs text-[var(--text-muted)]">Times shown in {timezoneLabel || "your local timezone"}.</p>
         {error ? <p className="text-sm text-error">{error}</p> : null}
         <div className="flex flex-wrap gap-2">
           <button type="button" className="btn btn-primary" onClick={onSubmit} disabled={!canSubmit}>Save Event</button>
@@ -123,8 +123,8 @@ export default function EventForm({
           ) : null}
         </div>
         <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-[var(--gather-muted)]">Quick templates</p>
-          <div className="mt-2">
+          <p className="text-xs uppercase tracking-[0.2em] text-[var(--text-muted)]">Quick templates</p>
+          <div className="mt-2 w-full">
             <EventTemplates onSelect={onTemplateSelect} />
           </div>
         </div>

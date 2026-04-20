@@ -1,6 +1,22 @@
 import { parse, format } from "date-fns";
 // @ts-ignore: date-fns types may not be installed, but runtime import is correct
 
+/**
+ * Parse a YYYY-MM-DD string as a **local** date (avoids UTC-midnight offset
+ * that shifts `new Date("2026-04-07")` to Apr 6 in negative-offset timezones).
+ */
+function parseLocalDateString(value: string): Date {
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(year, (month ?? 1) - 1, day ?? 1);
+}
+
+/** Convert any date input to a Date, using local parsing for YYYY-MM-DD strings. */
+function toDate(value: Date | string): Date {
+  if (value instanceof Date) return value;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return parseLocalDateString(value);
+  return new Date(value);
+}
+
 export function formatFriendlyLocalDate(dateString: string) {
   if (!dateString) return "";
   const date = parse(dateString, "yyyy-MM-dd", new Date());
@@ -8,7 +24,7 @@ export function formatFriendlyLocalDate(dateString: string) {
 }
 export function formatWeekdayDateTime(value?: Date | string | null) {
   if (!value) return "Not scheduled";
-  const date = value instanceof Date ? value : new Date(value);
+  const date = toDate(value);
   if (Number.isNaN(date.getTime())) return "Not scheduled";
   const datePart = new Intl.DateTimeFormat("en-US", {
     weekday: "long",
@@ -24,7 +40,7 @@ export function formatWeekdayDateTime(value?: Date | string | null) {
 
 export function formatShortDateTime(value?: Date | string | null) {
   if (!value) return "";
-  const date = value instanceof Date ? value : new Date(value);
+  const date = toDate(value);
   if (Number.isNaN(date.getTime())) return "";
   const datePart = new Intl.DateTimeFormat("en-US", {
     month: "short",
@@ -39,7 +55,7 @@ export function formatShortDateTime(value?: Date | string | null) {
 
 export function formatShortDate(value?: Date | string | null) {
   if (!value) return "";
-  const date = value instanceof Date ? value : new Date(value);
+  const date = toDate(value);
   if (Number.isNaN(date.getTime())) return "";
   return new Intl.DateTimeFormat("en-US", {
     month: "short",
@@ -49,7 +65,7 @@ export function formatShortDate(value?: Date | string | null) {
 
 export function formatShortWeekdayDateTime(value?: Date | string | null) {
   if (!value) return "";
-  const date = value instanceof Date ? value : new Date(value);
+  const date = toDate(value);
   if (Number.isNaN(date.getTime())) return "";
   const datePart = new Intl.DateTimeFormat("en-US", {
     weekday: "short",
@@ -65,7 +81,7 @@ export function formatShortWeekdayDateTime(value?: Date | string | null) {
 
 export function formatFriendlyDate(value?: string) {
   if (!value) return "";
-  const date = new Date(value);
+  const date = toDate(value);
   if (Number.isNaN(date.getTime())) return value;
   return new Intl.DateTimeFormat("en-US", {
     weekday: "long",

@@ -5,11 +5,14 @@ type Church = Database["public"]["Tables"]["churches"]["Row"];
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type ServiceTime = Database["public"]["Tables"]["service_times"]["Row"];
 
+/** Profile row guaranteed to belong to a church (matches getCurrentContext return shape). */
+export type ProfileWithChurch = Profile & { church_id: string };
+
 type ProfilesById = Record<string, Profile>;
 
 type CurrentContext = {
   userId: string;
-  profile: Profile;
+  profile: ProfileWithChurch;
   church: Church;
   serviceTimes: ServiceTime[];
 };
@@ -37,10 +40,16 @@ export async function getCurrentContext(): Promise<CurrentContext | null> {
     return null;
   }
 
+  if (!profile.church_id) {
+    return null;
+  }
+
+  const churchId = profile.church_id;
+
   const { data: church, error: churchError } = await client
     .from("churches")
     .select("*")
-    .eq("id", profile.church_id)
+    .eq("id", churchId)
     .single();
 
   if (churchError || !church) {
@@ -50,14 +59,16 @@ export async function getCurrentContext(): Promise<CurrentContext | null> {
   const { data: serviceTimes, error: serviceError } = await client
     .from("service_times")
     .select("*")
-    .eq("church_id", profile.church_id)
+    .eq("church_id", churchId)
     .order("day_of_week", { ascending: true });
 
   if (serviceError) throw serviceError;
 
+  const profileWithChurch: ProfileWithChurch = { ...profile, church_id: churchId };
+
   return {
     userId: authData.user.id,
-    profile,
+    profile: profileWithChurch,
     church,
     serviceTimes: serviceTimes ?? []
   };

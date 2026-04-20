@@ -1,173 +1,349 @@
+import { useCallback, useState } from "react";
+import { View, Text, ScrollView, ActivityIndicator, TouchableOpacity, Image } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
+import { theme } from "../theme/theme";
+import { AppShell } from "../components/app/AppShell";
+import { StitchTabAppBar } from "../components/app/StitchTabAppBar";
+import { STITCH_PAD_H, stitchEditorialPanel, stitchPrimaryFixedBg, stitchRowShadowSoft } from "../theme/stitch";
+import { supabase } from "../supabase";
+import { useAuth } from "../context/AuthContext";
+import { Icon } from "../components/ui/Icon";
 
-import { View, Text, ScrollView, Image, TouchableOpacity } from "react-native";
-import { MaterialIcons } from '@expo/vector-icons';
-import { Button } from '../components/ui/Button';
-import { Card } from '../components/ui/Card';
-import { theme } from '../theme/theme';
-const Icon = (props) => <MaterialIcons {...props} />;
-import { AppShell } from '../components/app/AppShell';
+type EventPreview = {
+  id: string;
+  title: string;
+  location: string | null;
+  start_at: string;
+};
+
+function formatEventLine(iso: string, location: string | null): string {
+  let when = iso;
+  try {
+    when = new Date(iso).toLocaleString(undefined, { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  } catch {
+    /* keep raw */
+  }
+  const loc = location?.trim() || "TBD";
+  return `${when} • ${loc}`;
+}
+
+function calendarParts(iso: string): { month: string; day: string } {
+  try {
+    const d = new Date(iso);
+    return {
+      month: d.toLocaleString(undefined, { month: "short" }),
+      day: String(d.getDate()),
+    };
+  } catch {
+    return { month: "—", day: "—" };
+  }
+}
+
+const bentoShadow = {
+  shadowColor: "#F59E0B",
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.05,
+  shadowRadius: 20,
+  elevation: 2,
+};
 
 export default function HomeScreen({ navigation }: any) {
+  const { user, profile } = useAuth();
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [events, setEvents] = useState<EventPreview[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const refresh = useCallback(async () => {
+    const client = supabase;
+    if (!client || !user?.id || !profile?.church_id) {
+      setUnreadCount(0);
+      setEvents([]);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    const nowIso = new Date().toISOString();
+    const [notifRes, eventsRes] = await Promise.all([
+      client.from("notification_log").select("id", { count: "exact", head: true }).eq("user_id", user.id).is("read_at", null),
+      client
+        .from("events")
+        .select("id, title, location, start_at")
+        .eq("church_id", profile.church_id)
+        .eq("is_cancelled", false)
+        .gte("start_at", nowIso)
+        .order("start_at", { ascending: true })
+        .limit(3),
+    ]);
+    setUnreadCount(notifRes.count ?? 0);
+    setEvents((eventsRes.data as EventPreview[]) ?? []);
+    setLoading(false);
+  }, [user?.id, profile?.church_id]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void refresh();
+    }, [refresh])
+  );
+
+  const padH = STITCH_PAD_H;
+
   return (
     <AppShell>
-      <ScrollView style={{ flex: 1, backgroundColor: theme.colors.background }} contentContainerStyle={{ paddingBottom: 96 }}>
-        {/* Header Section */}
-        <View style={{ paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.xl, paddingBottom: theme.spacing.lg, backgroundColor: '#fff', borderBottomWidth: 1, borderColor: theme.colors.border, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 2, shadowOffset: { width: 0, height: 1 } }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <View style={{ width: 48, height: 48, borderRadius: 24, overflow: 'hidden', borderWidth: 2, borderColor: theme.colors.primary, marginRight: theme.spacing.md }}>
-              <Image source={{ uri: 'https://lh3.googleusercontent.com/aida-public/AB6AXuB6Aeozpn0AF5gZHEox4vCjyxP9HPPGEk4-RZwbR33chVDmjiRl_xIxKZ8ah3YL5jkgCLVpjGDyS5A_wxcgn4zBKSiDBYqinJFO04gBBLTMjlSkDyCt0-B0grPe0hnW4VG7JE3yKTRV_Yan-5y0uAe4ml6G_YbA9dg4NNFEQ7AGropuX1w8C5Ybycfm1Xty2ORyiXTtKhuYWTkpqctJwaccmmDGN5cE4mU99V-s2ThCgy1Rqpjn1tqXN8IYK12isoxB15Fb1EmJ9cvj' }} style={{ width: '100%', height: '100%' }} />
+      <ScrollView style={{ flex: 1, backgroundColor: theme.colors.background }} contentContainerStyle={{ paddingBottom: 120 }}>
+        <StitchTabAppBar
+          navigation={navigation}
+          rightAccessory={
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+              <TouchableOpacity
+                onPress={() => navigation.navigate("Notifications")}
+                style={{ position: "relative", padding: 10, borderRadius: 24, backgroundColor: theme.colors.surface2 }}
+                accessibilityLabel="Open notifications"
+              >
+                <Icon name="notifications" size={22} color={theme.colors.textSecondary} />
+                {unreadCount > 0 ? (
+                  <View
+                    style={{
+                      position: "absolute",
+                      top: 2,
+                      right: 2,
+                      minWidth: 18,
+                      height: 18,
+                      paddingHorizontal: unreadCount > 9 ? 5 : 0,
+                      backgroundColor: theme.colors.primary,
+                      borderRadius: 9,
+                      borderWidth: 2,
+                      borderColor: theme.colors.card,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Text style={{ fontSize: unreadCount > 99 ? 9 : 11, color: "#fff", fontWeight: "700" }}>
+                      {unreadCount > 99 ? "99+" : unreadCount}
+                    </Text>
+                  </View>
+                ) : null}
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => navigation.navigate("ProfileMenu")}
+                accessibilityLabel="Open profile menu"
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  overflow: "hidden",
+                  borderWidth: 2,
+                  borderColor: "rgba(255, 219, 184, 0.85)",
+                }}
+              >
+                <Image source={require("../../assets/logo.png")} style={{ width: "100%", height: "100%" }} resizeMode="cover" />
+              </TouchableOpacity>
             </View>
-            <View>
-              <Text style={{ fontSize: 14, color: theme.colors.muted, fontWeight: '500' }}>Good morning,</Text>
-              <Text style={{ fontSize: 20, fontWeight: 'bold', color: theme.colors.primaryText }}>Sarah Jenkins</Text>
+          }
+        />
+
+        <View style={{ paddingHorizontal: padH, marginTop: 24, marginBottom: 40 }}>
+          <View style={stitchEditorialPanel}>
+            <View style={{ position: "absolute", top: -48, right: -48, width: 192, height: 192, borderRadius: 96, backgroundColor: theme.colors.primary, opacity: 0.05 }} />
+            <View style={{ position: "relative", zIndex: 1 }}>
+              <Text
+                style={{
+                  fontFamily: theme.typography.fontFamily,
+                  fontSize: 12,
+                  fontWeight: theme.typography.fontWeight.bold as any,
+                  letterSpacing: 2,
+                  textTransform: "uppercase",
+                  color: theme.colors.primary,
+                  marginBottom: 24,
+                }}
+              >
+                Message of the Day
+              </Text>
+              <Text
+                style={{
+                  fontFamily: theme.typography.fontFamily,
+                  fontSize: 32,
+                  fontWeight: "300",
+                  fontStyle: "italic",
+                  lineHeight: 40,
+                  color: theme.colors.textSecondary,
+                  marginBottom: 24,
+                }}
+              >
+                &ldquo;Let all that you do be done in love.&rdquo;
+              </Text>
+              <Text
+                style={{
+                  fontFamily: theme.typography.fontFamily,
+                  fontSize: 14,
+                  fontWeight: "500",
+                  letterSpacing: 2,
+                  color: theme.colors.textPrimary,
+                  opacity: 0.6,
+                  textTransform: "uppercase",
+                }}
+              >
+                1 COR 16:14
+              </Text>
             </View>
           </View>
-          <TouchableOpacity style={{ position: 'relative', padding: 8, borderRadius: 24, backgroundColor: '#F5F5F4', borderWidth: 0 }}>
-            <MaterialIcons name="notifications-none" size={24} color="#78716C" />
-            <Icon name="notifications-none" size={24} color="#78716C" />
-            <View style={{ position: 'absolute', top: 4, right: 4, width: 10, height: 10, backgroundColor: theme.colors.primary, borderRadius: 5, borderWidth: 2, borderColor: '#fff' }} />
-          </TouchableOpacity>
         </View>
 
-        {/* Message of the Day Card */}
-        <View style={{ margin: theme.spacing.lg }}>
-          <View style={{ backgroundColor: '#fff', borderLeftWidth: 4, borderLeftColor: theme.colors.primary, borderRadius: theme.radii.xl, padding: theme.spacing.lg, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, shadowOffset: { width: 0, height: 2 }, position: 'relative' }}>
-            <View style={{ position: 'absolute', top: 0, right: 0, opacity: 0.1, padding: theme.spacing.md }}>
-              <Text style={{ fontFamily: 'MaterialIcons', fontSize: 48, color: theme.colors.primary }}>format_quote</Text>
-            </View>
-            <Text style={{ fontSize: 12, color: theme.colors.primary, fontWeight: 'bold', textTransform: 'uppercase', marginBottom: 8 }}>Message of the Day</Text>
-            <Text style={{ fontSize: 18, fontStyle: 'italic', color: theme.colors.primaryText, marginBottom: 4 }}>
-              "Let all that you do be done in love."
-            </Text>
-            <Text style={{ fontSize: 14, color: theme.colors.muted }}>— 1 Corinthians 16:14</Text>
-          </View>
-        </View>
-
-        {/* Quick Access Grid */}
-        <View style={{ marginHorizontal: theme.spacing.lg, marginBottom: theme.spacing.xl }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: theme.spacing.md }}>
-            <Text style={{ fontSize: 18, fontWeight: 'bold', color: theme.colors.primaryText }}>Quick Access</Text>
-            <TouchableOpacity>
-              <Text style={{ fontSize: 12, color: theme.colors.primary, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1 }}>See All</Text>
+        {/* Quick Access — `home/code.html` three-column bento */}
+        <View style={{ paddingHorizontal: padH, marginBottom: 40 }}>
+          <View style={{ flexDirection: "row", gap: 16 }}>
+            <TouchableOpacity
+              onPress={() => navigation.navigate("Members")}
+              style={{
+                flex: 1,
+                alignItems: "center",
+                justifyContent: "center",
+                paddingVertical: 24,
+                paddingHorizontal: 12,
+                backgroundColor: theme.colors.card,
+                borderRadius: theme.radii.lg,
+                ...bentoShadow,
+              }}
+            >
+              <View style={{ marginBottom: 12 }}>
+                <Icon name="members" size={30} color={theme.colors.primary} />
+              </View>
+              <Text style={{ fontFamily: theme.typography.fontFamily, fontSize: 14, fontWeight: "600", color: theme.colors.textPrimary }}>Members</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() =>
+                navigation.navigate("FeaturePlaceholder", {
+                  title: "Groups",
+                  subtitle: "Small groups and ministries will appear here when this feature is available.",
+                })
+              }
+              style={{
+                flex: 1,
+                alignItems: "center",
+                justifyContent: "center",
+                paddingVertical: 24,
+                paddingHorizontal: 12,
+                backgroundColor: theme.colors.card,
+                borderRadius: theme.radii.lg,
+                ...bentoShadow,
+              }}
+            >
+              <View style={{ marginBottom: 12 }}>
+                <Icon name="groups" size={30} color={theme.colors.primary} />
+              </View>
+              <Text style={{ fontFamily: theme.typography.fontFamily, fontSize: 14, fontWeight: "600", color: theme.colors.textPrimary }}>Groups</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => navigation.navigate("Events")}
+              style={{
+                flex: 1,
+                alignItems: "center",
+                justifyContent: "center",
+                paddingVertical: 24,
+                paddingHorizontal: 12,
+                backgroundColor: theme.colors.card,
+                borderRadius: theme.radii.lg,
+                ...bentoShadow,
+              }}
+            >
+              <View style={{ marginBottom: 12 }}>
+                <Icon name="calendar" size={30} color={theme.colors.primary} />
+              </View>
+              <Text style={{ fontFamily: theme.typography.fontFamily, fontSize: 14, fontWeight: "600", color: theme.colors.textPrimary }}>Calendar</Text>
             </TouchableOpacity>
           </View>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 0 }}>
-            <View style={{ width: '48%' }}>
-              <TouchableOpacity style={{ marginBottom: theme.spacing.md, backgroundColor: '#fff', borderRadius: theme.radii.xl, borderWidth: 1, borderColor: theme.colors.border, padding: theme.spacing.lg, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 2, shadowOffset: { width: 0, height: 1 } }}>
-                <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: theme.colors.primary + '33', alignItems: 'center', justifyContent: 'center', marginBottom: theme.spacing.sm }}>
-                  <MaterialIcons name="people" size={28} color={theme.colors.primary} />
-                    <Icon name="people" size={28} color={theme.colors.primary} />
-                </View>
-                <Text style={{ fontSize: 14, fontWeight: '600', color: theme.colors.primaryText }}>Members</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={{ marginBottom: theme.spacing.md, backgroundColor: '#fff', borderRadius: theme.radii.xl, borderWidth: 1, borderColor: theme.colors.border, padding: theme.spacing.lg, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 2, shadowOffset: { width: 0, height: 1 } }}>
-                <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: theme.colors.primary + '33', alignItems: 'center', justifyContent: 'center', marginBottom: theme.spacing.sm }}>
-                  <MaterialIcons name="groups" size={28} color={theme.colors.primary} />
-                    <Icon name="groups" size={28} color={theme.colors.primary} />
-                </View>
-                <Text style={{ fontSize: 14, fontWeight: '600', color: theme.colors.primaryText }}>Groups</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={{ width: '48%' }}>
-              <TouchableOpacity style={{ marginBottom: theme.spacing.md, backgroundColor: '#fff', borderRadius: theme.radii.xl, borderWidth: 1, borderColor: theme.colors.border, padding: theme.spacing.lg, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 2, shadowOffset: { width: 0, height: 1 } }}>
-                <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: theme.colors.primary + '33', alignItems: 'center', justifyContent: 'center', marginBottom: theme.spacing.sm }}>
-                  <MaterialIcons name="favorite" size={28} color={theme.colors.primary} />
-                    <Icon name="favorite" size={28} color={theme.colors.primary} />
-                </View>
-                <Text style={{ fontSize: 14, fontWeight: '600', color: theme.colors.primaryText }}>Donations</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={{ marginBottom: theme.spacing.md, backgroundColor: '#fff', borderRadius: theme.radii.xl, borderWidth: 1, borderColor: theme.colors.border, padding: theme.spacing.lg, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 2, shadowOffset: { width: 0, height: 1 } }}>
-                <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: theme.colors.primary + '33', alignItems: 'center', justifyContent: 'center', marginBottom: theme.spacing.sm }}>
-                  <MaterialIcons name="event" size={28} color={theme.colors.primary} />
-                    <Icon name="event" size={28} color={theme.colors.primary} />
-                </View>
-                <Text style={{ fontSize: 14, fontWeight: '600', color: theme.colors.primaryText }}>Calendar</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
         </View>
 
-        {/* Upcoming Events Section */}
-        <View style={{ marginHorizontal: theme.spacing.lg, marginBottom: theme.spacing.xl }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 16 }}>
-            <Text style={{ fontSize: 18, fontWeight: 'bold', color: theme.colors.primaryText }}>Upcoming Events</Text>
-            <TouchableOpacity style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: theme.colors.primary, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 4, shadowOffset: { width: 0, height: 2 } }}>
-              <MaterialIcons name="add" size={18} color="#fff" />
-                <Icon name="add" size={18} color="#fff" />
+        {/* Upcoming Events — dossier list rows */}
+        <View style={{ paddingHorizontal: padH, marginBottom: 40 }}>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 16, paddingHorizontal: 8 }}>
+            <Text style={{ fontFamily: theme.typography.fontFamily, fontSize: 22, fontWeight: "700", color: theme.colors.textPrimary, letterSpacing: -0.3 }}>Upcoming Events</Text>
+            <TouchableOpacity onPress={() => navigation.navigate("Events")}>
+              <Text style={{ fontFamily: theme.typography.fontFamily, fontSize: 14, fontWeight: "700", color: theme.colors.primary }}>See All</Text>
             </TouchableOpacity>
           </View>
-          <View style={{ marginBottom: 0 }}>
-            {/* Event Card 1 */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 18, borderWidth: 1, borderColor: '#E6D3B5', padding: 16, marginBottom: 16, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 2, shadowOffset: { width: 0, height: 1 } }}>
-              <View style={{ width: 56, height: 56, borderRadius: 14, backgroundColor: '#CACAAA22', alignItems: 'center', justifyContent: 'center', marginRight: 16 }}>
-                <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#78716C', textTransform: 'uppercase' }}>Oct</Text>
-                <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#2B241C', lineHeight: 24 }}>22</Text>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontWeight: 'bold', color: '#2B241C', fontSize: 16 }}>Sunday Morning Service</Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
-                  <MaterialIcons name="schedule" size={14} color="#7B735D" style={{ marginRight: 4 }} />
-                    <Icon name="schedule" size={14} color="#7B735D" style={{ marginRight: 4 }} />
-                  <Text style={{ fontSize: 12, color: '#7B735D' }}>9:00 AM • Main Hall</Text>
-                </View>
-              </View>
-              <TouchableOpacity style={{ padding: 8 }}>
-                <MaterialIcons name="chevron-right" size={24} color={theme.colors.primary} />
-                  <Icon name="chevron-right" size={24} color={theme.colors.primary} />
-              </TouchableOpacity>
+          {loading ? (
+            <ActivityIndicator size="small" color={theme.colors.primary} style={{ marginVertical: 16 }} />
+          ) : events.length === 0 ? (
+            <Text style={{ fontFamily: theme.typography.fontFamily, color: theme.colors.muted, marginBottom: 8 }}>No upcoming events scheduled.</Text>
+          ) : (
+            <View style={{ gap: 16 }}>
+              {events.map((event) => {
+                const { month, day } = calendarParts(event.start_at);
+                return (
+                  <TouchableOpacity
+                    key={event.id}
+                    onPress={() => navigation.navigate("EventDetail", { eventId: event.id })}
+                    activeOpacity={0.9}
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      backgroundColor: theme.colors.card,
+                      borderRadius: theme.radii.lg,
+                      padding: 20,
+                      ...stitchRowShadowSoft,
+                    }}
+                  >
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
+                      <View
+                        style={{
+                          width: 48,
+                          height: 48,
+                          borderRadius: 14,
+                          backgroundColor: stitchPrimaryFixedBg,
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <Text style={{ fontFamily: theme.typography.fontFamily, fontSize: 16, fontWeight: "700", color: theme.colors.primary }}>{day}</Text>
+                      </View>
+                      <View>
+                        <Text style={{ fontFamily: theme.typography.fontFamily, fontWeight: "700", fontSize: 16, color: theme.colors.textPrimary }}>{event.title}</Text>
+                        <Text style={{ fontFamily: theme.typography.fontFamily, fontSize: 14, color: theme.colors.textSecondary, marginTop: 2 }}>{formatEventLine(event.start_at, event.location)}</Text>
+                      </View>
+                    </View>
+                    <Icon name="chevronRight" size={22} color={theme.colors.textMuted} />
+                  </TouchableOpacity>
+                );
+              })}
             </View>
-            {/* Event Card 2 */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 18, borderWidth: 1, borderColor: '#E6D3B5', padding: 16, marginBottom: 16, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 2, shadowOffset: { width: 0, height: 1 } }}>
-              <View style={{ width: 56, height: 56, borderRadius: 14, backgroundColor: '#CACAAA22', alignItems: 'center', justifyContent: 'center', marginRight: 16 }}>
-                <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#78716C', textTransform: 'uppercase' }}>Oct</Text>
-                <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#2B241C', lineHeight: 24 }}>24</Text>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontWeight: 'bold', color: '#2B241C', fontSize: 16 }}>Youth Group Meetup</Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
-                  <MaterialIcons name="schedule" size={14} color="#7B735D" style={{ marginRight: 4 }} />
-                    <Icon name="schedule" size={14} color="#7B735D" style={{ marginRight: 4 }} />
-                  <Text style={{ fontSize: 12, color: '#7B735D' }}>6:30 PM • Basement Hub</Text>
-                </View>
-              </View>
-              <TouchableOpacity style={{ padding: 8 }}>
-                <MaterialIcons name="chevron-right" size={24} color={theme.colors.primary} />
-                  <Icon name="chevron-right" size={24} color={theme.colors.primary} />
-              </TouchableOpacity>
-            </View>
-            {/* Event Card 3 */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 18, borderWidth: 1, borderColor: '#E6D3B5', padding: 16, marginBottom: 16, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 2, shadowOffset: { width: 0, height: 1 } }}>
-              <View style={{ width: 56, height: 56, borderRadius: 14, backgroundColor: '#CACAAA22', alignItems: 'center', justifyContent: 'center', marginRight: 16 }}>
-                <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#78716C', textTransform: 'uppercase' }}>Oct</Text>
-                <Text style={{ fontSize: 22, fontWeight: 'bold', color: '#2B241C', lineHeight: 24 }}>27</Text>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontWeight: 'bold', color: '#2B241C', fontSize: 16 }}>Food Drive</Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
-                  <MaterialIcons name="schedule" size={14} color="#7B735D" style={{ marginRight: 4 }} />
-                    <Icon name="schedule" size={14} color="#7B735D" style={{ marginRight: 4 }} />
-                  <Text style={{ fontSize: 12, color: '#7B735D' }}>10:00 AM • Community Plaza</Text>
-                </View>
-              </View>
-              <TouchableOpacity style={{ padding: 8 }}>
-                <MaterialIcons name="chevron-right" size={24} color={theme.colors.primary} />
-                  <Icon name="chevron-right" size={24} color={theme.colors.primary} />
-              </TouchableOpacity>
-            </View>
-          </View>
+          )}
         </View>
 
-        {/* Attendance Stats Card */}
-        <View style={{ marginHorizontal: theme.spacing.lg, marginBottom: theme.spacing.xl }}>
-          <View style={{ backgroundColor: theme.colors.primary + '1A', borderRadius: theme.radii.xl, padding: theme.spacing.lg, borderWidth: 1, borderColor: theme.colors.primary + '33' }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing.sm }}>
-              <Text style={{ fontSize: 14, fontWeight: '600', color: theme.colors.primaryText }}>This Month's Attendance</Text>
-              <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.colors.primary }}>+12%</Text>
+        {/* Attendance — `surface-container` panel from dossier */}
+        <View style={{ paddingHorizontal: padH, marginBottom: 32 }}>
+          <View style={{ backgroundColor: "#EFEEEA", borderRadius: theme.radii.lg, padding: 32 }}>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 32 }}>
+              <View>
+                <Text style={{ fontFamily: theme.typography.fontFamily, fontSize: 20, fontWeight: "700", color: theme.colors.textPrimary, letterSpacing: -0.3 }}>Attendance</Text>
+                <Text style={{ fontFamily: theme.typography.fontFamily, fontSize: 14, color: theme.colors.textSecondary, marginTop: 4 }}>Trends this month</Text>
+              </View>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 999, backgroundColor: "rgba(245, 158, 11, 0.1)" }}>
+                <Icon name="trendingUp" size={14} color={theme.colors.primary} />
+                <Text style={{ fontFamily: theme.typography.fontFamily, fontSize: 14, fontWeight: "700", color: theme.colors.primary }}>+12%</Text>
+              </View>
             </View>
-            <View style={{ width: '100%', height: 8, borderRadius: 4, backgroundColor: '#E6D3B5', overflow: 'hidden', marginBottom: theme.spacing.sm }}>
-              <View style={{ width: '80%', height: '100%', backgroundColor: theme.colors.primary, borderRadius: 4 }} />
+            <View style={{ flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", height: 128, paddingHorizontal: 8, gap: 8 }}>
+              {[0.4, 0.65, 0.55, 0.85, 0.7, 0.95].map((h, i) => (
+                <View
+                  key={i}
+                  style={{
+                    flex: 1,
+                    height: Math.round(120 * h),
+                    borderTopLeftRadius: 12,
+                    borderTopRightRadius: 12,
+                    backgroundColor: i === 5 ? theme.colors.primary : stitchPrimaryFixedBg,
+                  }}
+                />
+              ))}
             </View>
-            <Text style={{ fontSize: 10, color: theme.colors.muted, textAlign: 'center', fontStyle: 'italic', marginTop: theme.spacing.sm }}>Goal: 500 Active Members</Text>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 16, paddingHorizontal: 8 }}>
+              {["Wk 1", "Wk 2", "Wk 3", "Wk 4", "Wk 5", "Now"].map((label) => (
+                <Text key={label} style={{ fontFamily: theme.typography.fontFamily, fontSize: 10, fontWeight: "700", color: theme.colors.textSecondary, letterSpacing: 2, textTransform: "uppercase" }}>
+                  {label}
+                </Text>
+              ))}
+            </View>
           </View>
         </View>
       </ScrollView>

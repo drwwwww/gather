@@ -1,20 +1,22 @@
 import { StyleSheet } from "react-native";
+import { colors as c } from "./theme/tokens";
 
+/** Legacy alias map — values track apps/web/app/globals.css via tokens.ts */
 export const colors = {
-  background: "#F6F2E6",
-  surface: "#EFE1C9",
-  surfaceAlt: "#E6D3B5",
-  text: "#2B241C",
-  muted: "#7B735D",
-  primary: "#F0CA8F",
-  primaryText: "#2B241C",
-  outline: "#D9C9AE"
+  background: c.background,
+  surface: c.surface,
+  surfaceAlt: c.surface2,
+  text: c.textPrimary,
+  muted: c.textMuted,
+  primary: c.primary,
+  primaryText: c.primaryText,
+  outline: c.border
 };
 
 export const ui = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: c.background,
     padding: 20
   },
   header: {
@@ -23,20 +25,20 @@ export const ui = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: "600",
-    color: colors.text
+    color: c.textPrimary
   },
   subtitle: {
     marginTop: 4,
-    color: colors.muted
+    color: c.textMuted
   },
   card: {
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderRadius: 18,
     padding: 16,
     marginBottom: 12
   },
   cardAlt: {
-    backgroundColor: colors.surfaceAlt,
+    backgroundColor: c.surface2,
     borderRadius: 18,
     padding: 16,
     marginBottom: 12
@@ -44,16 +46,16 @@ export const ui = StyleSheet.create({
   cardTitle: {
     fontSize: 14,
     fontWeight: "600",
-    color: colors.text
+    color: c.textPrimary
   },
   cardValue: {
     marginTop: 6,
     fontSize: 20,
     fontWeight: "600",
-    color: colors.text
+    color: c.textPrimary
   },
   button: {
-    backgroundColor: colors.primary,
+    backgroundColor: c.primary,
     borderRadius: 14,
     paddingVertical: 12,
     paddingHorizontal: 14,
@@ -61,13 +63,17 @@ export const ui = StyleSheet.create({
     marginTop: 8
   },
   buttonText: {
-    color: colors.primaryText,
+    color: c.onPrimary,
+    fontWeight: "600"
+  },
+  buttonGhostText: {
+    color: c.textPrimary,
     fontWeight: "600"
   },
   buttonGhost: {
     backgroundColor: "transparent",
     borderWidth: 1,
-    borderColor: colors.outline,
+    borderColor: c.border,
     borderRadius: 14,
     paddingVertical: 12,
     paddingHorizontal: 14,
@@ -76,13 +82,13 @@ export const ui = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: colors.outline,
+    borderColor: c.border,
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    color: colors.text,
+    color: c.textPrimary,
     marginBottom: 12,
-    backgroundColor: "#FFF8EB"
+    backgroundColor: c.primarySoft
   },
   row: {
     flexDirection: "row",
@@ -93,11 +99,11 @@ export const ui = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 999,
-    backgroundColor: "#F9E2B6"
+    backgroundColor: c.primarySoft
   },
   badgeText: {
     fontSize: 12,
-    color: colors.text,
+    color: c.textPrimary,
     fontWeight: "600"
   }
 });

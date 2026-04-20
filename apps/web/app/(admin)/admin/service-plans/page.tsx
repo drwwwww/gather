@@ -1,16 +1,18 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "../../../../components/ui/button";
 import AdminHeader from "../../../../components/admin/AdminHeader";
-import PageLoader from "../../../../components/ui/PageLoader";
 import ServicePlanHeader from "../../../../components/servicePlans/ServicePlanHeader";
 import ServicePlanEmptyState from "../../../../components/servicePlans/ServicePlanEmptyState";
 import ServicePlanStepsEditor from "../../../../components/servicePlans/ServicePlanStepsEditor";
+import ServicePlanRoleSlotsSection from "../../../../components/servicePlans/ServicePlanRoleSlotsSection";
 import CopyLastPlanButton from "../../../../components/servicePlans/CopyLastPlanButton";
 import GenerateFromPresetButton from "../../../../components/servicePlans/GenerateFromPresetButton";
+import { PageGrid, PageGridFull, PageGridRowTwoOne } from "../../../../components/layout/PageGrid";
+import RolesCard from "../../../../components/volunteers/RolesCard";
 import { getCurrentContext } from "../../../../lib/supabaseData";
 import { formatFriendlyLocalDate } from "../../../../lib/format";
 import { useToast } from "../../../../lib/toast";
@@ -21,8 +23,14 @@ import {
   fetchPresetItems,
   fetchPresetsWithCounts,
   fetchPreviousPlan,
+  fetchPlanRoleSlots,
   replacePlanItems,
+  replacePlanRoleSlots,
+  adjustPlanRoleSlotCount,
+  reindexPlanRoleSlots,
   type PlanItemDraft,
+  type PlanRoleSlotDraft,
+  type ServicePlanRoleSlot,
   type PresetWithCount,
   type ServicePlan,
   type ServicePlanItem,
@@ -46,7 +54,13 @@ const createLocalId = () => {
 export default function ServicePlansPage() {
   const [serviceTimes, setServiceTimes] = useState<ServiceTime[]>([]);
   const [serviceTimeId, setServiceTimeId] = useState("");
-  const [serviceDate, setServiceDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [serviceDate, setServiceDate] = useState(() => {
+    const d = new Date();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  });
   const [presets, setPresets] = useState<PresetWithCount[]>([]);
   const [selectedPresetId, setSelectedPresetId] = useState("");
   const [plan, setPlan] = useState<ServicePlan | null>(null);
@@ -59,6 +73,16 @@ export default function ServicePlansPage() {
   const [loadingPresets, setLoadingPresets] = useState(false);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [focusItemId, setFocusItemId] = useState<string | null>(null);
+  const [roleSlotDrafts, setRoleSlotDrafts] = useState<PlanRoleSlotDraft[]>([]);
+  const [members, setMembers] = useState<{ id: string; full_name: string | null; email: string | null }[]>([]);
+  // Role management
+  const [newRoleName, setNewRoleName] = useState("");
+  const [newRoleMinistry, setNewRoleMinistry] = useState("");
+  const [newRoleDescription, setNewRoleDescription] = useState("");
+  const [editingRoleId, setEditingRoleId] = useState<string | null>(null);
+  const [editRoleName, setEditRoleName] = useState("");
+  const [editRoleMinistry, setEditRoleMinistry] = useState("");
+  const [editRoleDescription, setEditRoleDescription] = useState("");
   const skipAutosaveRef = useRef(true);
   const saveTimerRef = useRef<number | null>(null);
   const router = useRouter();
@@ -87,6 +111,52 @@ export default function ServicePlansPage() {
     setRoles(data ?? []);
   };
 
+  const handleAddRole = async () => {
+    if (!supabase || !churchId) return;
+    const trimmed = newRoleName.trim();
+    if (!trimmed) return;
+    const { error } = await supabase.from("volunteer_roles").insert({
+      church_id: churchId,
+      name: trimmed,
+      description: newRoleDescription.trim() || null
+    });
+    if (error) { pushToast(error.message, "error"); return; }
+    setNewRoleName("");
+    setNewRoleMinistry("");
+    setNewRoleDescription("");
+    loadRoles(churchId);
+  };
+
+  const handleEditRole = (role: { id: string; name: string; ministryName?: string | null; description?: string | null }) => {
+    setEditingRoleId(role.id);
+    setEditRoleName(role.name);
+    setEditRoleMinistry(role.ministryName ?? "");
+    setEditRoleDescription(role.description ?? "");
+  };
+
+  const handleSaveRole = async () => {
+    if (!supabase || !editingRoleId || !churchId) return;
+    const trimmed = editRoleName.trim();
+    if (!trimmed) return;
+    const { error } = await supabase
+      .from("volunteer_roles")
+      .update({ name: trimmed, description: editRoleDescription.trim() || null })
+      .eq("id", editingRoleId);
+    if (error) { pushToast(error.message, "error"); return; }
+    setEditingRoleId(null);
+    setEditRoleName("");
+    setEditRoleMinistry("");
+    setEditRoleDescription("");
+    loadRoles(churchId);
+  };
+
+  const handleDeleteRole = async (roleId: string) => {
+    if (!supabase || !churchId) return;
+    const { error } = await supabase.from("volunteer_roles").delete().eq("id", roleId);
+    if (error) { pushToast(error.message, "error"); return; }
+    loadRoles(churchId);
+  };
+
   const loadPresets = async (activeChurchId: string, timeId: string) => {
     setLoadingPresets(true);
     try {
@@ -112,10 +182,12 @@ export default function ServicePlansPage() {
         setSelectedPresetId(planData.preset_id);
       }
       if (planData?.id) {
-        const items = await fetchPlanItems(planData.id);
+        const [items, slots] = await Promise.all([fetchPlanItems(planData.id), fetchPlanRoleSlots(planData.id)]);
         setPlanItems(mapPlanItems(items));
+        setRoleSlotDrafts(mapRoleSlotRows(slots));
       } else {
         setPlanItems([]);
+        setRoleSlotDrafts([]);
       }
     } catch (err) {
       pushToast(err instanceof Error ? err.message : "Unable to load plan.", "error");
@@ -157,11 +229,61 @@ export default function ServicePlansPage() {
   }, [router]);
 
   useEffect(() => {
+    if (!supabase || !churchId) {
+      setMembers([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, full_name, email")
+        .eq("church_id", churchId)
+        .eq("disabled", false)
+        .in("role", ["SERVICE", "ADMIN"])
+        .order("full_name", { ascending: true });
+      if (!cancelled && !error && data) {
+        setMembers(data);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [churchId]);
+
+  useEffect(() => {
     if (churchId && serviceTimeId) {
       loadPresets(churchId, serviceTimeId);
       loadPlan(churchId, serviceTimeId, serviceDate);
     }
   }, [churchId, serviceTimeId, serviceDate]);
+
+  const persistPlan = useCallback(
+    async (planId: string, options?: { notify?: boolean }) => {
+      if (!supabase) return;
+      setSaveState("saving");
+      try {
+        const { error: updateError } = await supabase
+          .from("service_plans")
+          .update({ title: planTitle.trim() || "Service Plan" })
+          .eq("id", planId);
+        if (updateError) {
+          throw new Error(updateError.message);
+        }
+        await replacePlanItems(planId, planItems);
+        await replacePlanRoleSlots(planId, roleSlotDrafts);
+        setSaveState("saved");
+        if (options?.notify) {
+          pushToast("Service plan saved.", "success");
+        }
+        window.setTimeout(() => setSaveState("idle"), 1500);
+      } catch {
+        setSaveState("error");
+        pushToast("Could not save changes. Try again.", "error");
+      }
+    },
+    [planTitle, planItems, roleSlotDrafts, pushToast]
+  );
 
   useEffect(() => {
     if (!plan || skipAutosaveRef.current) return;
@@ -169,14 +291,14 @@ export default function ServicePlansPage() {
       window.clearTimeout(saveTimerRef.current);
     }
     saveTimerRef.current = window.setTimeout(() => {
-      handleAutosave(plan.id);
+      void persistPlan(plan.id);
     }, 500);
     return () => {
       if (saveTimerRef.current) {
         window.clearTimeout(saveTimerRef.current);
       }
     };
-  }, [plan, planTitle, planItems]);
+  }, [plan, planTitle, planItems, roleSlotDrafts, persistPlan]);
 
   useEffect(() => {
     if (!focusItemId) return;
@@ -184,25 +306,14 @@ export default function ServicePlansPage() {
     return () => window.clearTimeout(timer);
   }, [focusItemId]);
 
-  const handleAutosave = async (planId: string) => {
-    if (!supabase) return;
-    setSaveState("saving");
-    try {
-      const { error: updateError } = await supabase
-        .from("service_plans")
-        .update({ title: planTitle.trim() || "Service Plan" })
-        .eq("id", planId);
-      if (updateError) {
-        throw new Error(updateError.message);
-      }
-      await replacePlanItems(planId, planItems);
-      setSaveState("saved");
-      window.setTimeout(() => setSaveState("idle"), 1500);
-    } catch (err) {
-      setSaveState("error");
-      pushToast("Could not save changes. Try again.", "error");
+  const handleSavePlanNow = useCallback(async () => {
+    if (!plan) return;
+    if (saveTimerRef.current) {
+      window.clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
     }
-  };
+    await persistPlan(plan.id, { notify: true });
+  }, [plan, persistPlan]);
 
   const handleGenerateFromPreset = async () => {
     if (!churchId || !serviceTimeId || !selectedPresetId) return;
@@ -233,6 +344,8 @@ export default function ServicePlansPage() {
         duration_minutes: item.duration_minutes,
         notes: item.notes ?? "",
         owner_role_id: item.owner_role_id,
+        assigned_user_id: null as string | null,
+        backup_user_id: null as string | null,
         status: "PLANNED" as ServicePlanStatus
       }));
 
@@ -267,6 +380,17 @@ export default function ServicePlansPage() {
 
       const draftItems = mapPlanItems(previousItems);
       await replacePlanItems(activePlan.id, draftItems);
+      const previousSlots: ServicePlanRoleSlot[] = await fetchPlanRoleSlots(previousPlan.id);
+      const slotDrafts: PlanRoleSlotDraft[] = previousSlots.map((s) => ({
+        id: createLocalId(),
+        role_id: s.role_id,
+        sort_order: s.sort_order,
+        assigned_user_id: s.assigned_user_id,
+        backup_user_id: s.backup_user_id,
+        status: s.status,
+        notes: s.notes ?? ""
+      }));
+      await replacePlanRoleSlots(activePlan.id, slotDrafts);
       await loadPlan(churchId, serviceTimeId, serviceDate);
     } catch (err) {
       pushToast(err instanceof Error ? err.message : "Unable to copy previous plan.", "error");
@@ -283,6 +407,8 @@ export default function ServicePlansPage() {
         duration_minutes: null,
         notes: "",
         owner_role_id: null,
+        assigned_user_id: null,
+        backup_user_id: null,
         status: "PLANNED"
       }
     ]);
@@ -295,31 +421,54 @@ export default function ServicePlansPage() {
   };
 
   if (status === "loading") {
-    return <PageLoader message="Loading service plans..." />;
+    return (
+      <PageGrid className="animate-pulse-subtle">
+        <PageGridFull className="space-y-4">
+          <div className="h-8 w-48 rounded-md bg-[var(--surface-2)]" />
+          <div className="h-4 w-64 rounded-md bg-[var(--surface-2)]" />
+        </PageGridFull>
+        <PageGridFull>
+          <div className="card h-[600px] bg-[var(--surface)]" />
+        </PageGridFull>
+      </PageGrid>
+    );
   }
 
   if (status === "restricted") {
     return (
       <main className="mx-auto flex min-h-[60vh] max-w-3xl flex-col items-center justify-center gap-4 px-6">
-        <h1 className="text-2xl font-semibold">Access restricted</h1>
-        <p className="text-sm text-base-content/70">Only admins can manage service plans.</p>
+        <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-[var(--border)] bg-[var(--surface)] px-6 py-12 text-center w-full">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--surface-2)]">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" style={{ color: "var(--text-muted)" }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>Access restricted</p>
+            <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>Only admins can manage service plans.</p>
+          </div>
+        </div>
       </main>
     );
   }
 
   return (
-    <>
-      <AdminHeader
-        title="Service Plans"
-        subtitle="See the run of show and keep the team aligned for each service."
-        actions={
-          <Link href="/admin/service-presets" className="inline-flex items-center justify-center h-[34px] px-3 rounded-xl font-medium text-sm bg-[var(--surface)] text-[var(--text-primary)] border border-[var(--border)] hover:bg-[var(--surface-2)] transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2">
-            Manage presets
-          </Link>
-        }
-      />
+    <PageGrid>
+      <PageGridFull className="animate-fade-in-up">
+        <AdminHeader
+          title="Service Plans"
+          subtitle="See the run of show and keep the team aligned for each service."
+          actions={
+            <Link href="/admin/service-presets" className="inline-flex items-center justify-center h-[34px] px-3 rounded-xl font-medium text-sm bg-[var(--surface)] text-[var(--text-primary)] border border-[var(--border)] hover:bg-[var(--surface-2)] transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2">
+              Manage presets
+            </Link>
+          }
+        />
+      </PageGridFull>
 
-      <div className="space-y-6">
+      <PageGridRowTwoOne
+        className="animate-fade-in-up [animation-delay:100ms] opacity-0"
+        main={<div className="space-y-6">
         <ServicePlanHeader
           serviceTimes={serviceTimes}
           serviceTimeId={serviceTimeId}
@@ -329,6 +478,14 @@ export default function ServicePlansPage() {
           onServiceDateChange={setServiceDate}
           actions={
             <>
+              <Button
+                size="sm"
+                onClick={() => void handleSavePlanNow()}
+                disabled={!plan}
+                loading={saveState === "saving"}
+              >
+                Save plan
+              </Button>
               <Button size="sm" variant="secondary" onClick={handlePrint} disabled={!plan}>
                 Print plan
               </Button>
@@ -374,24 +531,87 @@ export default function ServicePlansPage() {
             copyDisabled={loadingPlan}
           />
         ) : (
-          <ServicePlanStepsEditor
-            items={planItems}
-            roles={roles}
-            savingState={saveState}
-            focusItemId={focusItemId}
-            onItemsChange={setPlanItems}
-            onAddStep={() => handleAddStep("New step")}
-            onAddQuickStep={handleAddStep}
-          />
+          <>
+            <div className="card shadow-sm p-4">
+              <label className="text-xs uppercase tracking-[0.2em] text-base-content/60">Plan title</label>
+              <input
+                type="text"
+                value={planTitle}
+                onChange={(event) => setPlanTitle(event.target.value)}
+                className="input input-bordered w-full max-w-xl mt-2"
+                placeholder="e.g. Sunday 9:00 — Easter"
+              />
+              <p className="text-xs text-base-content/50 mt-2">
+                Changes auto-save after you pause typing. Use <span className="font-medium">Save plan</span> in the header to save immediately.
+              </p>
+            </div>
+            <ServicePlanRoleSlotsSection
+              slots={roleSlotDrafts}
+              roles={roles}
+              members={members}
+              onChange={(id, patch) =>
+                setRoleSlotDrafts((prev) =>
+                  reindexPlanRoleSlots(
+                    prev.map((s) => (s.id === id ? { ...s, ...patch } : s)),
+                    roles
+                  )
+                )
+              }
+              onAdjustRoleCount={(roleId, delta) =>
+                setRoleSlotDrafts((prev) => adjustPlanRoleSlotCount(prev, roles, roleId, delta, createLocalId))
+              }
+              onRemoveSlot={(id) =>
+                setRoleSlotDrafts((prev) => reindexPlanRoleSlots(
+                  prev.filter((s) => s.id !== id),
+                  roles
+                ))
+              }
+            />
+            <ServicePlanStepsEditor
+              items={planItems}
+              members={members}
+              savingState={saveState}
+              focusItemId={focusItemId}
+              onItemsChange={setPlanItems}
+              onAddStep={() => handleAddStep("New step")}
+              onAddQuickStep={handleAddStep}
+            />
+          </>
         )}
-      </div>
+      </div>}
+        side={
+          <RolesCard
+            roles={roles}
+            newRoleName={newRoleName}
+            newRoleMinistry={newRoleMinistry}
+            newRoleDescription={newRoleDescription}
+            editingRoleId={editingRoleId}
+            editRoleName={editRoleName}
+            editRoleMinistry={editRoleMinistry}
+            editRoleDescription={editRoleDescription}
+            onNewRoleNameChange={setNewRoleName}
+            onNewRoleMinistryChange={setNewRoleMinistry}
+            onNewRoleDescriptionChange={setNewRoleDescription}
+            onAddRole={handleAddRole}
+            onEditRole={handleEditRole}
+            onEditRoleNameChange={setEditRoleName}
+            onEditRoleMinistryChange={setEditRoleMinistry}
+            onEditRoleDescriptionChange={setEditRoleDescription}
+            onSaveRole={handleSaveRole}
+            onCancelEdit={() => setEditingRoleId(null)}
+            onDeleteRole={handleDeleteRole}
+          />
+        }
+      />
 
       {toast ? (
-        <div className="fixed right-6 top-6 z-50 rounded-xl bg-[var(--surface-2)] px-4 py-3 text-sm shadow">
-          <p className={toast.tone === "error" ? "text-error" : "text-base-content"}>{toast.message}</p>
-        </div>
+        <PageGridFull>
+          <div className="fixed right-6 top-6 z-50 rounded-xl bg-[var(--surface-2)] px-4 py-3 text-sm shadow">
+            <p className={toast.tone === "error" ? "text-error" : "text-base-content"}>{toast.message}</p>
+          </div>
+        </PageGridFull>
       ) : null}
-    </>
+    </PageGrid>
   );
 }
 
@@ -402,6 +622,20 @@ function mapPlanItems(items: ServicePlanItem[]): PlanItemDraft[] {
     duration_minutes: item.duration_minutes,
     notes: item.notes ?? "",
     owner_role_id: item.owner_role_id,
+    assigned_user_id: item.assigned_user_id ?? null,
+    backup_user_id: item.backup_user_id ?? null,
     status: (item.status ?? "PLANNED") as ServicePlanStatus
+  }));
+}
+
+function mapRoleSlotRows(rows: ServicePlanRoleSlot[]): PlanRoleSlotDraft[] {
+  return (rows ?? []).map((r) => ({
+    id: r.id,
+    role_id: r.role_id,
+    sort_order: r.sort_order,
+    assigned_user_id: r.assigned_user_id,
+    backup_user_id: r.backup_user_id,
+    status: r.status,
+    notes: r.notes ?? ""
   }));
 }

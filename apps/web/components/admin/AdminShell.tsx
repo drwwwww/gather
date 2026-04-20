@@ -51,6 +51,14 @@ export default function AdminShell({ children }: { children: ReactNode }) {
         .maybeSingle();
 
       if (!profile) return;
+      if (profile.role !== "ADMIN") {
+        if (pathname === "/account" || pathname?.startsWith("/account/")) {
+          router.replace("/member/account");
+        } else {
+          router.replace("/member");
+        }
+        return;
+      }
       const name = profile.full_name?.trim() || profile.email?.trim() || "Admin";
       setDisplayName(name);
       setDisplayRole(profile.role === "ADMIN" ? "Administrator" : profile.role.toLowerCase());
@@ -333,10 +341,7 @@ export default function AdminShell({ children }: { children: ReactNode }) {
                 )}
               </Link>
               {/* Minimal avatar and menu button */}
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold" style={{ background: "var(--surface-2)", color: "var(--text-secondary)" }}>
-                  {displayName.charAt(0)}
-                </div>
+              <div className="flex items-center">
                 <button
                   type="button"
                   className="btn btn-ghost btn-sm"
@@ -347,9 +352,7 @@ export default function AdminShell({ children }: { children: ReactNode }) {
               </div>
             </div>
           </header>
-          <div className="w-full px-8 py-10">
-            {children}
-          </div>
+          {children}
         </main>
       </div>
     </div>

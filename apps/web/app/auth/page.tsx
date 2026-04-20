@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "../../lib/supabaseClient";
+import { destinationAfterSignIn } from "../../lib/postLoginDestination";
 import { Input } from "../../components/ui/input";
 
 type Tab = "signin" | "signup";
@@ -19,12 +20,52 @@ export default function AuthPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const nextUrl = searchParams.get("next") || "/admin";
+  const vantaRef = useRef<HTMLDivElement>(null);
 
   // Set initial tab from ?tab=signup
   useEffect(() => {
     const t = searchParams.get("tab");
     if (t === "signup") setTab("signup");
   }, [searchParams]);
+
+  useEffect(() => {
+    let vantaEffect: any = null;
+
+    const loadVanta = async () => {
+      if (typeof window === "undefined") return;
+
+      if (!(window as any).THREE) {
+        const threeScript = document.createElement("script");
+        threeScript.src = "https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js";
+        document.head.appendChild(threeScript);
+        await new Promise((resolve) => { threeScript.onload = resolve; });
+      }
+
+      if (!(window as any).VANTA?.CLOUDS) {
+        const vantaScript = document.createElement("script");
+        vantaScript.src = "https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.clouds.min.js";
+        document.head.appendChild(vantaScript);
+        await new Promise((resolve) => { vantaScript.onload = resolve; });
+      }
+
+      if (vantaRef.current && (window as any).VANTA) {
+        vantaEffect = (window as any).VANTA.CLOUDS({
+          el: vantaRef.current,
+          mouseControls: true,
+          touchControls: true,
+          gyroControls: false,
+          minHeight: 200.00,
+          minWidth: 200.00
+        });
+      }
+    };
+
+    loadVanta();
+
+    return () => {
+      if (vantaEffect) vantaEffect.destroy();
+    };
+  }, []);
 
   const handleSignIn = async () => {
     setLoading(true);
@@ -59,14 +100,17 @@ export default function AuthPage() {
       }
       const { data: profile } = await supabase
         .from("profiles")
-        .select("church_id")
+        .select("church_id, role")
         .eq("id", userId)
         .maybeSingle();
 
-      if (!profile?.church_id) {
+      if (!profile) {
         router.push("/onboarding/create-church");
+      } else if (!profile.church_id) {
+        router.push("/onboarding/rejoin-church");
       } else {
-        router.push(nextUrl);
+        const dest = destinationAfterSignIn({ role: profile.role, nextPath: nextUrl });
+        router.push(dest);
       }
     }
     setLoading(false);
@@ -108,25 +152,8 @@ export default function AuthPage() {
 
   return (
     <main className="relative min-h-screen w-full overflow-hidden">
-      {/* Video background */}
-      <video
-        autoPlay
-        loop
-        muted
-        playsInline
-        preload="auto"
-        className="absolute inset-0 h-full w-full object-cover"
-      >
-        <source src="/12470263_3840_2160_30fps.mp4" type="video/mp4" />
-      </video>
-
-      {/* Primary color overlay */}
-      <div
-        className="absolute inset-0"
-        style={{
-          backgroundColor: "color-mix(in oklch, var(--primary) 45%, transparent)"
-        }}
-      />
+      {/* Vanta Clouds background */}
+      <div ref={vantaRef} className="absolute inset-0 w-full h-full" />
 
       {/* Centered card */}
       <div className="relative z-10 flex min-h-screen items-center justify-center px-4">

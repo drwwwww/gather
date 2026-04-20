@@ -1,11 +1,8 @@
-import type { Database } from "@gather/lib";
-import StepRow, { type RunOfShowStep } from "./StepRow";
-
-type RoleRow = Database["public"]["Tables"]["volunteer_roles"]["Row"];
+import StepRow, { type RunOfShowStep, type StepMemberOption } from "./StepRow";
 
 export default function StepList({
   items,
-  roles,
+  members,
   selectedId,
   focusId,
   showStatus = false,
@@ -15,7 +12,7 @@ export default function StepList({
   onReorder
 }: {
   items: RunOfShowStep[];
-  roles: RoleRow[];
+  members?: StepMemberOption[];
   selectedId?: string | null;
   focusId?: string | null;
   showStatus?: boolean;
@@ -36,14 +33,14 @@ export default function StepList({
 
   return (
     <div className="relative pl-6">
-      <div className="absolute left-3 top-2 bottom-2 w-px bg-[var(--gather-divider)]" />
+      <div className="absolute left-3 top-2 bottom-2 w-px bg-[var(--divider)]" />
       <div className="space-y-3">
         {items.map((item, index) => (
           <StepRow
             key={item.id}
             step={item}
             index={index}
-            roles={roles}
+            members={members}
             selected={selectedId === item.id}
             autoFocus={focusId === item.id}
             showStatus={showStatus}

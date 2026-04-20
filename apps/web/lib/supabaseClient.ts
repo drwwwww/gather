@@ -1,14 +1,10 @@
-import { createClient } from "@supabase/supabase-js";
-import type { Database } from "@gather/lib";
+"use client";
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
-const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+import { createBrowserSupabaseClient } from "./supabase/client";
 
-export const supabase = url && anonKey
-	? (createClient<Database>(url, anonKey, {
-			auth: {
-				persistSession: true,
-				autoRefreshToken: true
-			}
-		}) as any)
-	: null;
+/**
+ * Cookie-backed Supabase client for Client Components (via @supabase/ssr).
+ * Keeps the same `import { supabase } from "../lib/supabaseClient"` shape site-wide.
+ * Cast matches previous createClient typing where some generated DB narrowings were loosened.
+ */
+export const supabase = createBrowserSupabaseClient() as any;

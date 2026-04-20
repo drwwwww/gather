@@ -1,6 +1,10 @@
+import { PageGrid, PageGridFull } from "../../../../components/layout/PageGrid";
+
 export default function UiDebugPage() {
   return (
-    <div className="space-y-8 max-w-lg mx-auto mt-12">
+    <PageGrid>
+      <PageGridFull>
+    <div className="space-y-8 max-w-lg mx-auto w-full">
       <div className="bg-red-500 text-white p-4 rounded-xl font-bold text-lg">
         Tailwind Red Box
       </div>
@@ -8,5 +12,7 @@ export default function UiDebugPage() {
         Theme Var Box
       </div>
     </div>
+      </PageGridFull>
+    </PageGrid>
   );
 }
