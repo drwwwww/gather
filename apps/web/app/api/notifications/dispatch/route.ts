@@ -8,13 +8,6 @@ type ProfileRow = {
   disabled: boolean;
 };
 
-type VolunteerAssignmentRow = {
-  id: string;
-  church_id: string;
-  assigned_user_id: string;
-  scheduled_date: string;
-};
-
 type ServicePlanRow = { id: string; church_id: string; service_date: string };
 
 type PlanItemRow = {
@@ -51,17 +44,6 @@ export async function POST(request: Request) {
   const endStr = cutoff.toISOString().slice(0, 10);
 
   const supabase = createSupabaseAdminClient() as any;
-
-  const { data: assignments, error: assignmentsError } = await supabase
-    .from("volunteer_assignments")
-    .select("id, church_id, assigned_user_id, scheduled_date")
-    .eq("status", "ASSIGNED")
-    .gte("scheduled_date", todayStr)
-    .lte("scheduled_date", endStr);
-
-  if (assignmentsError) {
-    return NextResponse.json({ error: assignmentsError.message }, { status: 500 });
-  }
 
   const { data: plans, error: plansError } = await supabase
     .from("service_plans")
@@ -119,27 +101,6 @@ export async function POST(request: Request) {
   }
 
   const rows: DispatchRow[] = [];
-
-  for (const a of (assignments ?? []) as VolunteerAssignmentRow[]) {
-    rows.push({
-      church_id: a.church_id,
-      user_id: a.assigned_user_id,
-      type: "ASSIGNMENT_REMINDER",
-      payload: {
-        id: a.id,
-        church_id: a.church_id,
-        assigned_user_id: a.assigned_user_id,
-        scheduled_date: a.scheduled_date,
-        source: "volunteer_schedule"
-      },
-      subject: "Reminder: upcoming volunteer assignment",
-      html: `
-      <p>You have a volunteer assignment coming up.</p>
-      <p><strong>Date:</strong> ${a.scheduled_date}</p>
-      <p>Thank you for serving.</p>
-    `
-    });
-  }
 
   for (const item of planItems) {
     const plan = planById.get(item.plan_id);

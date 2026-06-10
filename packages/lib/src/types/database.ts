@@ -73,38 +73,6 @@ export type Database = {
         Insert: { id?: string; church_id: string; ministry_id?: string | null; name: string; description?: string | null };
         Update: { name?: string; description?: string | null; ministry_id?: string | null };
       };
-      volunteer_assignments: {
-        Row: {
-          id: string;
-          church_id: string;
-          service_time_id: string;
-          role_id: string;
-          assigned_user_id: string | null;
-          backup_user_id: string | null;
-          status: AssignmentStatus;
-          notes: string | null;
-          scheduled_date: string;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          church_id: string;
-          service_time_id: string;
-          role_id: string;
-          assigned_user_id?: string | null;
-          backup_user_id?: string | null;
-          status?: AssignmentStatus;
-          notes?: string | null;
-          scheduled_date: string;
-          created_at?: string;
-        };
-        Update: {
-          assigned_user_id?: string | null;
-          backup_user_id?: string | null;
-          status?: AssignmentStatus;
-          notes?: string | null;
-        };
-      };
       announcements: {
         Row: {
           id: string;

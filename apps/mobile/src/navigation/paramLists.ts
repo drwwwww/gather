@@ -20,7 +20,6 @@ export type AppStackParamList = {
   EventDetail: { eventId: string };
   ProfileMenu: undefined;
   ChurchInfo: undefined;
-  AssignmentDetail: { assignmentId: string };
   Notifications: undefined;
   Members: undefined;
   FeaturePlaceholder: { title: string; subtitle?: string };

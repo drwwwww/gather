@@ -36,6 +36,21 @@ const statusVariant: Record<MemberStatus, "default" | "success" | "warning" | "n
   INVITED: "neutral"
 };
 
+function memberRowInitials(name: string, email: string) {
+  const n = name.trim();
+  if (n) {
+    const parts = n.split(/\s+/).filter(Boolean);
+    if (parts.length >= 2) {
+      const a = parts[0][0];
+      const b = parts[parts.length - 1][0];
+      if (a && b) return `${a}${b}`.toUpperCase();
+    }
+    return n.slice(0, 2).toUpperCase();
+  }
+  const local = (email.split("@")[0] ?? "?").trim();
+  return local.slice(0, 2).toUpperCase() || "?";
+}
+
 export default function MembersTable({
   members,
   roleOptions,
@@ -81,7 +96,7 @@ export default function MembersTable({
   };
 
   return (
-    <div className="card shadow-sm p-5 min-w-0">
+    <div className="card card-elevated p-5 min-w-0">
       <div className="flex items-center justify-between gap-2 min-w-0">
         <div className="card-title shrink-0">Members</div>
         <span className="text-xs text-base-content/60 shrink-0">{members.length} total</span>
@@ -92,11 +107,11 @@ export default function MembersTable({
       <div className="mt-5 min-w-0 rounded-xl">
         <table className="table table-fixed w-full min-w-0">
           <colgroup>
-            <col style={{ width: "20%" }} />
             <col style={{ width: "30%" }} />
             <col style={{ width: "22%" }} />
-            <col style={{ width: "14%" }} />
-            <col style={{ width: "14%" }} />
+            <col style={{ width: "22%" }} />
+            <col style={{ width: "13%" }} />
+            <col style={{ width: "13%" }} />
           </colgroup>
           <thead>
             <tr>
@@ -124,15 +139,26 @@ export default function MembersTable({
               </tr>
             ) : (
               members.map((member) => (
-                <tr key={member.id} className={member.disabled ? "opacity-60" : ""}>
+                <tr
+                  key={member.id}
+                  className={`group transition-colors duration-200 hover:bg-[rgb(255,247,230,0.35)] ${member.disabled ? "opacity-60" : ""}`}
+                >
                   <td className="min-w-0 align-middle">
                     <button
                       type="button"
-                      className="block max-w-full truncate text-left font-medium text-base-content hover:underline"
+                      className="flex max-w-full items-center gap-3 truncate text-left"
                       title={member.name || "(No name)"}
                       onClick={() => onViewDetails(member.id)}
                     >
-                      {member.name || "(No name)"}
+                      <span
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-[var(--surface-container-low)] bg-[var(--surface-container-low)] text-xs font-bold text-[var(--nav-active-foreground)]"
+                        aria-hidden
+                      >
+                        {memberRowInitials(member.name || "", member.email)}
+                      </span>
+                      <span className="min-w-0 truncate font-medium text-base-content group-hover:text-[var(--nav-active-foreground)] group-hover:underline">
+                        {member.name || "(No name)"}
+                      </span>
                     </button>
                   </td>
                   <td className="min-w-0 align-middle">

@@ -5,7 +5,6 @@ import AnnouncementsDetailScreen from "../screens/AnnouncementsDetailScreen";
 import EventDetailScreen from "../screens/EventDetailScreen";
 import ProfileMenuScreen from "../screens/ProfileMenuScreen";
 import ChurchInfoScreen from "../screens/ChurchInfoScreen";
-import AssignmentDetailScreen from "../screens/AssignmentDetailScreen";
 import NotificationsScreen from "../screens/NotificationsScreen";
 import MembersScreen from "../screens/MembersScreen";
 import FeaturePlaceholderScreen from "../screens/FeaturePlaceholderScreen";
@@ -33,7 +32,6 @@ export default function AppNavigator({ showServe = false }: AppNavigatorProps) {
         <Stack.Screen name="EventDetail" component={EventDetailScreen} />
         <Stack.Screen name="ProfileMenu" component={ProfileMenuScreen} />
         <Stack.Screen name="ChurchInfo" component={ChurchInfoScreen} />
-        <Stack.Screen name="AssignmentDetail" component={AssignmentDetailScreen} />
         <Stack.Screen name="Notifications" component={NotificationsScreen} />
         <Stack.Screen name="Members" component={MembersScreen} />
         <Stack.Screen name="FeaturePlaceholder" component={FeaturePlaceholderScreen} />

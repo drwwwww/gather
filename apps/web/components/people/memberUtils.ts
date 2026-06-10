@@ -1,5 +1,5 @@
 import type { Role } from "@gather/lib";
-import type { AssignmentRow, ProfileRow, ServiceTimeRow } from "./types";
+import type { PlanSlotRow, ProfileRow, ServiceTimeRow } from "./types";
 import { formatShortWeekdayDateTime } from "../../lib/format";
 
 export type InviteEntry = {
@@ -63,7 +63,7 @@ export function buildMemberEntries(
 }
 
 export function getUpcomingAssignments(
-  assignments: AssignmentRow[],
+  planSlots: PlanSlotRow[],
   serviceTimes: ServiceTimeRow[],
   profileId: string
 ) {
@@ -73,19 +73,18 @@ export function getUpcomingAssignments(
     return acc;
   }, {});
 
-  return assignments
-    .filter((assignment) => assignment.assigned_user_id === profileId)
-    .filter((assignment) => assignment.scheduled_date >= nowDate)
-    .sort((a, b) => a.scheduled_date.localeCompare(b.scheduled_date))
+  return planSlots
+    .filter((slot) => slot.assigned_user_id === profileId && slot.service_date >= nowDate)
+    .sort((a, b) => a.service_date.localeCompare(b.service_date))
     .slice(0, 3)
-    .map((assignment) => {
-      const service = serviceTimeMap[assignment.service_time_id];
+    .map((slot) => {
+      const service = serviceTimeMap[slot.service_time_id];
       const label = service
-        ? formatShortWeekdayDateTime(buildServiceDateTime(assignment.scheduled_date, service.start_time))
-        : assignment.scheduled_date;
+        ? formatShortWeekdayDateTime(buildServiceDateTime(slot.service_date, service.start_time))
+        : slot.service_date;
       return {
-        id: assignment.id,
-        roleId: assignment.role_id,
+        id: slot.id,
+        roleId: slot.role_id,
         serviceLabel: label
       };
     });

@@ -53,7 +53,7 @@ export default function ServicePlanRoleSlotsSection({
       {!roles.length ? (
         <p className="text-sm text-base-content/60">Create volunteer roles under Volunteers first.</p>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-4">
           {roles.map((role) => {
             const roleSlots = slotsByRole(role.id);
             const count = roleSlots.length;

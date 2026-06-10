@@ -67,7 +67,7 @@ export default function ServicePlanStepsEditor({
 
   return (
     <div
-      className="card shadow-sm p-4 rounded-2xl"
+      className="card shadow-sm p-3 rounded-2xl"
       style={{
         background: 'var(--surface)',
         borderColor: 'var(--border)',

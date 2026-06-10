@@ -5,8 +5,8 @@ import { Activity } from "lucide-react";
 
 export default function RecentActivityCard({ items }: { items: string[] }) {
   return (
-    <div className="card shadow-sm p-6 h-full flex flex-col min-h-0">
-      <h2 className="card-title mb-4 shrink-0">Recent Activity</h2>
+    <div className="card card-elevated p-6 h-full flex flex-col min-h-0">
+      <h2 className="mb-4 shrink-0 text-[13px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">Recent Activity</h2>
       <div className="flex-1 flex flex-col min-h-0">
         {items.length === 0 ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-[var(--border)] bg-[var(--surface)] px-6 py-8 text-center min-h-[12rem]">

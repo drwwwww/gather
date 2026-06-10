@@ -34,7 +34,7 @@ export default function ServicePlanHeader({
 }: ServicePlanHeaderProps) {
   return (
     <div
-      className="card shadow-sm p-4"
+      className="card shadow-sm p-3"
       // DaisyUI/Tailwind only; remove legacy CSS vars if not needed
     >
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -49,7 +49,7 @@ export default function ServicePlanHeader({
         </div>
         {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
       </div>
-      <div className="mt-4 grid gap-4 md:grid-cols-[1.1fr_0.8fr_0.8fr]">
+      <div className="mt-3 grid gap-3 md:grid-cols-[1.1fr_0.8fr_0.8fr]">
         <div>
           <label
             className="text-xs uppercase tracking-[0.2em]"
