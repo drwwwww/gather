@@ -86,168 +86,147 @@ export default function AnnouncementComposer({
     return `Will publish on ${formatShortWeekdayDateTime(date)} ${timezoneLabel ? `(${timezoneLabel})` : ""}`;
   }, [scheduleDate, scheduleTime, timezoneLabel, scheduleReady]);
 
-  // Ensure function body is not prematurely closed
   return (
-    <div className="card shadow-sm p-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="card-title">{isEditing ? "Edit Announcement" : "Compose Announcement"}</div>
-        <div className="flex items-center gap-2">
+    <>
+      {/* Tab strip: Edit / Preview */}
+      <div className="flex items-center gap-1 border-b border-[var(--border)] px-8 pt-2">
+        {(["EDIT", "PREVIEW"] as const).map((mode) => (
           <button
+            key={mode}
             type="button"
-            className={`btn btn-sm ${previewMode === "EDIT" ? "btn-primary" : "btn-ghost"}`}
-            onClick={() => onPreviewModeChange("EDIT")}
+            onClick={() => onPreviewModeChange(mode)}
+            className={`relative pb-3 pr-4 text-sm font-semibold transition-colors ${
+              previewMode === mode
+                ? "text-[var(--nav-active-foreground)] after:absolute after:bottom-0 after:left-0 after:h-[3px] after:w-full after:rounded-full after:bg-[var(--nav-active-foreground)] after:content-['']"
+                : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+            }`}
           >
-            Edit
+            {mode === "EDIT" ? "Compose" : "Preview"}
           </button>
-          <button
-            type="button"
-            className={`btn btn-sm ${previewMode === "PREVIEW" ? "btn-primary" : "btn-ghost"}`}
-            onClick={() => onPreviewModeChange("PREVIEW")}
-          >
-            Preview
-          </button>
-        </div>
+        ))}
       </div>
 
+      {/* Body */}
       {previewMode === "PREVIEW" ? (
-        <div className="mt-4 space-y-4">
+        <div className="space-y-6 overflow-y-auto px-8 py-6">
           <AnnouncementPreview title={title} body={body} audience={audience} />
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-[var(--text-muted)]">Templates</p>
-            <div className="mt-2 w-full">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">Templates</p>
+            <div className="mt-3">
               <AnnouncementTemplates onSelect={onTemplateSelect} />
             </div>
           </div>
         </div>
       ) : (
-        <div className="mt-4 space-y-4">
-          <div className="space-y-2">
-            <label className="block text-xs text-[var(--text-muted)]">Title</label>
+        <div className="space-y-5 overflow-y-auto px-8 py-6">
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Headline</label>
             <input
               type="text"
-              placeholder="Announcement title"
+              placeholder="Something catchy..."
               value={title}
-              onChange={(event) => onTitleChange(event.target.value)}
+              onChange={(e) => onTitleChange(e.target.value)}
               disabled={isSubmitting}
-              className="input input-bordered w-full"
+              className="input input-bordered w-full text-base font-medium"
             />
           </div>
-          <div className="space-y-2">
-            <label className="text-xs text-[var(--text-muted)]">Message</label>
+
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Message body</label>
             <textarea
-              className="textarea textarea-bordered min-h-[160px] w-full"
-              placeholder="Write the announcement message..."
+              className="textarea textarea-bordered min-h-[140px] w-full"
+              placeholder="Share your message here..."
               value={body}
-              onChange={(event) => onBodyChange(event.target.value)}
+              onChange={(e) => onBodyChange(e.target.value)}
               disabled={isSubmitting}
             />
             <p className="text-xs text-[var(--text-muted)]">
-              {bodyLength} characters
-              {bodyLength > 320 ? " · Tip: keep announcements concise for mobile." : ""}
+              {bodyLength} characters{bodyLength > 320 ? " · Keep it concise for mobile." : ""}
             </p>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <label className="text-xs text-[var(--text-muted)]">Audience</label>
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Audience</label>
               <select
                 className="select select-bordered w-full"
                 value={audience}
-                onChange={(event) => onAudienceChange(event.target.value)}
+                onChange={(e) => onAudienceChange(e.target.value)}
                 disabled={isSubmitting}
               >
-                <option value="ALL">ALL</option>
-                <option value="MEMBER">MEMBER</option>
-                <option value="SERVICE">SERVICE</option>
-                <option value="ADMIN">ADMIN</option>
+                <option value="ALL">All Members</option>
+                <option value="MEMBER">Members</option>
+                <option value="SERVICE">Service Team</option>
+                <option value="ADMIN">Admins only</option>
               </select>
               <p className="text-xs text-[var(--text-muted)]">{audienceHelp[audience] ?? ""}</p>
             </div>
-            <div className="flex flex-col gap-2">
-              <label className="block text-xs text-[var(--text-muted)]">When to publish</label>
-              {publishMode === "NOW" ? (
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm w-fit"
-                  onClick={() => onPublishModeChange("SCHEDULE")}
-                  disabled={isSubmitting}
-                >
-                  Schedule for later
-                </button>
-              ) : (
-                <>
-                  <p className="text-xs text-[var(--text-muted)]">Choose date and time below, then use Schedule announcement.</p>
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Publish date</label>
+              {publishMode === "SCHEDULE" ? (
+                <div className="space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="date"
+                      value={scheduleDate}
+                      onChange={(e) => onScheduleDateChange(e.target.value)}
+                      disabled={isSubmitting}
+                      className="input input-bordered w-full"
+                    />
+                    <input
+                      type="time"
+                      value={scheduleTime}
+                      onChange={(e) => onScheduleTimeChange(e.target.value)}
+                      disabled={isSubmitting}
+                      className="input input-bordered w-full"
+                    />
+                  </div>
+                  {scheduleLabel ? <p className="text-xs text-[var(--text-muted)]">{scheduleLabel}</p> : null}
                   <button
                     type="button"
-                    className="btn btn-ghost btn-sm w-fit"
+                    className="btn btn-ghost btn-sm w-fit text-xs"
                     onClick={() => onPublishModeChange("NOW")}
                     disabled={isSubmitting}
                   >
                     Publish immediately instead
                   </button>
-                </>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm w-fit text-xs"
+                  onClick={() => onPublishModeChange("SCHEDULE")}
+                  disabled={isSubmitting}
+                >
+                  Schedule for later →
+                </button>
               )}
             </div>
           </div>
-
-          {publishMode === "SCHEDULE" ? (
-            <div className="space-y-3">
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <label className="text-xs text-[var(--text-muted)]">Date</label>
-                  <input
-                    type="date"
-                    value={scheduleDate}
-                    onChange={(event) => onScheduleDateChange(event.target.value)}
-                    disabled={isSubmitting}
-                    className="input input-bordered w-full"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-[var(--text-muted)]">Time</label>
-                  <input
-                    type="time"
-                    value={scheduleTime}
-                    onChange={(event) => onScheduleTimeChange(event.target.value)}
-                    disabled={isSubmitting}
-                    className="input input-bordered w-full"
-                  />
-                </div>
-              </div>
-              <p className="text-xs text-[var(--text-muted)]">
-                Timezone: {timezoneLabel || "Local"}
-              </p>
-              {scheduleLabel ? <p className="text-xs text-[var(--text-muted)]">{scheduleLabel}</p> : null}
-            </div>
-          ) : null}
-
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              className="btn btn-primary inline-flex items-center gap-2"
-              onClick={onPrimary}
-              disabled={!canPrimary}
-            >
-              {isSubmitting && submitVariant === "publish" ? <ButtonSpinner /> : null}
-              {publishMode === "NOW" ? "Publish now" : "Schedule announcement"}
-            </button>
-            <button
-              type="button"
-              className="btn btn-outline inline-flex items-center gap-2"
-              onClick={onSaveDraft}
-              disabled={!hasContent || isSubmitting}
-            >
-              {isSubmitting && submitVariant === "draft" ? <ButtonSpinner /> : null}
-              Save draft
-            </button>
-            {isEditing ? (
-              <button type="button" className="btn btn-outline" onClick={onCancelEdit} disabled={isSubmitting}>
-                Cancel
-              </button>
-            ) : null}
-          </div>
         </div>
       )}
-    </div>
+
+      {/* Footer */}
+      <div className="flex items-center justify-end gap-3 border-t border-[var(--border)] bg-[var(--surface)] px-8 py-5">
+        <button
+          type="button"
+          className="btn btn-ghost text-sm font-semibold text-[var(--text-secondary)]"
+          onClick={onSaveDraft}
+          disabled={!hasContent || isSubmitting}
+        >
+          {isSubmitting && submitVariant === "draft" ? <ButtonSpinner /> : null}
+          Save Draft
+        </button>
+        <button
+          type="button"
+          className="btn btn-primary-gradient inline-flex items-center gap-2 rounded-full px-8 text-sm font-bold"
+          onClick={onPrimary}
+          disabled={!canPrimary}
+        >
+          {isSubmitting && submitVariant === "publish" ? <ButtonSpinner /> : null}
+          {publishMode === "NOW" ? "Publish Now" : "Schedule Post"}
+        </button>
+      </div>
+    </>
   );
 }

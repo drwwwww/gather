@@ -100,7 +100,7 @@ export default function PresetEditor({
                 Set as default
               </button>
             ) : null}
-            <button type="button" className="btn btn-primary" onClick={onSave} disabled={saving}>
+            <button type="button" className="btn btn-primary-gradient" onClick={onSave} disabled={saving}>
               {saving ? "Saving..." : "Save preset"}
             </button>
             {error ? <p className="text-sm text-error">{error}</p> : null}

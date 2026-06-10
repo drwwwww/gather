@@ -28,7 +28,7 @@ export default function PresetCreateRow({
              type="button"
              onClick={onCreate}
              disabled={disabled || !name.trim()}
-             className="btn btn-primary"
+             className="btn btn-primary-gradient"
            >
              Create preset
            </button>

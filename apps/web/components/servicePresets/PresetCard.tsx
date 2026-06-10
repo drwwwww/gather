@@ -110,7 +110,7 @@ export default function PresetCard({
           <PresetStepsEditor items={draftItems} onItemsChange={setDraftItems} />
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-xs text-[var(--text-muted)]">Changes save to the preset and update the preview.</p>
-            <button type="button" className="btn btn-primary btn-sm" onClick={() => onSave(preset.id, draftName, draftItems)} disabled={saving}>
+            <button type="button" className="btn btn-primary-gradient btn-sm" onClick={() => onSave(preset.id, draftName, draftItems)} disabled={saving}>
               {saving ? "Saving..." : "Save changes"}
             </button>
           </div>

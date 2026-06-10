@@ -36,19 +36,22 @@ export default function MemberFilters({
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
         <button
-          className={`btn btn-sm ${activeTab === "ALL" ? "btn-active btn-primary" : "btn-outline"}`}
+          type="button"
+          className={`btn btn-sm rounded-full ${activeTab === "ALL" ? "btn-primary-gradient" : "btn-secondary"}`}
           onClick={() => onTabChange("ALL")}
         >
           All ({counts.all})
         </button>
         <button
-          className={`btn btn-sm ${activeTab === "SERVICE" ? "btn-active btn-primary" : "btn-outline"}`}
+          type="button"
+          className={`btn btn-sm rounded-full ${activeTab === "SERVICE" ? "btn-primary-gradient" : "btn-secondary"}`}
           onClick={() => onTabChange("SERVICE")}
         >
           Service Team ({counts.service})
         </button>
         <button
-          className={`btn btn-sm ${activeTab === "ADMINS" ? "btn-active btn-primary" : "btn-outline"}`}
+          type="button"
+          className={`btn btn-sm rounded-full ${activeTab === "ADMINS" ? "btn-primary-gradient" : "btn-secondary"}`}
           onClick={() => onTabChange("ADMINS")}
         >
           Admins ({counts.admins})

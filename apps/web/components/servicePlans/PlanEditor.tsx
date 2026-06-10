@@ -82,7 +82,7 @@ export default function PlanEditor({
             </div>
           </div>
           <div className="flex flex-col items-start gap-2">
-            <button type="button" onClick={onSave} disabled={saving} className="btn btn-primary">
+            <button type="button" onClick={onSave} disabled={saving} className="btn btn-primary-gradient">
               {saving ? "Saving..." : "Save plan"}
             </button>
             {error ? <p className="text-sm text-error">{error}</p> : null}

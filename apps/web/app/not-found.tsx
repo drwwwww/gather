@@ -9,7 +9,7 @@ export default function NotFound() {
       <p className="text-sm" style={{ color: "var(--text-muted)" }}>
         The page you requested does not exist.
       </p>
-      <Link href="/admin" className="btn btn-primary btn-sm">
+      <Link href="/admin" className="btn btn-primary-gradient btn-sm">
         Back to dashboard
       </Link>
     </div>

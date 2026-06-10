@@ -25,7 +25,7 @@ export default function ServicePlanEmptyState({
         <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>Start with a preset or reuse last week.</p>
       </div>
       <div className="flex flex-wrap justify-center gap-2 mt-2">
-        <Button variant="primary" onClick={onGenerate} disabled={generateDisabled}>
+        <Button variant="primaryGradient" onClick={onGenerate} disabled={generateDisabled}>
           Generate from preset
         </Button>
         <Button variant="secondary" onClick={onCopyLast} disabled={copyDisabled}>

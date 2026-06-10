@@ -21,7 +21,7 @@ export default function AttendeeListDialog({ open, attendees, onClose }: Attende
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-      <div className="card shadow-sm p-4 w-full max-w-xl">
+      <div className="card card-elevated p-4 w-full max-w-xl">
         <div className="flex items-center justify-between">
           <div className="card-title">Attendees</div>
           <button type="button" className="btn btn-outline btn-sm" onClick={onClose}>Close</button>

@@ -7,7 +7,7 @@ import { supabase } from "../../../lib/supabaseClient";
 
 /**
  * Shown when a signed-in user has a profile but no church (e.g. removed by an admin).
- * Web join-by-code is not implemented yet; members rejoin via the Gather mobile app.
+ * Members can rejoin using the public join link or code from their leader, or the Gather mobile app.
  */
 export default function RejoinChurchPage() {
   const router = useRouter();
@@ -57,8 +57,14 @@ export default function RejoinChurchPage() {
         <h1 className="text-2xl font-semibold text-base-content">You are not in a church yet</h1>
         <p className="mt-3 text-sm leading-relaxed text-base-content/70">
           Your account is no longer linked to a congregation (for example, an admin may have removed you from the
-          church list). To join again, open the <strong>Gather</strong> mobile app, tap <strong>Join church</strong>,
-          and enter your church&apos;s join code from your leader.
+          church list). If your leader sent you a join link or QR code, open it in your browser to join on the web. You
+          can also open the <Link href="/join" className="link link-primary font-medium">join page</Link> and use your
+          church code (for example <span className="font-mono">your-church-slug</span>) in the address bar as{" "}
+          <span className="font-mono">/join?code=your-church-slug</span>.
+        </p>
+        <p className="mt-3 text-sm leading-relaxed text-base-content/70">
+          Alternatively, open the <strong>Gather</strong> mobile app, tap <strong>Join church</strong>, and enter your
+          church&apos;s join code from your leader.
         </p>
         <p className="mt-3 text-sm leading-relaxed text-base-content/70">
           If you are starting a new church on the web, you can create one instead.

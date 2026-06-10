@@ -24,7 +24,7 @@ export default function TokenDebugPage() {
   return (
     <PageGrid>
       <PageGridFull>
-    <div className="max-w-lg mx-auto w-full p-8 rounded-xl shadow-lg bg-[var(--surface)]">
+    <div className="mx-auto w-full max-w-lg rounded-xl border border-[var(--border)] bg-[var(--surface)] p-8 shadow-sm">
       <h2 className="text-xl font-bold mb-4 text-[var(--ink)]">Theme Token Debug</h2>
       <div className="mb-6">
         <button

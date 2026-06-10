@@ -55,6 +55,21 @@ const config = {
         dangerSoft: "var(--danger-soft)",
         info: "var(--info)",
         infoSoft: "var(--info-soft)",
+        "surface-container-lowest": "var(--surface-container-lowest)",
+        "surface-container-low": "var(--surface-container-low)",
+        "surface-container": "var(--surface-container)",
+        "surface-container-high": "var(--surface-container-high)",
+        "on-surface": "var(--on-surface)",
+        "outline-variant": "var(--outline-variant)",
+        "nav-pill-active": "var(--nav-pill-active-bg)",
+        "nav-active": "var(--nav-active-foreground)",
+        "sidebar-canvas": "var(--sidebar-canvas)",
+        "app-canvas": "var(--app-canvas)",
+      },
+      boxShadow: {
+        organic: "var(--shadow-organic)",
+        elevated: "var(--shadow-organic)",
+        "elevated-hover": "var(--shadow-elevated-hover)",
       },
       keyframes: {
         "fade-in-up": {
@@ -69,12 +84,27 @@ const config = {
           "0%": { backgroundPosition: "0% 50%" },
           "50%": { backgroundPosition: "100% 50%" },
           "100%": { backgroundPosition: "0% 50%" }
+        },
+        "volunteers-toolbar-reveal": {
+          "0%": { opacity: "0", transform: "translateY(14px) scale(0.985)" },
+          "100%": { opacity: "1", transform: "translateY(0) scale(1)" }
+        },
+        "volunteers-strip-reveal": {
+          "0%": { opacity: "0", transform: "translateY(8px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" }
+        },
+        "volunteers-service-time-reveal": {
+          "0%": { opacity: "0", transform: "translateY(10px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" }
         }
       },
       animation: {
         "fade-in-up": "fade-in-up 0.5s ease-out forwards",
         "pulse-subtle": "pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
         "mesh-gradient": "mesh-gradient 15s ease infinite",
+        "volunteers-toolbar-reveal": "volunteers-toolbar-reveal 0.55s cubic-bezier(0.22, 1, 0.36, 1) both",
+        "volunteers-strip-reveal": "volunteers-strip-reveal 0.45s cubic-bezier(0.22, 1, 0.36, 1) both",
+        "volunteers-service-time-reveal": "volunteers-service-time-reveal 0.45s ease-out 0.1s both"
       },
     },
   },

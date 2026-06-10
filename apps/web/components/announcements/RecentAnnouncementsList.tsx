@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { formatRelativeTime, formatShortWeekdayDateTime } from "../../lib/format";
 import AnnouncementTemplates, { type AnnouncementTemplate } from "./AnnouncementTemplates";
 import { Megaphone } from "lucide-react";
 import type { Database } from "@gather/lib";
-import Badge from "../ui/Badge";
 import Loader from "../ui/Loader";
 
 type Announcement = Database["public"]["Tables"]["announcements"]["Row"];
@@ -25,198 +24,139 @@ type RecentAnnouncementsListProps = {
   onTemplateSelect: (template: AnnouncementTemplate) => void;
 };
 
-const statusBadge: Record<AnnouncementStatus, "default" | "success" | "warning" | "neutral"> = {
-  DRAFT: "neutral",
-  SCHEDULED: "warning",
-  PUBLISHED: "success"
-};
-
 const audienceLabels: Record<string, string> = {
-  ALL: "ALL",
-  MEMBER: "MEMBER",
-  SERVICE: "SERVICE",
-  ADMIN: "ADMIN"
+  ALL: "All Members",
+  MEMBER: "Members",
+  SERVICE: "Service Team",
+  ADMIN: "Admins"
 };
 
 export default function RecentAnnouncementsList({
   announcements,
   loading,
   listRefreshing = false,
-  onSelect,
   onEdit,
-  onDuplicate,
   onDelete,
   onCancelSchedule,
   onTemplateSelect
 }: RecentAnnouncementsListProps) {
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!openMenuId) return;
-
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      // Keep menu open when clicking inside the action button/menu.
-      if (target.closest("[data-announcement-action-menu='true']")) return;
-      if (target.closest("[data-announcement-action-button='true']")) return;
-      setOpenMenuId(null);
-    };
-
-    document.addEventListener("click", handleClickOutside);
-    return () => document.removeEventListener("click", handleClickOutside);
-  }, [openMenuId]);
 
   return (
-    <div className="card shadow-sm p-4">
-      <div className="flex items-center justify-between gap-2">
-        <div className="card-title">Recent Announcements</div>
-        <div className="flex items-center gap-2">
-          {listRefreshing && announcements.length > 0 ? (
-            <span className="flex items-center gap-1.5 text-xs text-[var(--text-muted)]" aria-live="polite">
-              <span
-                className="inline-block h-3.5 w-3.5 shrink-0 animate-spin rounded-full border-2 border-current border-t-transparent opacity-80"
-                aria-hidden
-              />
-              Updating…
-            </span>
-          ) : (
-            <span className="text-xs text-[var(--text-muted)]">Latest activity</span>
-          )}
+    <div className={`space-y-4 ${listRefreshing && announcements.length > 0 ? "opacity-70 transition-opacity" : ""}`}>
+      {listRefreshing && announcements.length > 0 ? (
+        <span className="flex items-center gap-1.5 text-xs text-[var(--text-muted)]" aria-live="polite">
+          <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden />
+          Updating…
+        </span>
+      ) : null}
+      {loading ? (
+        <div className="flex flex-col items-center justify-center gap-4 py-8">
+          <Loader />
+          <p className="text-sm text-[var(--text-muted)]">Loading announcements...</p>
         </div>
-      </div>
-      <div className={`mt-4 space-y-3 text-sm ${listRefreshing && announcements.length > 0 ? "opacity-70 transition-opacity" : ""}`}>
-        {loading ? (
-          <div className="flex flex-col items-center justify-center gap-4 py-6">
-            <Loader />
-            <p className="text-sm" style={{ color: "var(--text-muted)" }}>Loading announcements...</p>
+      ) : announcements.length === 0 ? (
+        <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-[var(--border)] bg-[var(--surface)] px-6 py-12 text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--surface-2)]">
+            <Megaphone className="h-5 w-5 text-[var(--text-muted)]" />
           </div>
-        ) : announcements.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-[var(--border)] bg-[var(--surface)] px-6 py-8 text-center">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--surface-2)]">
-              <Megaphone className="h-5 w-5" style={{ color: "var(--text-muted)" }} />
-            </div>
-            <div>
-              <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>No announcements yet</p>
-              <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>Publish a welcome announcement to get started.</p>
-            </div>
-            <div className="mt-3 w-full max-w-md">
-              <AnnouncementTemplates onSelect={onTemplateSelect} />
-            </div>
+          <div>
+            <p className="font-medium text-[var(--text-primary)]">Nothing here yet</p>
+            <p className="mt-1 text-sm text-[var(--text-muted)]">Use "New Announcement" to get started.</p>
           </div>
-        ) : (
-          announcements.map((announcement) => {
-            const status = deriveStatus(announcement.publish_at);
-            const timeLabel = getTimeLabel(status, announcement.publish_at, announcement.created_at);
-            return (
-              <div
-                key={announcement.id}
-                role="button"
-                tabIndex={0}
-                className="w-full text-left rounded-2xl bg-[var(--surface)] p-4 hover:bg-[var(--surface-2)]"
-                onClick={() => onSelect(announcement)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault();
-                    onSelect(announcement);
-                  }
-                }}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <p className="font-medium text-[var(--text-primary)]">{announcement.title}</p>
-                    <div className="mt-1 flex flex-wrap items-center gap-2">
-                      <Badge variant="neutral">{audienceLabels[announcement.audience] ?? announcement.audience}</Badge>
-                      <Badge variant={statusBadge[status]}>{status}</Badge>
-                    </div>
-                    <p className="mt-2 text-xs text-[var(--text-muted)]">{timeLabel}</p>
-                  </div>
-                  <div className="relative inline-block">
+          <div className="mt-2 w-full max-w-md">
+            <AnnouncementTemplates onSelect={onTemplateSelect} />
+          </div>
+        </div>
+      ) : (
+        announcements.map((announcement) => {
+          const status = deriveStatus(announcement.publish_at);
+          const timeLabel = getTimeLabel(status, announcement.publish_at, announcement.created_at);
+          const isDraft = status === "DRAFT";
+          return (
+            <div
+              key={announcement.id}
+              className={`group flex items-start gap-6 rounded-2xl p-6 transition-all duration-200 hover:scale-[1.003] hover:shadow-lg ${
+                isDraft
+                  ? "border-2 border-dashed border-[var(--primary-soft)] bg-[var(--primary-soft)]"
+                  : "bg-[var(--surface-container-lowest)] hover:shadow-[var(--shadow-sm)]"
+              }`}
+            >
+              {/* Content */}
+              <div className="min-w-0 flex-1 space-y-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-full bg-[var(--surface-2)] px-3 py-1 text-[0.7rem] font-bold uppercase tracking-wider text-[var(--text-secondary)]">
+                    {audienceLabels[announcement.audience] ?? announcement.audience}
+                  </span>
+                  <span className="text-xs text-[var(--text-muted)]">· {timeLabel}</span>
+                </div>
+                <h3 className="truncate text-lg font-bold text-[var(--text-primary)]">{announcement.title}</h3>
+                {announcement.body ? (
+                  <p className="line-clamp-2 text-sm leading-relaxed text-[var(--text-secondary)]">{announcement.body}</p>
+                ) : null}
+                <div className="flex items-center gap-5 pt-1">
+                  <button
+                    type="button"
+                    className="flex items-center gap-1 text-xs font-semibold text-[var(--text-secondary)] transition-colors hover:text-[var(--nav-active-foreground)]"
+                    onClick={(e) => { e.stopPropagation(); onEdit(announcement); }}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125" />
+                    </svg>
+                    {isDraft ? "Resume Editing" : "Edit"}
+                  </button>
+                  {isDraft ? (
                     <button
                       type="button"
-                      data-announcement-action-button="true"
-                      className="btn btn-ghost btn-sm btn-square"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        setOpenMenuId((id) => (id === announcement.id ? null : announcement.id));
-                      }}
-                      aria-haspopup="menu"
-                      aria-expanded={openMenuId === announcement.id}
+                      className="flex items-center gap-1 text-xs font-semibold text-[var(--nav-active-foreground)] transition-colors hover:text-[var(--primary)]"
+                      onClick={(e) => { e.stopPropagation(); onEdit(announcement); }}
                     >
-                      ⋮
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5" />
+                      </svg>
+                      Publish Now
                     </button>
-                    {openMenuId === announcement.id ? (
-                      <ul
-                        data-announcement-action-menu="true"
-                        className="dropdown-menu absolute right-0 top-full mt-2 flex w-40 flex-col gap-0.5 p-2"
-                        role="menu"
-                      >
-                        <li role="none" className="list-none">
-                          <button
-                            type="button"
-                            role="menuitem"
-                            className="dropdown-menu-item"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              onEdit(announcement);
-                              setOpenMenuId(null);
-                            }}
-                          >
-                            Edit
-                          </button>
-                        </li>
-                        <li role="none" className="list-none">
-                          <button
-                            type="button"
-                            role="menuitem"
-                            className="dropdown-menu-item"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              onDuplicate(announcement);
-                              setOpenMenuId(null);
-                            }}
-                          >
-                            Duplicate
-                          </button>
-                        </li>
-                        {status === "SCHEDULED" ? (
-                          <li role="none" className="list-none">
-                            <button
-                              type="button"
-                              role="menuitem"
-                              className="dropdown-menu-item"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                onCancelSchedule(announcement);
-                                setOpenMenuId(null);
-                              }}
-                            >
-                              Cancel schedule
-                            </button>
-                          </li>
-                        ) : null}
-                        <li role="none" className="list-none">
-                          <button
-                            type="button"
-                            role="menuitem"
-                            className="dropdown-menu-item text-error"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              onDelete(announcement);
-                              setOpenMenuId(null);
-                            }}
-                          >
-                            Delete
-                          </button>
-                        </li>
-                      </ul>
-                    ) : null}
-                  </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className="flex items-center gap-1 text-xs font-semibold text-[var(--text-secondary)] transition-colors hover:text-[var(--danger)]"
+                      onClick={(e) => { e.stopPropagation(); onDelete(announcement); }}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                      </svg>
+                      Delete
+                    </button>
+                  )}
+                  {status === "SCHEDULED" ? (
+                    <button
+                      type="button"
+                      className="flex items-center gap-1 text-xs font-semibold text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
+                      onClick={(e) => { e.stopPropagation(); onCancelSchedule(announcement); }}
+                    >
+                      Cancel schedule
+                    </button>
+                  ) : null}
                 </div>
               </div>
-            );
-          })
-        )}
-      </div>
+
+              {/* Status badge */}
+              <div className="flex shrink-0 flex-col items-end gap-2 pt-0.5">
+                <span
+                  className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                    status === "PUBLISHED"
+                      ? "bg-green-50 text-green-700"
+                      : status === "SCHEDULED"
+                        ? "bg-amber-50 text-amber-700"
+                        : "bg-[var(--surface-2)] text-[var(--text-muted)]"
+                  }`}
+                >
+                  {status.charAt(0) + status.slice(1).toLowerCase()}
+                </span>
+              </div>
+            </div>
+          );
+        })
+      )}
     </div>
   );
 }

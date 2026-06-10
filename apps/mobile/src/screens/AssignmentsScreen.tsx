@@ -10,12 +10,11 @@ import { theme } from "../theme/theme";
 import { supabase } from "../supabase";
 import { useAuth } from "../context/AuthContext";
 
-type Source = "schedule" | "bulletin_part" | "bulletin_role";
+type Source = "bulletin_part" | "bulletin_role";
 
 type AssignmentRow = {
   key: string;
   source: Source;
-  scheduleAssignmentId?: string;
   bulletinSlotId?: string;
   bulletinItemId?: string;
   scheduled_date: string;
@@ -51,9 +50,8 @@ function formatServiceTime(dateStr: string, startTime: string): string {
 }
 
 function stitchRoleSubtitle(a: AssignmentRow): string {
-  if (a.source === "schedule") return a.isBackup ? "Volunteer schedule · backup" : "Volunteer schedule";
   if (a.source === "bulletin_part") return "Bulletin";
-  return "Bulletin";
+  return a.isBackup ? "Bulletin · role · backup" : "Bulletin · role";
 }
 
 function stitchStatusLabel(status: string): string {
@@ -80,38 +78,6 @@ export default function AssignmentsScreen({ navigation }: any) {
     }
 
     const today = localTodayString();
-
-    type ScheduleRow = {
-      id: string; role_id: string; service_time_id: string;
-      status: string; scheduled_date: string;
-      assigned_user_id: string | null; backup_user_id: string | null;
-    };
-    let scheduleRows: ScheduleRow[] = [];
-
-    const { data: aData, error: aErr } = await supabase
-      .from("volunteer_assignments")
-      .select("id, role_id, service_time_id, status, scheduled_date, assigned_user_id, backup_user_id")
-      .eq("church_id", profile.church_id)
-      .or(`assigned_user_id.eq.${user.id},backup_user_id.eq.${user.id}`)
-      .gte("scheduled_date", today)
-      .order("scheduled_date", { ascending: true })
-      .limit(40);
-
-    if (aErr) {
-      console.warn("[Serve] backup_user_id unavailable, retrying:", aErr.message);
-      const { data: fb, error: fbErr } = await supabase
-        .from("volunteer_assignments")
-        .select("id, role_id, service_time_id, status, scheduled_date, assigned_user_id")
-        .eq("church_id", profile.church_id)
-        .eq("assigned_user_id", user.id)
-        .gte("scheduled_date", today)
-        .order("scheduled_date", { ascending: true })
-        .limit(40);
-      if (fbErr) console.error("[Serve] volunteer_assignments error:", fbErr.message);
-      else scheduleRows = (fb ?? []).map((r: any) => ({ ...r, backup_user_id: null }));
-    } else {
-      scheduleRows = (aData ?? []) as ScheduleRow[];
-    }
 
     const { data: plansData, error: plansErr } = await supabase
       .from("service_plans")
@@ -163,8 +129,8 @@ export default function AssignmentsScreen({ navigation }: any) {
       else planSlots = (slotsRes.data ?? []) as SlotRow[];
     }
 
-    const allRoleIds = [...new Set([...scheduleRows.map((r) => r.role_id), ...planSlots.map((s) => s.role_id)])];
-    const allServiceTimeIds = [...new Set([...scheduleRows.map((r) => r.service_time_id), ...plans.map((p) => p.service_time_id)])];
+    const allRoleIds = [...new Set(planSlots.map((s) => s.role_id))];
+    const allServiceTimeIds = [...new Set(plans.map((p) => p.service_time_id))];
 
     const [rolesRes, servicesRes] = await Promise.all([
       allRoleIds.length
@@ -181,23 +147,6 @@ export default function AssignmentsScreen({ navigation }: any) {
     );
 
     const merged: AssignmentRow[] = [];
-
-    for (const row of scheduleRows) {
-      const start = timesMap.get(row.service_time_id) ?? "09:00";
-      const isBackup = row.backup_user_id === user.id && row.assigned_user_id !== user.id;
-      merged.push({
-        key: `s-${row.id}`,
-        source: "schedule",
-        scheduleAssignmentId: row.id,
-        scheduled_date: row.scheduled_date,
-        service_time_id: row.service_time_id,
-        status: row.status,
-        titleLine: rolesMap.get(row.role_id) ?? "Role",
-        subtitleLine: isBackup ? "Volunteer schedule · backup" : "Volunteer schedule",
-        service_label: formatServiceTime(row.scheduled_date, start),
-        isBackup,
-      });
-    }
 
     for (const item of planItems) {
       const plan = planById.get(item.plan_id);
@@ -238,7 +187,7 @@ export default function AssignmentsScreen({ navigation }: any) {
     merged.sort((a, b) => {
       const d = a.scheduled_date.localeCompare(b.scheduled_date);
       if (d !== 0) return d;
-      const order: Record<Source, number> = { schedule: 0, bulletin_role: 1, bulletin_part: 2 };
+      const order: Record<Source, number> = { bulletin_role: 0, bulletin_part: 1 };
       return order[a.source] - order[b.source];
     });
 
@@ -269,12 +218,10 @@ export default function AssignmentsScreen({ navigation }: any) {
     setRowError(null);
 
     const sourceMap: Record<Source, string> = {
-      schedule: "volunteer_assignment",
       bulletin_role: "plan_role_slot",
       bulletin_part: "plan_item",
     };
     const idMap: Record<Source, string | undefined> = {
-      schedule: a.scheduleAssignmentId,
       bulletin_role: a.bulletinSlotId,
       bulletin_part: a.bulletinItemId,
     };
@@ -296,20 +243,13 @@ export default function AssignmentsScreen({ navigation }: any) {
       console.warn("[Serve] respond_assignment RPC unavailable, falling back:", rpcError.message);
       let errMsg: string | null = null;
 
-      if (a.source === "schedule" && a.scheduleAssignmentId) {
-        const { error, count } = await supabase
-          .from("volunteer_assignments")
-          .update({ status: response }, { count: "exact" })
-          .eq("id", a.scheduleAssignmentId);
-        if (error) errMsg = error.message;
-        else if (count === 0) errMsg = "Permission denied. Ask an admin to confirm your role is set to Service.";
-      } else if (a.source === "bulletin_role" && a.bulletinSlotId) {
+      if (a.source === "bulletin_role" && a.bulletinSlotId) {
         const { error, count } = await supabase
           .from("service_plan_role_slots")
           .update({ status: response }, { count: "exact" })
           .eq("id", a.bulletinSlotId);
         if (error) errMsg = error.message;
-        else if (count === 0) errMsg = "Permission denied. Ask an admin to apply database migration 0017.";
+        else if (count === 0) errMsg = "Permission denied. Ask an admin to confirm your role is set to Service.";
       } else if (a.source === "bulletin_part" && a.bulletinItemId) {
         const { error, count } = await supabase
           .from("service_plan_items")
@@ -320,7 +260,7 @@ export default function AssignmentsScreen({ navigation }: any) {
             ? "Database migration 0018 hasn't been applied yet."
             : error.message;
         } else if (count === 0) {
-          errMsg = "Permission denied. Ask an admin to apply database migration 0017.";
+          errMsg = "Permission denied. Ask an admin to confirm your role is set to Service.";
         }
       }
 
@@ -340,7 +280,17 @@ export default function AssignmentsScreen({ navigation }: any) {
 
     if (rpcData?.error) {
       console.error("[Serve] respond_assignment error:", rpcData.error);
-      setRowError({ key: a.key, message: String(rpcData.error) });
+      const errStr = String(rpcData.error);
+      if (errStr === "not found") {
+        // The assignment was likely deleted or regenerated by an admin since
+        // the screen last loaded. Refresh the list and tell the user.
+        setSavingKey(null);
+        setRowError(null);
+        setLoading(true);
+        void load();
+        return;
+      }
+      setRowError({ key: a.key, message: errStr === "permission denied" ? "You are no longer assigned to this role." : errStr });
       setSavingKey(null);
       return;
     }

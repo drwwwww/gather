@@ -479,6 +479,7 @@ export default function ServicePlansPage() {
           actions={
             <>
               <Button
+                variant="primaryGradient"
                 size="sm"
                 onClick={() => void handleSavePlanNow()}
                 disabled={!plan}

@@ -60,14 +60,37 @@ export default function MemberDetailsDrawer({
     }
   };
 
+  const initials = (() => {
+    const n = memberName.trim();
+    if (n) {
+      const parts = n.split(/\s+/).filter(Boolean);
+      if (parts.length >= 2) {
+        const a = parts[0][0];
+        const b = parts[parts.length - 1][0];
+        if (a && b) return `${a}${b}`.toUpperCase();
+      }
+      return n.slice(0, 2).toUpperCase();
+    }
+    const local = (memberEmail.split("@")[0] ?? "?").trim();
+    return local.slice(0, 2).toUpperCase() || "?";
+  })();
+
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/40">
-      <div className="h-full w-full max-w-md overflow-y-auto bg-[var(--surface)] p-6 shadow-xl">
-        <div className="flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-xs uppercase tracking-[0.2em] text-base-content/60">Member details</p>
-            <p className="truncate text-lg font-semibold text-base-content">{memberName}</p>
-            <p className="break-words text-sm text-base-content/60">{memberEmail}</p>
+      <div className="h-full w-full max-w-md overflow-y-auto border-l border-[var(--border)] bg-[var(--surface-container-lowest)] p-6 shadow-[0_8px_30px_-8px_rgba(15,23,42,0.1)]">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 gap-3">
+            <div
+              className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[var(--surface-container-low)] text-sm font-bold text-[var(--nav-active-foreground)] ring-2 ring-[var(--nav-pill-active-bg)]"
+              aria-hidden
+            >
+              {initials}
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs uppercase tracking-[0.2em] text-base-content/60">Member details</p>
+              <p className="truncate text-lg font-semibold text-base-content">{memberName}</p>
+              <p className="break-words text-sm text-base-content/60">{memberEmail}</p>
+            </div>
           </div>
           <button type="button" className="btn btn-outline btn-sm shrink-0" onClick={onClose}>
             Close
@@ -75,7 +98,7 @@ export default function MemberDetailsDrawer({
         </div>
 
         <div className="mt-4 space-y-4">
-          <div className="card shadow-sm p-4">
+          <div className="card card-elevated p-4">
             <div className="space-y-2 text-sm">
               <p className="text-base-content/60">Role</p>
               <p className="font-medium text-base-content">{roleLabel}</p>
@@ -84,7 +107,7 @@ export default function MemberDetailsDrawer({
             </div>
           </div>
 
-          <div className="card shadow-sm p-4">
+          <div className="card card-elevated p-4">
             <div className="flex items-center justify-between">
               <div className="card-title">Upcoming assignments</div>
               <span className="text-xs text-base-content/60">{assignments.length} next</span>

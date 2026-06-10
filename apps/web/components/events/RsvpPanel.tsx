@@ -18,7 +18,7 @@ export default function RsvpPanel({
   onViewAttendees
 }: RsvpPanelProps) {
   return (
-    <div className="card shadow-sm p-4">
+    <div className="card card-elevated p-4">
       <div className="flex items-center justify-between">
         <div className="card-title">RSVP Breakdown</div>
         <span className="text-xs text-[var(--text-muted)]">Per event</span>

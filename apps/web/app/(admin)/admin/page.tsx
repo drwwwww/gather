@@ -3,52 +3,52 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-
-import PageLoader from "../../../components/ui/PageLoader";
-import { PageGrid, PageGridFull, PageGridRowTwoOne } from "../../../components/layout/PageGrid";
+import { Clock, Users, UserRound, TicketCheck, TrendingUp } from "lucide-react";
 
 import { supabase } from "../../../lib/supabaseClient";
 import { getNextServiceDateTime } from "../../../lib/nextServiceDatetime";
 import type { Database } from "@gather/lib";
 import { formatShortDateTime, formatWeekdayDateTime, formatCountdown } from "../../../lib/format";
-import { Clock, MapPin } from "lucide-react";
-import Badge from "../../../components/ui/Badge";
-import { type ThisWeekStripData } from "../../../components/dashboard/ThisWeekStrip";
-import NextServiceTeamCard, { type TeamRow } from "../../../components/dashboard/NextServiceTeamCard";
+import type { TeamRow } from "../../../components/dashboard/NextServiceTeamCard";
 import PendingConfirmationsCard, { type PendingRow } from "../../../components/dashboard/PendingConfirmationsCard";
 import LatestAnnouncementsCard, { type AnnouncementPreview } from "../../../components/dashboard/LatestAnnouncementsCard";
 import UpcomingEventsCard, { type EventRow } from "../../../components/dashboard/UpcomingEventsCard";
 import RecentActivityCard from "../../../components/dashboard/RecentActivityCard";
 import RosterDonutCard from "../../../components/dashboard/RosterDonutCard";
 import type { RosterMix } from "../../../components/dashboard/RosterDonutCard";
-import VenusAccentStrip from "../../../components/dashboard/VenusAccentStrip";
 
 type EventItem = Database["public"]["Tables"]["events"]["Row"];
 type ServiceTime = Database["public"]["Tables"]["service_times"]["Row"];
-type AssignmentRow = Database["public"]["Tables"]["volunteer_assignments"]["Row"];
 type AnnouncementRow = Database["public"]["Tables"]["announcements"]["Row"];
 type RoleRow = Database["public"]["Tables"]["volunteer_roles"]["Row"];
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 type EventRsvp = Database["public"]["Tables"]["event_rsvps"]["Row"];
 
-type DashboardCounts = {
-  openRolesCount: number;
-  pendingConfirmationsCount: number;
-  upcomingEventsCount: number;
-  scheduledAnnouncementsCount: number;
-};
+type NextPlanSummary = { id: string; service_date: string; title: string };
+
+function firstName(displayName: string) {
+  const t = displayName.trim();
+  if (!t) return "there";
+  return t.split(/\s+/)[0] ?? "there";
+}
+
+function assigneeInitials(label: string) {
+  const t = label.trim();
+  if (!t) return "?";
+  const parts = t.split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) {
+    const a = parts[0][0];
+    const b = parts[parts.length - 1][0];
+    if (a && b) return `${a}${b}`.toUpperCase();
+  }
+  return t.slice(0, 2).toUpperCase();
+}
 
 export default function AdminEntryPage() {
   const [displayName, setDisplayName] = useState("Admin");
-  const [thisWeekStrip, setThisWeekStrip] = useState<ThisWeekStripData>({
-    nextServiceLabel: "Not scheduled",
-    openSlots: 0,
-    pendingConfirmations: 0,
-    scheduledAnnouncements: 0,
-    eventsThisWeek: 0
-  });
   const [teamRows, setTeamRows] = useState<TeamRow[]>([]);
   const [nextServiceDateLabel, setNextServiceDateLabel] = useState<string | null>(null);
+  const [nextPlan, setNextPlan] = useState<NextPlanSummary | null>(null);
   const [pendingRows, setPendingRows] = useState<PendingRow[]>([]);
   const [announcementPreviews, setAnnouncementPreviews] = useState<AnnouncementPreview[]>([]);
   const [eventPreviews, setEventPreviews] = useState<EventRow[]>([]);
@@ -57,17 +57,22 @@ export default function AdminEntryPage() {
     open: 0,
     assigned: 0,
     confirmed: 0,
-    declined: 0
+    declined: 0,
   });
   const [churchAddress, setChurchAddress] = useState<string | null>(null);
   const [nextServiceAt, setNextServiceAt] = useState<Date | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [memberCount, setMemberCount] = useState(0);
+  const [volunteersEngaged, setVolunteersEngaged] = useState(0);
+  const [totalRsvps, setTotalRsvps] = useState(0);
+  const [openSlotsNext, setOpenSlotsNext] = useState(0);
+  const [newMembersThisMonth, setNewMembersThisMonth] = useState(0);
+  const [newVolunteersThisMonth, setNewVolunteersThisMonth] = useState(0);
+  const [rsvpEventCount, setRsvpEventCount] = useState(0);
   const [status, setStatus] = useState<"checking" | "restricted" | "ready">("checking");
   const router = useRouter();
 
   const refreshStats = async () => {
     if (!supabase) return;
-    setLoading(true);
 
     const { data: authData, error: authError } = await supabase.auth.getUser();
     if (authError || !authData.user) {
@@ -83,7 +88,6 @@ export default function AdminEntryPage() {
 
     if (profileError) {
       setStatus("restricted");
-      setLoading(false);
       return;
     }
 
@@ -94,7 +98,6 @@ export default function AdminEntryPage() {
 
     if (profile.role !== "ADMIN") {
       setStatus("restricted");
-      setLoading(false);
       return;
     }
 
@@ -107,71 +110,82 @@ export default function AdminEntryPage() {
 
     const todayDateStr = new Date().toISOString().slice(0, 10);
 
-    const [assignmentsResult, eventsResult, announcementsResult, serviceTimesResult, rolesResult, profilesResult, churchResult, nextPlanResult] = await Promise.all([
-      supabase.from("volunteer_assignments").select("*").eq("church_id", profile.church_id),
-      supabase.from("events").select("*").eq("church_id", profile.church_id).order("start_at", { ascending: true }),
-      supabase.from("announcements").select("*").eq("church_id", profile.church_id),
-      supabase.from("service_times").select("*").eq("church_id", profile.church_id).order("day_of_week", { ascending: true }),
-      supabase.from("volunteer_roles").select("id, name").eq("church_id", profile.church_id),
-      supabase.from("profiles").select("id, full_name, email, role, created_at").eq("church_id", profile.church_id),
-      supabase.from("churches").select("address").eq("id", profile.church_id).maybeSingle(),
-      // Use actual next service plan as ground truth for "Next Service Team"
-      supabase.from("service_plans").select("id, service_date, title").eq("church_id", profile.church_id).gte("service_date", todayDateStr).order("service_date", { ascending: true }).limit(1).maybeSingle(),
-    ]);
+    const [eventsResult, announcementsResult, serviceTimesResult, rolesResult, profilesResult, churchResult, allPlansResult] =
+      await Promise.all([
+        supabase.from("events").select("*").eq("church_id", profile.church_id).order("start_at", { ascending: true }),
+        supabase.from("announcements").select("*").eq("church_id", profile.church_id),
+        supabase.from("service_times").select("*").eq("church_id", profile.church_id).order("day_of_week", { ascending: true }),
+        supabase.from("volunteer_roles").select("id, name").eq("church_id", profile.church_id),
+        supabase.from("profiles").select("id, full_name, email, role, created_at").eq("church_id", profile.church_id),
+        supabase.from("churches").select("address").eq("id", profile.church_id).maybeSingle(),
+        supabase
+          .from("service_plans")
+          .select("id, service_date, title")
+          .eq("church_id", profile.church_id)
+          .order("service_date", { ascending: true }),
+      ]);
 
-    const assignments = (assignmentsResult.data ?? []) as AssignmentRow[];
     const events = (eventsResult.data ?? []) as EventItem[];
     const announcements = (announcementsResult.data ?? []) as AnnouncementRow[];
     const serviceTimes = (serviceTimesResult.data ?? []) as ServiceTime[];
     const roles = (rolesResult.data ?? []) as RoleRow[];
     const profiles = (profilesResult.data ?? []) as ProfileRow[];
-    const nextPlan = nextPlanResult.data as { id: string; service_date: string; title: string } | null;
+    const allPlanRows = (allPlansResult.data ?? []) as NextPlanSummary[];
+    const nextPlanRow = allPlanRows.find((p) => p.service_date >= todayDateStr) ?? null;
+    const allPlanIds = allPlanRows.map((p) => p.id);
+    setNextPlan(nextPlanRow);
+
+    setMemberCount(profiles.length);
+
+    const thirtyDaysAgo = new Date(now);
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    setNewMembersThisMonth(profiles.filter((p) => new Date(p.created_at) >= thirtyDaysAgo).length);
 
     const rolesById = new Map(roles.map((role) => [role.id, role.name]));
-    const profilesById = new Map(
-      profiles.map((p) => [p.id, p.full_name || p.email || "Member"])
-    );
+    const profilesById = new Map(profiles.map((p) => [p.id, p.full_name || p.email || "Member"]));
 
-    // Use actual next plan date first; fall back to computed service-time date
     const nextService = getNextServiceDateTime(serviceTimes);
-    const nextServiceDateOnly = nextPlan?.service_date ?? (nextService ? nextService.toISOString().slice(0, 10) : null);
+    const nextServiceDateOnly = nextPlanRow?.service_date ?? (nextService ? nextService.toISOString().slice(0, 10) : null);
 
-    // Fetch role slots and assigned run-of-show items for the next plan
-    type SlotTeamRow = { id: string; role_id: string; assigned_user_id: string | null; backup_user_id: string | null; status: string };
+    type SlotTeamRow = { id: string; role_id: string; plan_id: string; assigned_user_id: string | null; backup_user_id: string | null; status: string; created_at: string };
     type ItemTeamRow = { id: string; title: string; assigned_user_id: string | null; assignment_status: string | null };
-    let planSlots: SlotTeamRow[] = [];
+    let allSlots: SlotTeamRow[] = [];
     let planItems: ItemTeamRow[] = [];
-    if (nextPlan?.id) {
+    if (allPlanIds.length > 0) {
       const [slotsRes, itemsRes] = await Promise.all([
-        supabase.from("service_plan_role_slots").select("id, role_id, assigned_user_id, backup_user_id, status").eq("plan_id", nextPlan.id),
-        // Fetch ALL items so we can count open slots too
-        supabase.from("service_plan_items").select("id, title, assigned_user_id, assignment_status").eq("plan_id", nextPlan.id),
+        supabase.from("service_plan_role_slots").select("id, role_id, plan_id, assigned_user_id, backup_user_id, status, created_at").in("plan_id", allPlanIds),
+        nextPlanRow?.id
+          ? supabase.from("service_plan_items").select("id, title, assigned_user_id, assignment_status").eq("plan_id", nextPlanRow.id)
+          : Promise.resolve({ data: [], error: null }),
       ]);
-      planSlots = (slotsRes.data ?? []) as SlotTeamRow[];
+      allSlots = (slotsRes.data ?? []) as SlotTeamRow[];
       planItems = (itemsRes.data ?? []) as ItemTeamRow[];
     }
 
-    // Normalise plan item status: has assignee but status is still "OPEN" → treat as "ASSIGNED"
+    // Slots belonging to the next upcoming plan (for team card display)
+    const planSlots = allSlots.filter((s) => s.plan_id === nextPlanRow?.id);
+
+    // KPI: unique volunteers engaged across all plans
+    const engaged = new Set(allSlots.map((s) => s.assigned_user_id).filter(Boolean) as string[]);
+    setVolunteersEngaged(engaged.size);
+
+    setNewVolunteersThisMonth(
+      new Set(
+        allSlots
+          .filter((s) => s.created_at && new Date(s.created_at) >= thirtyDaysAgo && s.assigned_user_id)
+          .map((s) => s.assigned_user_id as string)
+      ).size
+    );
+
     const normItemStatus = (i: ItemTeamRow) => {
       if (!i.assigned_user_id) return "OPEN";
       if (!i.assignment_status || i.assignment_status === "OPEN") return "ASSIGNED";
       return i.assignment_status;
     };
 
-    setChurchAddress(
-      (churchResult.data as { address?: string | null } | null)?.address?.trim() || null
-    );
+    setChurchAddress((churchResult.data as { address?: string | null } | null)?.address?.trim() || null);
     setNextServiceAt(nextService ?? null);
-    const assignmentsForNextService = nextServiceDateOnly
-      ? assignments.filter((assignment) => assignment.scheduled_date === nextServiceDateOnly)
-      : [];
 
-    const openAssignments = assignmentsForNextService.filter((assignment) => assignment.status === "OPEN");
-    const pendingAssignments = assignmentsForNextService.filter((assignment) => assignment.status === "ASSIGNED");
-    const declinedAssignments = assignmentsForNextService.filter((assignment) => assignment.status === "DECLINED");
-    const confirmedAssignments = assignmentsForNextService.filter((assignment) => assignment.status === "CONFIRMED");
-
-    // Tally role slots and run-of-show items for the next service plan
     const slotOpen = planSlots.filter((s) => !s.assigned_user_id || s.status === "OPEN").length;
     const slotAssigned = planSlots.filter((s) => s.status === "ASSIGNED" && s.assigned_user_id).length;
     const slotConfirmed = planSlots.filter((s) => s.status === "CONFIRMED").length;
@@ -182,11 +196,14 @@ export default function AdminEntryPage() {
     const itemConfirmed = planItems.filter((i) => normItemStatus(i) === "CONFIRMED").length;
     const itemDeclined = planItems.filter((i) => normItemStatus(i) === "DECLINED").length;
 
+    const openTotal = slotOpen + itemOpen;
+    setOpenSlotsNext(openTotal);
+
     setRosterMix({
-      open: openAssignments.length + slotOpen + itemOpen,
-      assigned: pendingAssignments.length + slotAssigned + itemAssigned,
-      confirmed: confirmedAssignments.length + slotConfirmed + itemConfirmed,
-      declined: declinedAssignments.length + slotDeclined + itemDeclined,
+      open: openTotal,
+      assigned: slotAssigned + itemAssigned,
+      confirmed: slotConfirmed + itemConfirmed,
+      declined: slotDeclined + itemDeclined,
     });
 
     const eventsThisWeek = events.filter((event) => {
@@ -194,7 +211,7 @@ export default function AdminEntryPage() {
       return parsed >= now && parsed <= thisWeekEnd;
     });
 
-    const scheduledAnnouncements = announcements.filter((item) => {
+    const scheduledAnnouncementsList = announcements.filter((item) => {
       if (!item.publish_at) return false;
       const parsed = new Date(item.publish_at);
       return parsed > now && parsed <= thisWeekEnd;
@@ -202,16 +219,11 @@ export default function AdminEntryPage() {
 
     const upcomingEventsList = events.filter((event) => new Date(event.start_at) >= now).slice(0, 3);
 
-    const eventIds = Array.from(
-      new Set([...eventsThisWeek, ...upcomingEventsList].map((event) => event.id))
-    );
+    const eventIds = Array.from(new Set([...eventsThisWeek, ...upcomingEventsList].map((event) => event.id)));
 
     let rsvps: EventRsvp[] = [];
     if (eventIds.length) {
-      const { data: rsvpData } = await supabase
-        .from("event_rsvps")
-        .select("event_id")
-        .in("event_id", eventIds);
+      const { data: rsvpData } = await supabase.from("event_rsvps").select("event_id").in("event_id", eventIds);
       rsvps = (rsvpData ?? []) as EventRsvp[];
     }
 
@@ -220,32 +232,18 @@ export default function AdminEntryPage() {
       return acc;
     }, {});
 
-    setThisWeekStrip({
-      nextServiceLabel: formatWeekdayDateTime(nextService),
-      openSlots: openAssignments.length,
-      pendingConfirmations: pendingAssignments.length,
-      scheduledAnnouncements: scheduledAnnouncements.length,
-      eventsThisWeek: eventsThisWeek.length
-    });
+    setTotalRsvps(Object.values(rsvpCounts).reduce((a, n) => a + n, 0));
+    setRsvpEventCount(eventIds.length);
 
     setNextServiceDateLabel(nextServiceDateOnly ?? null);
 
     const combinedTeamRows: TeamRow[] = [
-      // 1. Traditional volunteer schedule assignments
-      ...assignmentsForNextService.map((a) => ({
-        id: `s-${a.id}`,
-        role: rolesById.get(a.role_id) || "Role",
-        assignee: a.assigned_user_id ? (profilesById.get(a.assigned_user_id) || "Assigned") : "Open",
-        status: a.status,
-      })),
-      // 2. Service plan role slots (ushers, greeters, etc.)
       ...planSlots.map((s) => ({
         id: `r-${s.id}`,
         role: rolesById.get(s.role_id) || "Role",
-        assignee: s.assigned_user_id ? (profilesById.get(s.assigned_user_id) || "Assigned") : "Open",
+        assignee: s.assigned_user_id ? profilesById.get(s.assigned_user_id) || "Assigned" : "Open",
         status: s.status,
       })),
-      // 3. Run-of-show steps with an assigned person (skip truly open steps)
       ...planItems
         .filter((i) => !!i.assigned_user_id)
         .map((i) => ({
@@ -258,26 +256,20 @@ export default function AdminEntryPage() {
     setTeamRows(combinedTeamRows);
 
     const pendingSlots = planSlots.filter((s) => s.status === "ASSIGNED" || s.status === "DECLINED");
-    const pendingItems = planItems.filter((i) => {
+    const pendingPlanItems = planItems.filter((i) => {
       const s = normItemStatus(i);
       return s === "ASSIGNED" || s === "DECLINED";
     });
 
     setPendingRows(
       [
-        ...[...pendingAssignments, ...declinedAssignments].map((a) => ({
-          id: `s-${a.id}`,
-          role: rolesById.get(a.role_id) || "Role",
-          assignee: a.assigned_user_id ? profilesById.get(a.assigned_user_id) || "Member" : "Unassigned",
-          status: a.status,
-        })),
         ...pendingSlots.map((s) => ({
           id: `r-${s.id}`,
           role: rolesById.get(s.role_id) || "Role",
           assignee: s.assigned_user_id ? profilesById.get(s.assigned_user_id) || "Member" : "Unassigned",
           status: s.status,
         })),
-        ...pendingItems.map((i) => ({
+        ...pendingPlanItems.map((i) => ({
           id: `i-${i.id}`,
           role: i.title,
           assignee: i.assigned_user_id ? profilesById.get(i.assigned_user_id) || "Member" : "Unassigned",
@@ -296,16 +288,14 @@ export default function AdminEntryPage() {
       .slice(0, 3)
       .map((item) => {
         const publishAt = item.publish_at ? formatShortDateTime(item.publish_at) : null;
-        const status = item.publish_at
-          ? new Date(item.publish_at) > now
-            ? "Scheduled"
-            : "Published"
-          : "Draft";
+        const status = item.publish_at ? (new Date(item.publish_at) > now ? "Scheduled" : "Published") : "Draft";
+        const excerpt = item.body.replace(/\s+/g, " ").trim().slice(0, 160);
         return {
           id: item.id,
           title: item.title,
           status,
-          publishAt
+          publishAt,
+          excerpt: excerpt || undefined,
         } as AnnouncementPreview;
       });
 
@@ -316,7 +306,7 @@ export default function AdminEntryPage() {
         id: event.id,
         name: event.title,
         date: event.start_at,
-        status: `${rsvpCounts[event.id] || 0} RSVP`
+        status: `${rsvpCounts[event.id] || 0} RSVP`,
       }))
     );
 
@@ -324,14 +314,16 @@ export default function AdminEntryPage() {
     weekStart.setDate(weekStart.getDate() - 7);
     const newMembers = profiles.filter((member) => new Date(member.created_at) >= weekStart).length;
     const activityItems: string[] = [];
-    if (pendingAssignments.length) activityItems.push(`${pendingAssignments.length} volunteers pending confirmation`);
-    if (declinedAssignments.length) activityItems.push(`${declinedAssignments.length} assignments declined`);
-    if (scheduledAnnouncements.length) activityItems.push(`${scheduledAnnouncements.length} announcements scheduled this week`);
+    const pendingSlotCount = planSlots.filter((s) => s.status === "ASSIGNED").length;
+    const declinedSlotCount = planSlots.filter((s) => s.status === "DECLINED").length;
+    if (pendingSlotCount) activityItems.push(`${pendingSlotCount} volunteers pending confirmation`);
+    if (declinedSlotCount) activityItems.push(`${declinedSlotCount} assignments declined`);
+    if (scheduledAnnouncementsList.length)
+      activityItems.push(`${scheduledAnnouncementsList.length} announcements scheduled this week`);
     if (newMembers) activityItems.push(`${newMembers} new members joined this week`);
     setRecentActivity(activityItems);
 
     setStatus("ready");
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -344,150 +336,202 @@ export default function AdminEntryPage() {
     }
   }, [status, router]);
 
-  if (status === "checking") {
+  if (status === "checking" || status === "restricted") {
     return <DashboardSkeleton />;
   }
 
-  if (status === "restricted") {
-    return <DashboardSkeleton />;
-  }
+  const greeting = firstName(displayName);
+  const serviceWhen = nextServiceAt ? formatWeekdayDateTime(nextServiceAt) : nextServiceDateLabel ?? "Next service";
+  const heroTitle = nextPlan?.title?.trim() || "Upcoming service";
+  const planHref = nextPlan?.id ? `/admin/service-plans/${nextPlan.id}` : "/admin/service-plans";
+  const heroBlurb =
+    churchAddress != null
+      ? `Main sanctuary service — ${churchAddress}.`
+      : "Main sanctuary service focused on community and worship. Fill roles early for a smooth Sunday.";
+
+  const avatarPeople = teamRows.filter((r) => r.assignee && r.assignee !== "Open");
+  const avatarPreview = avatarPeople.slice(0, 3);
+  const extraAvatars = Math.max(0, avatarPeople.length - 3);
 
   return (
-    <PageGrid className="gap-y-4 md:gap-y-5">
-      <PageGridFull className="space-y-4 animate-fade-in-up">
-        <header className="flex flex-col gap-2">
-          <div>
-            <h1 className="text-xl font-semibold tracking-tight" style={{ color: "var(--text-primary)" }}>
-              Welcome back, {displayName}
-            </h1>
-            <p className="text-sm mt-0.5" style={{ color: "var(--text-muted)" }}>
-              Weekly operations overview
-            </p>
-          </div>
-        </header>
-
-      {/* Hero: Next service (primary) with quick actions */}
+    <div className="space-y-10">
       <section>
-        <div className="card shadow-sm !overflow-hidden">
-          <div className="p-5 sm:p-6">
-            <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-              <div className="min-w-0 space-y-2">
-                <div className="text-[11px] uppercase tracking-[0.2em]" style={{ color: "var(--text-muted)" }}>
-                  Next service
-                </div>
-                <div className="text-2xl sm:text-3xl font-semibold tracking-tight" style={{ color: "var(--text-primary)" }}>
-                  {thisWeekStrip.nextServiceLabel}
-                </div>
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm" style={{ color: "var(--text-muted)" }}>
-                  {nextServiceAt && formatCountdown(nextServiceAt) && (
-                    <div className="flex items-center gap-1.5">
-                      <Clock className="w-4 h-4" />
-                      <span>{formatCountdown(nextServiceAt)}</span>
-                    </div>
-                  )}
-                  {nextServiceAt && formatCountdown(nextServiceAt) && churchAddress && <span>&middot;</span>}
-                  {churchAddress && (
-                    <div className="flex items-center gap-1.5">
-                      <MapPin className="w-4 h-4" />
-                      <span>{churchAddress}</span>
-                    </div>
-                  )}
-                </div>
-                {(thisWeekStrip.openSlots > 0 || thisWeekStrip.pendingConfirmations > 0) && (
-                  <div className="text-sm" style={{ color: "var(--text-secondary)" }}>
-                    {thisWeekStrip.openSlots > 0 && (
-                      <span>{thisWeekStrip.openSlots} open slot{thisWeekStrip.openSlots !== 1 ? "s" : ""}</span>
-                    )}
-                    {thisWeekStrip.openSlots > 0 && thisWeekStrip.pendingConfirmations > 0 && (
-                      <span> · </span>
-                    )}
-                    {thisWeekStrip.pendingConfirmations > 0 && (
-                      <span>{thisWeekStrip.pendingConfirmations} pending confirmation{thisWeekStrip.pendingConfirmations !== 1 ? "s" : ""}</span>
-                    )}
+        <h1 className="m-0 text-4xl font-bold leading-tight tracking-tight text-[var(--text-primary)] sm:text-5xl lg:text-[3.5rem]">
+          Hello, <span className="text-[var(--nav-active-foreground)]">{greeting}</span>.
+        </h1>
+        <p className="mt-2 max-w-2xl text-lg leading-relaxed text-[var(--text-muted)] sm:text-xl">
+          Welcome back to the sanctuary dashboard. Here is what is happening in your community today.
+        </p>
+      </section>
+
+      <section className="relative overflow-hidden rounded-2xl border border-amber-200 border-l-4 border-l-amber-400 bg-[var(--primary-soft)] px-5 py-4 sm:px-6 sm:py-5">
+        <div className="relative z-10">
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <span className="rounded-full bg-amber-100 px-3 py-0.5 text-[10px] font-bold uppercase tracking-widest text-amber-800 sm:text-xs sm:px-4 sm:py-1">
+              Upcoming Service
+            </span>
+            <span className="text-xs text-[var(--text-secondary)] sm:text-sm">• {serviceWhen}</span>
+          </div>
+          <h2 className="mb-1.5 text-2xl font-bold leading-tight tracking-tight text-[var(--text-primary)] sm:text-3xl">{heroTitle}</h2>
+          <p className="mb-4 max-w-lg text-sm leading-snug text-[var(--text-secondary)] sm:text-base">{heroBlurb}</p>
+          {avatarPreview.length > 0 && (
+            <div className="mb-4 flex flex-wrap items-center gap-0">
+              <div className="flex -space-x-2">
+                {avatarPreview.map((row) => (
+                  <div
+                    key={row.id}
+                    className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-amber-400 bg-white text-[10px] font-bold text-amber-600 sm:h-10 sm:w-10 sm:text-xs"
+                    title={row.assignee}
+                  >
+                    {assigneeInitials(row.assignee)}
+                  </div>
+                ))}
+                {extraAvatars > 0 && (
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-amber-400 bg-amber-100 text-[10px] font-bold text-amber-700 sm:h-10 sm:w-10 sm:text-xs">
+                    +{extraAvatars}
                   </div>
                 )}
               </div>
-              <div className="flex flex-wrap gap-2 sm:justify-end flex-shrink-0">
-                <Link href="/admin/service-plans" className="btn btn-secondary btn-sm">
-                  View plan
-                </Link>
-                <Link href="/volunteers" className="btn btn-primary btn-sm">
-                  Volunteers
-                </Link>
+              <span className="pl-3 text-xs font-medium text-[var(--text-secondary)] sm:pl-4 sm:text-sm">Service team and roles</span>
+            </div>
+          )}
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href={planHref}
+              className="inline-flex items-center justify-center rounded-full bg-amber-500 px-5 py-2 text-sm font-bold text-white no-underline transition-[filter] hover:bg-amber-600 active:brightness-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 sm:px-6"
+            >
+              View Full Plan
+            </Link>
+            <Link
+              href="/volunteers"
+              className="inline-flex items-center justify-center rounded-full border border-amber-300 bg-transparent px-4 py-2 text-sm font-semibold text-amber-700 no-underline transition-colors hover:bg-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-200 sm:px-5"
+            >
+              Volunteers
+            </Link>
+          </div>
+          {nextServiceAt && formatCountdown(nextServiceAt) ? (
+            <div className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-amber-200 pt-3 text-xs text-[var(--text-muted)] sm:text-sm">
+              <div className="flex items-center gap-1.5">
+                <Clock className="h-4 w-4 shrink-0" aria-hidden />
+                <span>{formatCountdown(nextServiceAt)}</span>
               </div>
             </div>
-          </div>
+          ) : null}
         </div>
       </section>
 
-      <VenusAccentStrip />
-      </PageGridFull>
+      <section className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        <Link
+          href="/people"
+          className="card card-elevated flex min-h-[160px] flex-col justify-between p-6 transition duration-200 ease-out motion-safe:hover:-translate-y-0.5 hover:border-[var(--nav-active-foreground)]/35 active:translate-y-0"
+        >
+          <div>
+            <Users className="mb-3 h-9 w-9 text-[var(--nav-active-foreground)]" aria-hidden />
+            <h3 className="text-xs font-medium uppercase tracking-widest text-[var(--text-muted)]">Total Members</h3>
+          </div>
+          <div className="mt-4 flex flex-col gap-2">
+            <span className="text-4xl font-bold text-[var(--text-primary)]">{memberCount.toLocaleString()}</span>
+            <TrendPill
+              label={newMembersThisMonth > 0 ? `+${newMembersThisMonth} this month` : "No new this month"}
+              variant={newMembersThisMonth > 0 ? "positive" : "neutral"}
+            />
+          </div>
+        </Link>
+        <Link
+          href="/volunteers"
+          className="card card-elevated flex min-h-[160px] flex-col justify-between p-6 transition duration-200 ease-out motion-safe:hover:-translate-y-0.5 hover:border-[var(--nav-active-foreground)]/35 active:translate-y-0"
+        >
+          <div>
+            <UserRound className="mb-3 h-9 w-9 text-[var(--nav-active-foreground)]" aria-hidden />
+            <h3 className="text-xs font-medium uppercase tracking-widest text-[var(--text-muted)]">Volunteers Active</h3>
+          </div>
+          <div className="mt-4 flex flex-col gap-2">
+            <span className="text-4xl font-bold text-[var(--text-primary)]">{volunteersEngaged.toLocaleString()}</span>
+            <TrendPill
+              label={newVolunteersThisMonth > 0 ? `+${newVolunteersThisMonth} added this month` : "Same as last month"}
+              variant={newVolunteersThisMonth > 0 ? "positive" : "neutral"}
+            />
+          </div>
+        </Link>
+        <Link
+          href="/events"
+          className="card card-elevated flex min-h-[160px] flex-col justify-between p-6 transition duration-200 ease-out motion-safe:hover:-translate-y-0.5 hover:border-[var(--nav-active-foreground)]/35 active:translate-y-0"
+        >
+          <div>
+            <TicketCheck className="mb-3 h-9 w-9 text-[var(--nav-active-foreground)]" aria-hidden />
+            <h3 className="text-xs font-medium uppercase tracking-widest text-[var(--text-muted)]">Recent RSVPs</h3>
+          </div>
+          <div className="mt-4 flex flex-col gap-2">
+            <span className="text-4xl font-bold text-[var(--text-primary)]">{totalRsvps.toLocaleString()}</span>
+            <TrendPill
+              label={rsvpEventCount > 0 ? `across ${rsvpEventCount} event${rsvpEventCount === 1 ? "" : "s"}` : "No upcoming events"}
+              variant="neutral"
+            />
+          </div>
+        </Link>
+      </section>
 
-      <PageGridRowTwoOne
-        className="animate-fade-in-up [animation-delay:100ms] opacity-0"
-        main={
-          <>
-            <NextServiceTeamCard items={teamRows} serviceDate={nextServiceDateLabel} />
-            <PendingConfirmationsCard items={pendingRows} />
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 md:items-stretch min-h-0 animate-fade-in-up [animation-delay:200ms] opacity-0">
-              <RecentActivityCard items={recentActivity} />
-              <UpcomingEventsCard items={eventPreviews} />
+      <div className="grid grid-cols-1 gap-10 lg:grid-cols-12">
+        <div className="space-y-10 lg:col-span-8">
+          <PendingConfirmationsCard items={pendingRows} />
+          <div className="grid min-h-0 grid-cols-1 gap-8 md:grid-cols-2 md:items-stretch">
+            {recentActivity.length > 0 && <RecentActivityCard items={recentActivity} />}
+            <div className={recentActivity.length === 0 ? "md:col-span-2" : ""}>
+              <UpcomingEventsCard items={eventPreviews} variant="stitch" />
             </div>
-          </>
-        }
-        side={
-          <>
-            <RosterDonutCard mix={rosterMix} />
-            <LatestAnnouncementsCard items={announcementPreviews} />
-          </>
-        }
-      />
-    </PageGrid>
+          </div>
+        </div>
+        <aside className="space-y-10 lg:col-span-4">
+          <RosterDonutCard mix={rosterMix} variant="stitch" />
+          <LatestAnnouncementsCard items={announcementPreviews} />
+        </aside>
+      </div>
+    </div>
   );
 }
 
-function formatDateTime(value: string) {
-  if (!value || value === "Not scheduled") return value;
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return value;
-  return parsed.toLocaleString();
+function TrendPill({ label, variant }: { label: string; variant: "positive" | "neutral" }) {
+  return (
+    <span
+      className={
+        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium " +
+        (variant === "positive"
+          ? "bg-green-50 text-green-700"
+          : "bg-[var(--surface-2)] text-[var(--text-muted)]")
+      }
+    >
+      {variant === "positive" && <TrendingUp className="h-3 w-3" aria-hidden />}
+      {label}
+    </span>
+  );
 }
 
 function DashboardSkeleton() {
   return (
-    <PageGrid className="gap-y-4 md:gap-y-5 animate-pulse-subtle">
-      <PageGridFull className="space-y-4">
-        {/* Header Skeleton */}
-        <div className="flex flex-col gap-2">
-          <div className="h-7 w-48 rounded-md bg-[var(--surface-2)]" />
-          <div className="h-4 w-32 rounded-md bg-[var(--surface-2)] mt-0.5" />
-        </div>
-
-        {/* Hero Skeleton */}
-        <div className="card shadow-sm h-[140px] bg-[var(--surface)]" />
-
-        {/* Venus Strip Skeleton */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="card h-[240px] bg-[var(--surface)]" />
-          <div className="card h-[240px] bg-[var(--surface)] hidden md:block" />
-          <div className="card h-[240px] bg-[var(--surface)] hidden md:block" />
-        </div>
-      </PageGridFull>
-
-      <PageGridRowTwoOne
-        main={
-          <div className="space-y-6">
-            <div className="card h-[300px] bg-[var(--surface)]" />
-            <div className="card h-[200px] bg-[var(--surface)]" />
+    <div className="space-y-10 animate-pulse">
+      <div>
+        <div className="h-12 w-full max-w-md rounded-lg bg-[var(--surface-2)]" />
+        <div className="mt-3 h-5 w-full max-w-xl rounded-lg bg-[var(--surface)]" />
+      </div>
+      <div className="h-44 rounded-[var(--radius-box)] bg-[var(--primary-soft)] sm:h-48" />
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="h-40 rounded-[var(--radius-box)] bg-[var(--surface)]" />
+        ))}
+      </div>
+      <div className="grid grid-cols-1 gap-10 lg:grid-cols-12">
+        <div className="space-y-8 lg:col-span-8">
+          <div className="h-56 rounded-[var(--radius-box)] bg-[var(--surface)]" />
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+            <div className="h-48 rounded-[var(--radius-box)] bg-[var(--surface)]" />
+            <div className="h-48 rounded-[var(--radius-box)] bg-[var(--surface)]" />
           </div>
-        }
-        side={
-          <div className="space-y-6">
-            <div className="card h-[250px] bg-[var(--surface)]" />
-            <div className="card h-[200px] bg-[var(--surface)]" />
-          </div>
-        }
-      />
-    </PageGrid>
+        </div>
+        <div className="space-y-8 lg:col-span-4">
+          <div className="h-72 rounded-[var(--radius-box)] bg-[var(--surface)]" />
+          <div className="h-56 rounded-[var(--radius-box)] bg-[var(--surface-2)]" />
+        </div>
+      </div>
+    </div>
   );
 }

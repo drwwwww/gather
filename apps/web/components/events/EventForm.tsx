@@ -38,7 +38,7 @@ export default function EventForm({
   const canSubmit = Boolean(values.title.trim()) && Boolean(values.startDate) && (values.allDay || Boolean(values.startTime));
 
   return (
-    <div className="card shadow-sm p-4">
+    <div className="card card-elevated p-4">
       <div className="flex items-center justify-between">
         <div className="card-title">{isEditing ? "Edit Event" : "Create Event"}</div>
         <span className="text-xs text-[var(--text-muted)]">Keep it simple</span>
@@ -117,7 +117,7 @@ export default function EventForm({
         <p className="text-xs text-[var(--text-muted)]">Times shown in {timezoneLabel || "your local timezone"}.</p>
         {error ? <p className="text-sm text-error">{error}</p> : null}
         <div className="flex flex-wrap gap-2">
-          <button type="button" className="btn btn-primary" onClick={onSubmit} disabled={!canSubmit}>Save Event</button>
+          <button type="button" className="btn btn-primary-gradient" onClick={onSubmit} disabled={!canSubmit}>Save Event</button>
           {isEditing ? (
             <button type="button" className="btn btn-outline" onClick={onCancelEdit}>Cancel</button>
           ) : null}

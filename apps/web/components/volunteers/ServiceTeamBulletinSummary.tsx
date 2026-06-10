@@ -6,7 +6,6 @@ import type { Database } from "@gather/lib";
 
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 type RoleRow = Database["public"]["Tables"]["volunteer_roles"]["Row"];
-type AssignmentRow = Database["public"]["Tables"]["volunteer_assignments"]["Row"];
 type PlanItemRow = Database["public"]["Tables"]["service_plan_items"]["Row"];
 type PlanRoleSlotRow = Database["public"]["Tables"]["service_plan_role_slots"]["Row"];
 
@@ -21,14 +20,12 @@ export default function ServiceTeamBulletinSummary({
   serviceDate,
   profiles,
   roles,
-  assignmentsForDate
 }: {
   churchId: string;
   serviceTimeId: string;
   serviceDate: string;
   profiles: ProfileRow[];
   roles: RoleRow[];
-  assignmentsForDate: AssignmentRow[];
 }) {
   const [planId, setPlanId] = useState<string | null>(null);
   const [planTitle, setPlanTitle] = useState<string | null>(null);
@@ -135,29 +132,17 @@ export default function ServiceTeamBulletinSummary({
     [planItems]
   );
 
-  const scheduleRows = useMemo(
-    () =>
-      assignmentsForDate.map((a) => ({
-        what: roleName(a.role_id),
-        primary: nameOf(a.assigned_user_id ? profilesById.get(a.assigned_user_id) : undefined),
-        backup: nameOf(a.backup_user_id ? profilesById.get(a.backup_user_id) : undefined),
-        status: a.status
-      })),
-    [assignmentsForDate, profilesById, roleName]
-  );
-
   const hasBulletin = Boolean(planId);
-  const hasSchedule = assignmentsForDate.length > 0;
 
   return (
     <div
-      className="card shadow-sm rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4"
+      className="card card-elevated rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4"
       style={{ color: "var(--text-primary)" }}
     >
       <div className="mb-4">
         <p className="text-sm font-semibold text-[var(--text-primary)]">Who’s serving this date</p>
         <p className="text-xs mt-1 text-[var(--text-muted)]">
-          Everyone named on the <strong>service plan bulletin</strong> (role slots and run-of-show parts), plus people on the <strong>volunteer schedule</strong> for other roles.
+          Everyone named on the <strong>service plan bulletin</strong> — role slots and run-of-show parts.
         </p>
       </div>
 
@@ -265,37 +250,6 @@ export default function ServiceTeamBulletinSummary({
         ) : null}
       </div>
 
-      {/* —— Volunteer schedule (other roles) —— */}
-      <div>
-        <p className="text-xs uppercase tracking-[0.2em] text-[var(--text-muted)] mb-1">Volunteer schedule</p>
-        <p className="text-sm text-[var(--text-muted)] mb-2">Other roles generated from the schedule builder (not the bulletin).</p>
-        {!hasSchedule ? (
-          <p className="text-sm text-[var(--text-muted)]">No schedule rows for this service time and date.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="table table-sm w-full text-sm">
-              <thead>
-                <tr className="text-[var(--text-muted)] text-xs uppercase tracking-wider">
-                  <th className="font-medium">Role</th>
-                  <th className="font-medium">Assigned</th>
-                  <th className="font-medium">Backup</th>
-                  <th className="font-medium">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {scheduleRows.map((row, i) => (
-                  <tr key={i} className="border-t border-[var(--border)]">
-                    <td>{row.what}</td>
-                    <td>{row.primary}</td>
-                    <td>{row.backup}</td>
-                    <td>{row.status}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
     </div>
   );
 }

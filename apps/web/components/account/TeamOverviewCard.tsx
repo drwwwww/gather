@@ -37,7 +37,7 @@ export default function TeamOverviewCard({
       <div className="mt-4 flex flex-wrap gap-3">
         <button
           type="button"
-          className="btn btn-primary"
+          className="btn btn-primary-gradient"
           onClick={onManageMembers}
         >
           Manage members

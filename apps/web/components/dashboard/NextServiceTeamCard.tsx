@@ -24,6 +24,18 @@ function statusVariant(status: string) {
   return "neutral" as const;
 }
 
+function assigneeInitials(label: string) {
+  const t = label.trim();
+  if (!t) return "?";
+  const parts = t.split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) {
+    const a = parts[0][0];
+    const b = parts[parts.length - 1][0];
+    if (a && b) return `${a}${b}`.toUpperCase();
+  }
+  return t.slice(0, 2).toUpperCase();
+}
+
 export default function NextServiceTeamCard({
   items,
   serviceDate,
@@ -32,7 +44,7 @@ export default function NextServiceTeamCard({
   serviceDate?: string | null;
 }) {
   return (
-    <div className="card shadow-sm p-6">
+    <div className="card card-elevated p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h2 style={{ fontSize: 16, fontWeight: 600, color: "#111827", margin: 0 }}>
@@ -79,11 +91,34 @@ export default function NextServiceTeamCard({
                     borderBottom: i < items.length - 1 ? "1px solid #f1f5f9" : "none",
                     transition: "background 160ms",
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = "#ECEAE6")}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255, 247, 230, 0.35)")}
                   onMouseLeave={(e) => (e.currentTarget.style.background = "")}
                 >
                   <td style={tdStyle}>{row.role}</td>
-                  <td style={tdStyle}>{row.assignee}</td>
+                  <td style={tdStyle}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <div
+                        style={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: 9999,
+                          flexShrink: 0,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: 10,
+                          fontWeight: 700,
+                          color: "#d97706",
+                          background: "var(--surface-container-low)",
+                          border: "2px solid var(--nav-pill-active-bg)",
+                        }}
+                        aria-hidden
+                      >
+                        {assigneeInitials(row.assignee)}
+                      </div>
+                      <span>{row.assignee}</span>
+                    </div>
+                  </td>
                   <td style={tdStyle}>
                     <Badge variant={statusVariant(row.status)}>{row.status}</Badge>
                   </td>

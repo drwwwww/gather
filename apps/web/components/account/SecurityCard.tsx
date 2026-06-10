@@ -17,7 +17,7 @@ export default function SecurityCard({
       <div className="mt-6 flex flex-wrap gap-3">
         <button
           type="button"
-          className="btn btn-primary"
+          className="btn btn-primary-gradient"
           onClick={onChangePassword}
         >
           Change password

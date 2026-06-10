@@ -26,7 +26,7 @@ export default function ThisWeekStrip({
       {items.map((item) => (
         <div
           key={item.label}
-          className="card shadow-sm px-4 py-3 flex flex-col justify-center min-h-0"
+          className="card card-elevated px-4 py-3 flex flex-col justify-center min-h-0"
         >
           <span className="text-[11px] uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>{item.label}</span>
           <span className="mt-1 text-lg font-semibold" style={{ color: "var(--text-primary)" }}>{item.value}</span>

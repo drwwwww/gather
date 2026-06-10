@@ -139,7 +139,7 @@ export default function SearchPage() {
                 placeholder="Search members, events, or announcements"
               />
             </div>
-            <button type="submit" className="btn btn-primary">Search</button>
+            <button type="submit" className="btn btn-primary-gradient">Search</button>
             {summary ? <p className="text-xs text-base-content/60">{summary}</p> : null}
           </form>
         </div>

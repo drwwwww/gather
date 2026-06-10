@@ -2,15 +2,12 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Users, Calendar, RefreshCw } from "lucide-react";
-import type { Database } from "@gather/lib";
+import { Users, Calendar, RefreshCw, ClipboardList } from "lucide-react";
 
 import { Button } from "../ui/button";
 import Badge from "../ui/Badge";
 
-type AssignmentRow = Database["public"]["Tables"]["volunteer_assignments"]["Row"];
-type RoleRow = Database["public"]["Tables"]["volunteer_roles"]["Row"];
-type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
+type ProfileRow = { id: string; full_name: string | null; email: string | null; role: string; disabled: boolean };
 
 type AssignmentStatus = "OPEN" | "ASSIGNED" | "CONFIRMED" | "DECLINED";
 
@@ -35,8 +32,6 @@ export type BulletinItemRow = {
 };
 
 type AssignmentsTableProps = {
-  assignments: AssignmentRow[];
-  roles: RoleRow[];
   profiles: ProfileRow[];
   showOpenOnly: boolean;
   showPendingOnly: boolean;
@@ -46,18 +41,12 @@ type AssignmentsTableProps = {
   onTogglePendingOnly: (value: boolean) => void;
   onToggleDeclinedOnly: (value: boolean) => void;
   onSearchChange: (value: string) => void;
-  onAssign: (assignmentId: string, userId: string) => void;
-  onUnassign: (assignmentId: string) => void;
-  onAssignBackup: (assignmentId: string, userId: string) => void;
-  onUnassignBackup?: (assignmentId: string) => void;
-  onStatusChange: (assignmentId: string, status: AssignmentStatus) => void;
-  onNotesChange: (assignmentId: string, notes: string) => void;
-  onDelete: (assignmentId: string) => void;
   onGenerateSchedule: () => void;
   onCopyLast: () => void;
   onRefresh?: () => void;
   // Bulletin role slots from the linked service plan
   bulletinPlanTitle?: string | null;
+  bulletinPlanHref?: string | null;
   bulletinSlots?: BulletinSlotRow[];
   onBulletinSlotUpdate?: (slotId: string, patch: {
     assigned_user_id?: string | null;
@@ -84,13 +73,10 @@ const statusStyles: Record<AssignmentStatus, { label: string; variant: "warning"
 };
 
 type UnifiedRow =
-  | { kind: "schedule"; data: AssignmentRow; roleName: string }
   | { kind: "bulletin"; data: BulletinSlotRow }
   | { kind: "item"; data: BulletinItemRow };
 
 export default function AssignmentsTable({
-  assignments,
-  roles,
   profiles,
   showOpenOnly,
   showPendingOnly,
@@ -100,15 +86,10 @@ export default function AssignmentsTable({
   onTogglePendingOnly,
   onToggleDeclinedOnly,
   onSearchChange,
-  onAssign,
-  onUnassign,
-  onAssignBackup,
-  onUnassignBackup,
-  onStatusChange,
-  onNotesChange,
-  onDelete,
   onGenerateSchedule,
   onCopyLast,
+  bulletinPlanTitle = null,
+  bulletinPlanHref = null,
   bulletinSlots = [],
   onBulletinSlotUpdate,
   onBulletinSlotDelete,
@@ -123,13 +104,6 @@ export default function AssignmentsTable({
     [profiles]
   );
 
-  const roleById = useMemo(() => {
-    return (Array.isArray(roles) ? roles : []).reduce<Record<string, RoleRow>>((acc, role) => {
-      acc[role.id] = role;
-      return acc;
-    }, {});
-  }, [roles]);
-
   const statusFilters = useMemo<AssignmentStatus[]>(() => {
     const f: AssignmentStatus[] = [];
     if (showOpenOnly) f.push("OPEN");
@@ -140,18 +114,6 @@ export default function AssignmentsTable({
 
   const unified = useMemo<UnifiedRow[]>(() => {
     const term = searchTerm.trim().toLowerCase();
-
-    const scheduleRows: UnifiedRow[] = (Array.isArray(assignments) ? assignments : [])
-      .filter((a) => {
-        if (statusFilters.length && !statusFilters.includes(a.status as AssignmentStatus)) return false;
-        if (!term) return true;
-        const roleName = roleById[a.role_id]?.name ?? "";
-        const assignedProfile = profiles.find((p) => p.id === a.assigned_user_id);
-        const backupProfile = profiles.find((p) => p.id === a.backup_user_id);
-        const names = [assignedProfile, backupProfile].filter(Boolean).map((p) => p?.full_name || p?.email || "").join(" ");
-        return `${roleName} ${names}`.toLowerCase().includes(term);
-      })
-      .map((a) => ({ kind: "schedule" as const, data: a, roleName: roleById[a.role_id]?.name ?? "Role" }));
 
     const bulletinRows: UnifiedRow[] = bulletinSlots
       .filter((s) => {
@@ -176,25 +138,44 @@ export default function AssignmentsTable({
       })
       .map((item) => ({ kind: "item" as const, data: item }));
 
-    return [...scheduleRows, ...bulletinRows, ...itemRows];
-  }, [assignments, bulletinSlots, statusFilters, searchTerm, roleById, profiles]);
+    return [...bulletinRows, ...itemRows];
+  }, [bulletinSlots, bulletinItems, statusFilters, searchTerm, profiles]);
 
   const isEmpty = unified.length === 0;
-  const hasNoData = assignments.length === 0 && bulletinSlots.length === 0 && bulletinItems.length === 0;
+  const hasNoData = bulletinSlots.length === 0 && bulletinItems.length === 0;
 
   return (
-    <div className="card shadow-sm p-6 mb-8">
-      <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
-        <div className="card-title">Assignments</div>
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex flex-wrap items-center gap-2 text-xs" style={{ color: "var(--text-muted)" }}>
+    <section className="stitch-section-card space-y-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="stitch-icon-well" aria-hidden>
+            <ClipboardList className="h-6 w-6" strokeWidth={2} />
+          </div>
+          <div className="min-w-0">
+            <h2 className="m-0 text-lg font-semibold tracking-tight text-[var(--text-primary)]">Assignments</h2>
+            {bulletinPlanTitle ? (
+              <p className="mt-1 text-sm text-[var(--text-muted)]">Plan: {bulletinPlanTitle}</p>
+            ) : null}
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center justify-end gap-3">
+          {bulletinPlanHref ? (
+            <Link
+              href={bulletinPlanHref}
+              className="text-sm font-semibold text-[#f59e0b] no-underline hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#f59e0b]/30 rounded-sm"
+            >
+              View plan
+            </Link>
+          ) : null}
+          <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--text-muted)]">
             <Badge variant="warning">OPEN</Badge>
             <Badge variant="neutral">PENDING</Badge>
             <Badge variant="success">CONFIRMED</Badge>
             <Badge variant="danger">DECLINED</Badge>
           </div>
-          {onRefresh && (
+          {onRefresh ? (
             <button
+              type="button"
               className="btn btn-ghost btn-sm gap-1"
               onClick={onRefresh}
               title="Refresh assignments"
@@ -202,7 +183,7 @@ export default function AssignmentsTable({
               <RefreshCw className="h-3.5 w-3.5" />
               <span className="text-xs">Refresh</span>
             </button>
-          )}
+          ) : null}
         </div>
       </div>
 
@@ -258,19 +239,31 @@ export default function AssignmentsTable({
         </div>
       )}
 
-      <div className="overflow-x-auto rounded-xl border" style={{ borderColor: "var(--border)" }}>
+      <div className="overflow-x-auto rounded-xl border border-[var(--border)]">
         <table className="table w-full text-sm">
           <thead>
-            <tr>
-              <th className="bg-[var(--surface-2)]">Role</th>
-              <th className="bg-[var(--surface-2)]">Assigned to</th>
-              <th className="bg-[var(--surface-2)]">Backup</th>
-              <th className="bg-[var(--surface-2)]">Status</th>
-              <th className="bg-[var(--surface-2)]">Notes</th>
-              <th className="bg-[var(--surface-2)]">Actions</th>
+            <tr className="border-b border-[var(--border)]">
+              <th className="bg-[var(--surface-container-high)] text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
+                Role
+              </th>
+              <th className="bg-[var(--surface-container-high)] text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
+                Assigned to
+              </th>
+              <th className="bg-[var(--surface-container-high)] text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
+                Backup
+              </th>
+              <th className="bg-[var(--surface-container-high)] text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
+                Status
+              </th>
+              <th className="bg-[var(--surface-container-high)] text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
+                Notes
+              </th>
+              <th className="bg-[var(--surface-container-high)] text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
+                Actions
+              </th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="bg-[var(--surface-container-lowest)]">
             {isEmpty ? (
               <tr>
                 <td colSpan={6} className="p-0 border-0">
@@ -299,71 +292,6 @@ export default function AssignmentsTable({
               </tr>
             ) : (
               unified.map((row) => {
-                if (row.kind === "schedule") {
-                  const { data: a, roleName } = row;
-                  const statusKey = a.status as AssignmentStatus;
-                  const status = statusStyles[statusKey];
-                  const assignedValue = a.assigned_user_id ?? "";
-                  const backupValue = a.backup_user_id ?? "";
-                  const noteValue = notesDraft[`s-${a.id}`] ?? a.notes ?? "";
-                  return (
-                    <tr key={`s-${a.id}`}>
-                      <td>{roleName}</td>
-                      <td>
-                        <select
-                          className="select select-bordered select-sm w-full"
-                          value={assignedValue}
-                          onChange={(e) => onAssign(a.id, e.target.value)}
-                        >
-                          <option value="">Unassigned</option>
-                          {serviceProfiles.map((p) => (
-                            <option key={p.id} value={p.id}>{p.full_name || p.email || p.id}</option>
-                          ))}
-                        </select>
-                      </td>
-                      <td>
-                        <select
-                          className="select select-bordered select-sm w-full"
-                          value={backupValue}
-                          onChange={(e) => {
-                            const v = e.target.value;
-                            if (!v && onUnassignBackup) onUnassignBackup(a.id);
-                            else onAssignBackup(a.id, v);
-                          }}
-                        >
-                          <option value="">None</option>
-                          {serviceProfiles
-                            .filter((p) => p.id !== assignedValue)
-                            .map((p) => (
-                              <option key={p.id} value={p.id}>{p.full_name || p.email || p.id}</option>
-                            ))}
-                        </select>
-                      </td>
-                      <td>
-                        <Badge variant={status.variant}>{status.label}</Badge>
-                      </td>
-                      <td>
-                        <input
-                          type="text"
-                          className="input input-sm w-full"
-                          placeholder="Add notes"
-                          value={noteValue}
-                          onChange={(e) => setNotesDraft((prev) => ({ ...prev, [`s-${a.id}`]: e.target.value }))}
-                          onBlur={(e) => onNotesChange(a.id, e.target.value)}
-                        />
-                      </td>
-                      <td>
-                        <div className="flex flex-wrap gap-2">
-                          <Button variant="secondary" size="sm" onClick={() => onStatusChange(a.id, "CONFIRMED")}>Confirm</Button>
-                          <Button variant="secondary" size="sm" onClick={() => onStatusChange(a.id, "DECLINED")}>Decline</Button>
-                          <Button variant="secondary" size="sm" onClick={() => onUnassign(a.id)}>Unassign</Button>
-                          <Button variant="danger" size="sm" onClick={() => onDelete(a.id)}>Delete</Button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                }
-
                 // run-of-show item row
                 if (row.kind === "item") {
                   const { data: item } = row;
@@ -372,7 +300,10 @@ export default function AssignmentsTable({
                   const backupValue = item.backup_user_id ?? "";
                   const noteValue = notesDraft[`i-${item.id}`] ?? item.notes ?? "";
                   return (
-                    <tr key={`i-${item.id}`}>
+                    <tr
+                      key={`i-${item.id}`}
+                      className="border-b border-[var(--border)] transition-colors hover:bg-[var(--surface-container-low)]"
+                    >
                       <td>{item.title}</td>
                       <td>
                         <select
@@ -438,7 +369,10 @@ export default function AssignmentsTable({
                 const backupValue = slot.backup_user_id ?? "";
                 const noteValue = notesDraft[`b-${slot.id}`] ?? slot.notes ?? "";
                 return (
-                  <tr key={`b-${slot.id}`}>
+                  <tr
+                    key={`b-${slot.id}`}
+                    className="border-b border-[var(--border)] transition-colors hover:bg-[var(--surface-container-low)]"
+                  >
                     <td>{slot.role_name}</td>
                     <td>
                       <select
@@ -501,6 +435,6 @@ export default function AssignmentsTable({
           </tbody>
         </table>
       </div>
-    </div>
+    </section>
   );
 }

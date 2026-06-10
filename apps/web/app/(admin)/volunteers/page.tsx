@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { format } from "date-fns";
+import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import AdminHeader from "../../../components/admin/AdminHeader";
@@ -12,7 +14,6 @@ import AssignmentsTable from "../../../components/volunteers/AssignmentsTable";
 import type { BulletinSlotRow, BulletinItemRow } from "../../../components/volunteers/AssignmentsTable";
 import PendingResponsesCard from "../../../components/volunteers/PendingResponsesCard";
 import DeclinedCard from "../../../components/volunteers/DeclinedCard";
-import RolesCard from "../../../components/volunteers/RolesCard";
 import ScheduleBuilder from "../../../components/volunteers/ScheduleBuilder";
 import { PageGrid, PageGridFull, PageGridRowTwoOne } from "../../../components/layout/PageGrid";
 import { getNextServiceDateTime } from "../../../lib/nextServiceDatetime";
@@ -20,9 +21,7 @@ import type { Database, AssignmentStatus } from "@gather/lib";
 type ServicePlanRoleSlotRow = Database["public"]["Tables"]["service_plan_role_slots"]["Row"];
 
 type RoleRow = Database["public"]["Tables"]["volunteer_roles"]["Row"];
-type MinistryRow = Database["public"]["Tables"]["ministries"]["Row"];
 type ServiceTimeRow = Database["public"]["Tables"]["service_times"]["Row"];
-type AssignmentRow = Database["public"]["Tables"]["volunteer_assignments"]["Row"];
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 
 type StoredScheduleSlot = {
@@ -35,31 +34,42 @@ type RoleView = RoleRow & { ministryName?: string | null };
 
 const weekdayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
+function getLocalDateInputValue(value: Date = new Date()) {
+  const d = new Date(value);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function parseYmdLocal(ymd: string): Date {
+  const [y, m, d] = ymd.split("-").map(Number);
+  return new Date(y, (m ?? 1) - 1, d ?? 1);
+}
+
+function addDaysYmd(ymd: string, delta: number): string {
+  const d = parseYmdLocal(ymd);
+  d.setDate(d.getDate() + delta);
+  return getLocalDateInputValue(d);
+}
+
 export default function VolunteersPage() {
-  const getLocalDateInputValue = (value: Date = new Date()) => {
-    const d = new Date(value);
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, "0");
-    const dd = String(d.getDate()).padStart(2, "0");
-    return `${yyyy}-${mm}-${dd}`;
-  };
 
   const [roles, setRoles] = useState<RoleView[]>([]);
-  const [ministries, setMinistries] = useState<MinistryRow[]>([]);
   const [profiles, setProfiles] = useState<ProfileRow[]>([]);
   const [serviceTimes, setServiceTimes] = useState<ServiceTimeRow[]>([]);
-  const [assignments, setAssignments] = useState<AssignmentRow[]>([]);
-  const [newRoleName, setNewRoleName] = useState("");
-  const [newRoleMinistry, setNewRoleMinistry] = useState("");
-  const [newRoleDescription, setNewRoleDescription] = useState("");
+  /** YYYY-MM-DD dates that have an active service plan (drives the strip dots). */
+  const [planDates, setPlanDates] = useState<Set<string>>(new Set());
   const [serviceDate, setServiceDate] = useState(() => getLocalDateInputValue());
+  /** First day (YYYY-MM-DD) of the 7-day strip; chevrons shift this without changing selection until a pill is chosen. */
+  const [dateStripStart, setDateStripStart] = useState(() => addDaysYmd(getLocalDateInputValue(), -3));
+  const calendarRef = useRef<HTMLDivElement>(null);
+  const [showCalendar, setShowCalendar] = useState(false);
+  /** First day of the month shown in the calendar popover (YYYY-MM-01). */
+  const [calendarMonth, setCalendarMonth] = useState(() => getLocalDateInputValue().slice(0, 7) + "-01");
   const [slotRoleId, setSlotRoleId] = useState("");
   const [slotCount, setSlotCount] = useState(1);
   const [slots, setSlots] = useState<StoredScheduleSlot[]>([]);
-  const [editingRoleId, setEditingRoleId] = useState<string | null>(null);
-  const [editRoleName, setEditRoleName] = useState("");
-  const [editRoleMinistry, setEditRoleMinistry] = useState("");
-  const [editRoleDescription, setEditRoleDescription] = useState("");
   const [serviceTimeId, setServiceTimeId] = useState("");
   const [showOpenOnly, setShowOpenOnly] = useState(false);
   const [showPendingOnly, setShowPendingOnly] = useState(false);
@@ -78,21 +88,62 @@ export default function VolunteersPage() {
 
   const profilesById = useMemo(() => indexProfilesById(profiles), [profiles]);
 
+  const dateStripDays = useMemo(
+    () => Array.from({ length: 7 }, (_, i) => addDaysYmd(dateStripStart, i)),
+    [dateStripStart]
+  );
+
+  const serviceDaysOfWeek = useMemo(
+    () => new Set(serviceTimes.map((s) => s.day_of_week)),
+    [serviceTimes]
+  );
+
+  const selectServiceDateFromStrip = (ymd: string) => {
+    setServiceDate(ymd);
+    setDateStripStart(addDaysYmd(ymd, -3));
+  };
+
+  /** 6-week grid (42 cells) of YYYY-MM-DD covering the month in `calendarMonth`. */
+  const calendarGridDays = useMemo(() => {
+    const first = parseYmdLocal(calendarMonth);
+    const gridStart = new Date(first);
+    gridStart.setDate(first.getDate() - first.getDay()); // back up to Sunday
+    return Array.from({ length: 42 }, (_, i) => {
+      const d = new Date(gridStart);
+      d.setDate(gridStart.getDate() + i);
+      return getLocalDateInputValue(d);
+    });
+  }, [calendarMonth]);
+
+  const openCalendar = () => {
+    setCalendarMonth(serviceDate.slice(0, 7) + "-01");
+    setShowCalendar((v) => !v);
+  };
+
+  useEffect(() => {
+    if (!showCalendar) return;
+    const onPointerDown = (e: MouseEvent) => {
+      if (calendarRef.current && !calendarRef.current.contains(e.target as Node)) {
+        setShowCalendar(false);
+      }
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowCalendar(false);
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [showCalendar]);
+
   const churchId = useMemo(() => profiles[0]?.church_id ?? "", [profiles]);
 
   const selectedServiceTime = useMemo(
     () => serviceTimes.find((service) => service.id === serviceTimeId) ?? null,
     [serviceTimes, serviceTimeId]
   );
-
-  const assignmentsForSelected = useMemo(() => {
-    if (!serviceTimeId || !serviceDate) return [];
-    return assignments.filter(
-      (assignment) =>
-        assignment.service_time_id === serviceTimeId &&
-        assignment.scheduled_date === serviceDate
-    );
-  }, [assignments, serviceTimeId, serviceDate]);
 
   const readinessCounts = useMemo(() => {
     const counts = { total: 0, open: 0, pending: 0, confirmed: 0, declined: 0 };
@@ -103,23 +154,14 @@ export default function VolunteersPage() {
       else if (status === "CONFIRMED") counts.confirmed += 1;
       else if (status === "DECLINED") counts.declined += 1;
     };
-    for (const a of assignmentsForSelected) tally(a.status);
     for (const s of bulletinSlots) tally(s.status);
     for (const i of bulletinItems) tally(i.status);
     return counts;
-  }, [assignmentsForSelected, bulletinSlots, bulletinItems]);
+  }, [bulletinSlots, bulletinItems]);
+
+  const hasData = readinessCounts.total > 0;
 
   const pendingItems = useMemo(() => {
-    const items = assignmentsForSelected
-      .filter((a) => a.status === "ASSIGNED")
-      .map((a) => ({
-        id: a.id,
-        role: roles.find((r) => r.id === a.role_id)?.name ?? "Role",
-        assignee: a.assigned_user_id && profilesById[a.assigned_user_id]
-          ? profilesById[a.assigned_user_id]?.full_name || "Assigned"
-          : "Unassigned",
-        status: a.status
-      }));
     const slotItems = bulletinSlots
       .filter((s) => s.status === "ASSIGNED")
       .map((s) => ({
@@ -140,19 +182,10 @@ export default function VolunteersPage() {
           : "Unassigned",
         status: i.status
       }));
-    return [...items, ...slotItems, ...bulletinItemsPending];
-  }, [assignmentsForSelected, bulletinSlots, bulletinItems, roles, profilesById]);
+    return [...slotItems, ...bulletinItemsPending];
+  }, [bulletinSlots, bulletinItems, profilesById]);
 
   const declinedItems = useMemo(() => {
-    const items = assignmentsForSelected
-      .filter((a) => a.status === "DECLINED")
-      .map((a) => ({
-        id: a.id,
-        role: roles.find((r) => r.id === a.role_id)?.name ?? "Role",
-        detail: a.assigned_user_id
-          ? profilesById[a.assigned_user_id]?.full_name || "Assigned"
-          : "Unassigned"
-      }));
     const slotItems = bulletinSlots
       .filter((s) => s.status === "DECLINED")
       .map((s) => ({
@@ -171,8 +204,8 @@ export default function VolunteersPage() {
           ? profilesById[i.assigned_user_id]?.full_name || "Assigned"
           : "Unassigned"
       }));
-    return [...items, ...slotItems, ...bulletinItemsDeclined];
-  }, [assignmentsForSelected, bulletinSlots, bulletinItems, roles, profilesById]);
+    return [...slotItems, ...bulletinItemsDeclined];
+  }, [bulletinSlots, bulletinItems, profilesById]);
 
   const serviceLabel = useMemo(() => {
     if (selectedServiceTime && serviceDate) {
@@ -195,27 +228,24 @@ export default function VolunteersPage() {
 
     setServiceTimes(context.serviceTimes);
 
-    const [rolesResult, ministriesResult, assignmentsResult, profilesResult] = await Promise.all([
+    const [rolesResult, profilesResult, plansResult] = await Promise.all([
       supabase.from("volunteer_roles").select("*").eq("church_id", context.profile.church_id).order("name"),
-      supabase.from("ministries").select("*").eq("church_id", context.profile.church_id).order("name"),
-      supabase.from("volunteer_assignments").select("*").eq("church_id", context.profile.church_id).order("scheduled_date"),
-      listProfilesByChurch(context.profile.church_id)
+      listProfilesByChurch(context.profile.church_id),
+      supabase.from("service_plans").select("service_date").eq("church_id", context.profile.church_id)
     ]);
 
     if (rolesResult.error) { setError(rolesResult.error.message); return; }
-    if (ministriesResult.error) { setError(ministriesResult.error.message); return; }
-    if (assignmentsResult.error) { setError(assignmentsResult.error.message); return; }
 
-    const ministriesData = (ministriesResult.data ?? []) as MinistryRow[];
-    setMinistries(ministriesData);
     setRoles(
       ((rolesResult.data ?? []) as RoleRow[]).map((role) => ({
         ...role,
-        ministryName: ministriesData.find((m) => m.id === role.ministry_id)?.name ?? null
+        ministryName: null
       }))
     );
-    setAssignments((assignmentsResult.data ?? []) as AssignmentRow[]);
     setProfiles(profilesResult ?? []);
+    setPlanDates(
+      new Set(((plansResult.data ?? []) as { service_date: string }[]).map((p) => p.service_date))
+    );
   };
 
   const refreshBulletin = async () => {
@@ -241,11 +271,23 @@ export default function VolunteersPage() {
       setBulletinPlanTitle(null);
       setBulletinSlots([]);
       setBulletinItems([]);
+      setPlanDates((prev) => {
+        if (!prev.has(serviceDate)) return prev;
+        const next = new Set(prev);
+        next.delete(serviceDate);
+        return next;
+      });
       return;
     }
 
     setBulletinPlanId(planData.id);
     setBulletinPlanTitle(planData.title ?? null);
+    setPlanDates((prev) => {
+      if (prev.has(serviceDate)) return prev;
+      const next = new Set(prev);
+      next.add(serviceDate);
+      return next;
+    });
 
     const [slotRes, itemRes, rolesRes] = await Promise.all([
       supabase
@@ -269,27 +311,36 @@ export default function VolunteersPage() {
     for (const r of rolesRes.data ?? []) roleNameById[r.id] = r.name;
 
     setBulletinSlots(
-      (slotRes.data ?? []).map((s: ServicePlanRoleSlotRow) => ({
-        id: s.id,
-        role_id: s.role_id,
-        role_name: roleNameById[s.role_id] ?? "Role",
-        assigned_user_id: s.assigned_user_id ?? null,
-        backup_user_id: s.backup_user_id ?? null,
-        status: (s.status ?? "OPEN") as AssignmentStatus,
-        notes: s.notes ?? null
-      }))
+      (slotRes.data ?? []).map((s: ServicePlanRoleSlotRow) => {
+        const rawStatus = (s.status ?? "OPEN") as AssignmentStatus;
+        // If someone is assigned but status was never advanced past OPEN, treat as ASSIGNED (pending confirmation)
+        const status: AssignmentStatus = s.assigned_user_id && rawStatus === "OPEN" ? "ASSIGNED" : rawStatus;
+        return {
+          id: s.id,
+          role_id: s.role_id,
+          role_name: roleNameById[s.role_id] ?? "Role",
+          assigned_user_id: s.assigned_user_id ?? null,
+          backup_user_id: s.backup_user_id ?? null,
+          status,
+          notes: s.notes ?? null
+        };
+      })
     );
 
     type PlanItemRow = { id: string; title: string | null; assigned_user_id: string | null; backup_user_id: string | null; assignment_status: AssignmentStatus | null; notes: string | null; position: number };
     setBulletinItems(
-      (itemRes.data ?? [] as PlanItemRow[]).map((item: PlanItemRow) => ({
-        id: item.id,
-        title: item.title ?? "Untitled step",
-        assigned_user_id: item.assigned_user_id ?? null,
-        backup_user_id: item.backup_user_id ?? null,
-        status: (item.assignment_status ?? "OPEN") as AssignmentStatus,
-        notes: item.notes ?? null,
-      }))
+      (itemRes.data ?? [] as PlanItemRow[]).map((item: PlanItemRow) => {
+        const rawStatus = (item.assignment_status ?? "OPEN") as AssignmentStatus;
+        const status: AssignmentStatus = item.assigned_user_id && rawStatus === "OPEN" ? "ASSIGNED" : rawStatus;
+        return {
+          id: item.id,
+          title: item.title ?? "Untitled step",
+          assigned_user_id: item.assigned_user_id ?? null,
+          backup_user_id: item.backup_user_id ?? null,
+          status,
+          notes: item.notes ?? null,
+        };
+      })
     );
   };
 
@@ -334,89 +385,6 @@ export default function VolunteersPage() {
     };
   }, [toastError, toastSuccess]);
 
-  const ensureMinistry = async (name: string, cid: string) => {
-    const trimmed = name.trim();
-    if (!trimmed) return null;
-    const existing = ministries.find((m) => m.name.toLowerCase() === trimmed.toLowerCase());
-    if (existing) return existing.id;
-
-    const { data, error: insertError } = await supabase!
-      .from("ministries")
-      .insert({ church_id: cid, name: trimmed })
-      .select("id")
-      .single();
-
-    if (insertError) { setError(insertError.message); return null; }
-    return data?.id ?? null;
-  };
-
-  const handleAddRole = async (presetName?: string) => {
-    if (!supabase) return;
-    const trimmed = (presetName ?? newRoleName).trim();
-    if (!trimmed) return;
-
-    const context = await getCurrentContext();
-    if (!context) { router.push("/login"); return; }
-
-    const ministryId = await ensureMinistry(newRoleMinistry, context.profile.church_id);
-
-    const { error: insertError } = await supabase.from("volunteer_roles").insert({
-      church_id: context.profile.church_id,
-      name: trimmed,
-      ministry_id: ministryId,
-      description: presetName ? null : newRoleDescription.trim() || null
-    });
-
-    if (insertError) { setError(insertError.message); return; }
-
-    setNewRoleName("");
-    setNewRoleMinistry("");
-    setNewRoleDescription("");
-    refresh();
-  };
-
-  const handleEditRole = (role: { id: string; name: string; ministryName?: string | null; description?: string | null }) => {
-    setEditingRoleId(role.id);
-    setEditRoleName(role.name);
-    setEditRoleMinistry(role.ministryName ?? "");
-    setEditRoleDescription(role.description ?? "");
-  };
-
-  const handleSaveRole = async () => {
-    if (!supabase || !editingRoleId) return;
-    const trimmed = editRoleName.trim();
-    if (!trimmed) return;
-
-    const context = await getCurrentContext();
-    if (!context) return;
-
-    const ministryId = await ensureMinistry(editRoleMinistry, context.profile.church_id);
-
-    const { error: updateError } = await supabase
-      .from("volunteer_roles")
-      .update({
-        name: trimmed,
-        ministry_id: ministryId,
-        description: editRoleDescription.trim() || null
-      })
-      .eq("id", editingRoleId);
-
-    if (updateError) { setError(updateError.message); return; }
-
-    setEditingRoleId(null);
-    setEditRoleName("");
-    setEditRoleMinistry("");
-    setEditRoleDescription("");
-    refresh();
-  };
-
-  const handleDeleteRole = async (roleId: string) => {
-    if (!supabase) return;
-    const { error: deleteError } = await supabase.from("volunteer_roles").delete().eq("id", roleId);
-    if (deleteError) { setError(deleteError.message); return; }
-    refresh();
-  };
-
   const handleAddSlot = () => {
     if (!slotRoleId || slotCount < 1) return;
     setSlots((prev) => [
@@ -431,142 +399,96 @@ export default function VolunteersPage() {
   };
 
   const handleGenerateSchedule = async () => {
-    if (!supabase || !serviceTimeId || !slots.length) return;
+    if (!supabase || !serviceTimeId || !slots.length || !churchId) return;
     const context = await getCurrentContext();
     if (!context) return;
 
+    // Upsert the service plan for this date/time (UNIQUE on church_id, service_time_id, service_date)
+    const { data: plan, error: planError } = await supabase
+      .from("service_plans")
+      .upsert(
+        { church_id: context.profile.church_id, service_time_id: serviceTimeId, service_date: serviceDate, title: "Service Plan" },
+        { onConflict: "church_id,service_time_id,service_date", ignoreDuplicates: false }
+      )
+      .select("id")
+      .single();
+
+    if (planError || !plan) { setError(planError?.message ?? "Failed to create plan"); return; }
+
     const payload = slots.flatMap((slot) =>
-      Array.from({ length: slot.count }, () => ({
-        church_id: context.profile.church_id,
-        service_time_id: serviceTimeId,
+      Array.from({ length: slot.count }, (_, i) => ({
+        plan_id: plan.id,
         role_id: slot.roleId,
-        scheduled_date: serviceDate,
+        sort_order: i,
         status: "OPEN" as AssignmentStatus,
-        notes: null
+        notes: null,
       }))
     );
 
-    const { error: insertError } = await supabase.from("volunteer_assignments").insert(payload);
+    const { error: insertError } = await supabase.from("service_plan_role_slots").insert(payload);
     if (insertError) { setError(insertError.message); return; }
     setSlots([]);
-    refresh();
+    refreshBulletin();
   };
 
   const handleCopyLastService = async () => {
-    if (!supabase || !serviceTimeId || !serviceDate) return;
-    if (assignmentsForSelected.length > 0) {
-      setError("Schedule already exists for this date.");
+    if (!supabase || !serviceTimeId || !serviceDate || !churchId) return;
+    if (bulletinSlots.length > 0 || bulletinItems.length > 0) {
+      setError("A service plan already exists for this date.");
       return;
     }
 
     const context = await getCurrentContext();
     if (!context) return;
 
-    const { data, error: queryError } = await supabase
-      .from("volunteer_assignments")
-      .select("*")
+    // Find the most recent prior plan for this service time
+    const { data: prevPlan, error: prevPlanError } = await supabase
+      .from("service_plans")
+      .select("id, service_date")
       .eq("church_id", context.profile.church_id)
       .eq("service_time_id", serviceTimeId)
-      .lt("scheduled_date", serviceDate)
-      .order("scheduled_date", { ascending: false })
-      .limit(200);
+      .lt("service_date", serviceDate)
+      .order("service_date", { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-    if (queryError) { setError(queryError.message); return; }
+    if (prevPlanError) { setError(prevPlanError.message); return; }
+    if (!prevPlan) { setToastError("No prior service plan found to copy."); return; }
 
-    const rows = (data ?? []) as AssignmentRow[];
-    if (!rows.length) { setToastError("No prior service schedule found to copy."); return; }
+    const { data: prevSlots, error: slotsError } = await supabase
+      .from("service_plan_role_slots")
+      .select("*")
+      .eq("plan_id", prevPlan.id)
+      .order("sort_order");
 
-    const lastDate = rows[0].scheduled_date;
-    const rowsToCopy = rows.filter((row) => row.scheduled_date === lastDate);
+    if (slotsError) { setError(slotsError.message); return; }
+    if (!prevSlots?.length) { setToastError("The prior plan has no role slots to copy."); return; }
 
-    const payload = rowsToCopy.map((row) => ({
-      church_id: context.profile.church_id,
-      service_time_id: serviceTimeId,
-      role_id: row.role_id,
-      scheduled_date: serviceDate,
-      status: (row.assigned_user_id ? "ASSIGNED" : "OPEN") as AssignmentStatus,
-      notes: row.notes ?? null,
-      assigned_user_id: row.assigned_user_id,
-      backup_user_id: row.backup_user_id
+    // Upsert a plan for the target date
+    const { data: newPlan, error: newPlanError } = await supabase
+      .from("service_plans")
+      .upsert(
+        { church_id: context.profile.church_id, service_time_id: serviceTimeId, service_date: serviceDate, title: "Service Plan" },
+        { onConflict: "church_id,service_time_id,service_date", ignoreDuplicates: false }
+      )
+      .select("id")
+      .single();
+
+    if (newPlanError || !newPlan) { setError(newPlanError?.message ?? "Failed to create plan"); return; }
+
+    const payload = (prevSlots as ServicePlanRoleSlotRow[]).map((slot, i) => ({
+      plan_id: newPlan.id,
+      role_id: slot.role_id,
+      sort_order: i,
+      assigned_user_id: slot.assigned_user_id,
+      backup_user_id: slot.backup_user_id,
+      status: (slot.assigned_user_id ? "ASSIGNED" : "OPEN") as AssignmentStatus,
+      notes: slot.notes ?? null,
     }));
 
-    const { error: insertError } = await supabase.from("volunteer_assignments").insert(payload);
+    const { error: insertError } = await supabase.from("service_plan_role_slots").insert(payload);
     if (insertError) { setError(insertError.message); return; }
-    refresh();
-  };
-
-  const handleAssign = async (assignmentId: string, userId: string) => {
-    if (!supabase) return;
-    const nextStatus: AssignmentStatus = userId ? "ASSIGNED" : "OPEN";
-    const { error: updateError } = await supabase
-      .from("volunteer_assignments")
-      .update({ assigned_user_id: userId || null, status: nextStatus })
-      .eq("id", assignmentId);
-    if (updateError) { setError(updateError.message); return; }
-    refresh();
-  };
-
-  const handleUnassign = async (assignmentId: string) => {
-    if (!supabase) return;
-    const { error: updateError } = await supabase
-      .from("volunteer_assignments")
-      .update({ assigned_user_id: null, status: "OPEN" })
-      .eq("id", assignmentId);
-    if (updateError) { setError(updateError.message); return; }
-    refresh();
-  };
-
-  const handleAssignBackup = async (assignmentId: string, userId: string) => {
-    if (!supabase) return;
-    const { error: updateError } = await supabase
-      .from("volunteer_assignments")
-      .update({ backup_user_id: userId || null })
-      .eq("id", assignmentId);
-    if (updateError) { setError(updateError.message); return; }
-    refresh();
-  };
-
-  const handleStatusChange = async (assignmentId: string, status: AssignmentStatus) => {
-    if (!supabase) return;
-    // Auto-promote backup to primary when the primary is marked declined
-    if (status === "DECLINED") {
-      const a = assignmentsForSelected.find((r) => r.id === assignmentId);
-      if (a?.backup_user_id) {
-        const { error } = await supabase
-          .from("volunteer_assignments")
-          .update({ assigned_user_id: a.backup_user_id, backup_user_id: null, status: "ASSIGNED" })
-          .eq("id", assignmentId);
-        if (error) { setError(error.message); return; }
-        refresh();
-        return;
-      }
-    }
-    const { error: updateError } = await supabase
-      .from("volunteer_assignments")
-      .update({ status })
-      .eq("id", assignmentId);
-    if (updateError) { setError(updateError.message); return; }
-    refresh();
-  };
-
-  const handleNotesChange = async (assignmentId: string, notes: string) => {
-    if (!supabase) return;
-    const { error: updateError } = await supabase
-      .from("volunteer_assignments")
-      .update({ notes: notes.trim() || null })
-      .eq("id", assignmentId);
-    if (updateError) { setError(updateError.message); return; }
-    refresh();
-  };
-
-  const handleDeleteAssignment = async (assignmentId: string) => {
-    if (!supabase) return;
-    const { error: deleteError } = await supabase
-      .from("volunteer_assignments")
-      .delete()
-      .eq("id", assignmentId);
-    if (deleteError) { setError(deleteError.message); return; }
-    refresh();
+    refreshBulletin();
   };
 
   const handleBulletinSlotUpdate = async (
@@ -673,7 +595,7 @@ export default function VolunteersPage() {
             >
               <div
                 role="alert"
-                className="flex items-center gap-3 rounded-lg px-4 py-3 shadow-lg"
+                className="flex items-center gap-3 rounded-lg border border-[var(--border)] px-4 py-3 shadow-sm"
                 style={
                   toastSuccess
                     ? { background: "var(--success)", color: "white", border: "1px solid var(--success-hover)" }
@@ -698,57 +620,234 @@ export default function VolunteersPage() {
       <PageGrid>
         <PageGridFull className="animate-fade-in-up">
           <AdminHeader
-            title="Volunteer Scheduling"
-            subtitle="See who is serving, fill open roles, and follow up in one place."
+            size="large"
+            title="Volunteer scheduling"
+            subtitle="Organize ministry teams and monitor service coverage for your upcoming gatherings."
           />
         </PageGridFull>
 
-        {/* Date + service time selector — controls everything below */}
-        <PageGridFull className="animate-fade-in-up [animation-delay:30ms] opacity-0">
-          <div className="card shadow-sm p-4 flex flex-wrap items-end gap-4">
-            <div className="space-y-1">
-              <label className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>Service date</label>
-              <input
-                type="date"
-                className="input input-bordered"
-                value={serviceDate}
-                onChange={(e) => setServiceDate(e.target.value)}
-              />
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>Service time</label>
-              <select
-                className="select select-bordered"
-                value={serviceTimeId}
-                onChange={(e) => setServiceTimeId(e.target.value)}
+        {/* Redesigned date strip — no outer pill container */}
+        <PageGridFull className="relative z-50 flex justify-center">
+          <div className="w-full max-w-4xl animate-volunteers-toolbar-reveal">
+
+            {/* Section label */}
+            <p className="mb-3 text-center text-[11px] font-medium uppercase tracking-widest text-[var(--text-muted)]">
+              Service Date
+            </p>
+
+            {/* Arrow + day items */}
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[var(--border)] text-[var(--text-secondary)] transition-colors duration-150 hover:bg-[var(--surface-2)] hover:text-[var(--text-primary)] active:scale-95"
+                aria-label="Show earlier dates"
+                onClick={() => setDateStripStart((s) => addDaysYmd(s, -1))}
               >
-                {serviceTimes.length === 0 ? (
-                  <option value="">No service times configured</option>
-                ) : (
-                  serviceTimes.map((s) => (
-                    <option key={s.id} value={s.id}>{serviceTimeLabel(s)}</option>
-                  ))
-                )}
-              </select>
-            </div>
-            {serviceLabel ? (
-              <p className="text-sm pb-2" style={{ color: "var(--text-muted)" }}>{serviceLabel}</p>
-            ) : null}
-          </div>
-        </PageGridFull>
+                <ChevronLeft className="h-4 w-4" strokeWidth={2} />
+              </button>
 
-        <PageGridFull className="animate-fade-in-up [animation-delay:50ms] opacity-0">
-          <NextServiceReadinessStrip
-            serviceLabel={serviceLabel || "Not scheduled"}
-            totalSlots={readinessCounts.total}
-            openSlots={readinessCounts.open}
-            pendingConfirmations={readinessCounts.pending}
-            confirmedCount={readinessCounts.confirmed}
-            declinedCount={readinessCounts.declined}
-            onGenerate={handleGenerateSchedule}
-            onCopyLast={handleCopyLastService}
-            onSendReminders={handleSendReminders}
-          />
+              <div className="flex flex-1 justify-center gap-0.5 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                {dateStripDays.map((ymd) => {
+                  const isSelected = ymd === serviceDate;
+                  const hasPlan = planDates.has(ymd);
+                  const d = parseYmdLocal(ymd);
+                  const ariaDate = format(d, "EEEE, MMMM d, yyyy");
+                  return (
+                    <button
+                      key={ymd}
+                      type="button"
+                      onClick={() => selectServiceDateFromStrip(ymd)}
+                      aria-label={
+                        isSelected
+                          ? `Selected: ${ariaDate}`
+                          : hasPlan
+                          ? `${ariaDate} — has a service plan`
+                          : `Set date to ${ariaDate}`
+                      }
+                      aria-pressed={isSelected}
+                      className={[
+                        "flex min-w-[52px] flex-col items-center gap-1 rounded-xl px-2 py-2 transition-colors duration-150",
+                        isSelected
+                          ? "bg-[#EF9F27] cursor-default"
+                          : "cursor-pointer hover:bg-[#FDF3E3]"
+                      ].join(" ")}
+                    >
+                      <span className={[
+                        "text-[10px] font-medium uppercase tracking-wide leading-none",
+                        isSelected ? "text-white/80" : "text-[var(--text-muted)]"
+                      ].join(" ")}>
+                        {format(d, "EEE")}
+                      </span>
+                      <span className={[
+                        "text-[15px] font-medium leading-none tabular-nums",
+                        isSelected ? "text-white" : "text-[var(--text-primary)]"
+                      ].join(" ")}>
+                        {d.getDate()}
+                      </span>
+                      {/* Dot — marks days that have an active service plan */}
+                      <span
+                        aria-hidden
+                        className={[
+                          "h-1.5 w-1.5 rounded-full",
+                          isSelected ? (hasPlan ? "bg-white/70" : "invisible") : hasPlan ? "bg-[#EF9F27]" : "invisible"
+                        ].join(" ")}
+                      />
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                type="button"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[var(--border)] text-[var(--text-secondary)] transition-colors duration-150 hover:bg-[var(--surface-2)] hover:text-[var(--text-primary)] active:scale-95"
+                aria-label="Show later dates"
+                onClick={() => setDateStripStart((s) => addDaysYmd(s, 1))}
+              >
+                <ChevronRight className="h-4 w-4" strokeWidth={2} />
+              </button>
+            </div>
+
+            {/* Service time info line — inline below strip */}
+            <div className="mt-3 flex min-h-8 items-center justify-center gap-2 text-sm">
+              {planDates.has(serviceDate) || serviceDaysOfWeek.has(parseYmdLocal(serviceDate).getDay()) ? (
+                <>
+                  <CalendarDays className="h-4 w-4 shrink-0 text-[#EF9F27]" aria-hidden />
+                  <span className="font-semibold text-[var(--text-primary)]">
+                    {format(parseYmdLocal(serviceDate), "EEE, MMM d")}
+                  </span>
+                  {serviceTimes.length > 0 ? (
+                    <>
+                      <span className="text-[var(--text-muted)]" aria-hidden>·</span>
+                      {serviceTimes.length > 1 ? (
+                        <select
+                          id="volunteers-service-time"
+                          className="border-0 bg-transparent text-sm font-medium text-[var(--text-secondary)] focus:outline-none cursor-pointer"
+                          value={serviceTimeId}
+                          onChange={(e) => setServiceTimeId(e.target.value)}
+                          aria-label="Service time"
+                        >
+                          {serviceTimes.map((s) => (
+                            <option key={s.id} value={s.id}>{serviceTimeLabel(s)}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span className="text-[var(--text-secondary)]">
+                          {selectedServiceTime ? serviceTimeLabel(selectedServiceTime) : ""}
+                        </span>
+                      )}
+                    </>
+                  ) : null}
+                </>
+              ) : (
+                <span className="text-xs italic text-[var(--text-muted)]">No service scheduled on this date</span>
+              )}
+
+              {/* Calendar picker — always available */}
+              <div className="relative" ref={calendarRef}>
+                <button
+                  type="button"
+                  className={[
+                    "flex h-7 w-7 items-center justify-center rounded-full border border-[var(--border)] transition-colors",
+                    showCalendar
+                      ? "bg-[#FDF3E3] text-[#EF9F27]"
+                      : "text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text-secondary)]"
+                  ].join(" ")}
+                  onClick={openCalendar}
+                  aria-label="Open calendar"
+                  aria-expanded={showCalendar}
+                >
+                  <CalendarDays className="h-3.5 w-3.5" aria-hidden />
+                </button>
+
+                {showCalendar ? (
+                  <div className="absolute left-1/2 top-9 z-50 w-[380px] max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-2xl border border-[var(--border)] bg-[var(--surface-container-lowest)] p-3 shadow-lg">
+                    {/* Month header */}
+                    <div className="mb-2 flex items-center justify-between">
+                      <button
+                        type="button"
+                        className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-2)]"
+                        aria-label="Previous month"
+                        onClick={() => {
+                          const d = parseYmdLocal(calendarMonth);
+                          d.setMonth(d.getMonth() - 1);
+                          setCalendarMonth(getLocalDateInputValue(d).slice(0, 7) + "-01");
+                        }}
+                      >
+                        <ChevronLeft className="h-4 w-4" strokeWidth={2} />
+                      </button>
+                      <span className="text-sm font-semibold text-[var(--text-primary)]">
+                        {format(parseYmdLocal(calendarMonth), "MMMM yyyy")}
+                      </span>
+                      <button
+                        type="button"
+                        className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-2)]"
+                        aria-label="Next month"
+                        onClick={() => {
+                          const d = parseYmdLocal(calendarMonth);
+                          d.setMonth(d.getMonth() + 1);
+                          setCalendarMonth(getLocalDateInputValue(d).slice(0, 7) + "-01");
+                        }}
+                      >
+                        <ChevronRight className="h-4 w-4" strokeWidth={2} />
+                      </button>
+                    </div>
+
+                    {/* Weekday headers */}
+                    <div className="mb-1 grid grid-cols-7 gap-0.5">
+                      {["S", "M", "T", "W", "T", "F", "S"].map((w, i) => (
+                        <span
+                          key={i}
+                          className="flex h-6 items-center justify-center text-[10px] font-semibold uppercase text-[var(--text-muted)]"
+                        >
+                          {w}
+                        </span>
+                      ))}
+                    </div>
+
+                    {/* Day grid */}
+                    <div className="grid grid-cols-7 gap-0.5">
+                      {calendarGridDays.map((ymd) => {
+                        const d = parseYmdLocal(ymd);
+                        const inMonth = ymd.slice(0, 7) === calendarMonth.slice(0, 7);
+                        const isSelected = ymd === serviceDate;
+                        const isToday = ymd === getLocalDateInputValue();
+                        const hasPlan = planDates.has(ymd);
+                        return (
+                          <button
+                            key={ymd}
+                            type="button"
+                            onClick={() => {
+                              selectServiceDateFromStrip(ymd);
+                              setShowCalendar(false);
+                            }}
+                            aria-label={format(d, "EEEE, MMMM d, yyyy")}
+                            aria-pressed={isSelected}
+                            className={[
+                              "relative flex h-7 w-full items-center justify-center rounded-lg text-[13px] tabular-nums transition-colors",
+                              isSelected
+                                ? "bg-[#EF9F27] font-semibold text-white"
+                                : inMonth
+                                ? "text-[var(--text-primary)] hover:bg-[#FDF3E3]"
+                                : "text-[var(--text-muted)] opacity-50 hover:bg-[var(--surface-2)]",
+                              !isSelected && isToday ? "ring-1 ring-inset ring-[#EF9F27]" : ""
+                            ].join(" ")}
+                          >
+                            {d.getDate()}
+                            {hasPlan && !isSelected ? (
+                              <span
+                                aria-hidden
+                                className="absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-[#EF9F27]"
+                              />
+                            ) : null}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          </div>
         </PageGridFull>
 
         {error ? (
@@ -757,78 +856,61 @@ export default function VolunteersPage() {
           </PageGridFull>
         ) : null}
 
-        <PageGridFull className="animate-fade-in-up [animation-delay:100ms] opacity-0">
-          <AssignmentsTable
-            assignments={assignmentsForSelected}
-            roles={roles}
-            profiles={profiles}
-            showOpenOnly={showOpenOnly}
-            showPendingOnly={showPendingOnly}
-            showDeclinedOnly={showDeclinedOnly}
-            searchTerm={searchTerm}
-            onToggleOpenOnly={setShowOpenOnly}
-            onTogglePendingOnly={setShowPendingOnly}
-            onToggleDeclinedOnly={setShowDeclinedOnly}
-            onSearchChange={setSearchTerm}
-            onAssign={handleAssign}
-            onUnassign={handleUnassign}
-            onAssignBackup={handleAssignBackup}
-            onUnassignBackup={(id) => handleAssignBackup(id, "")}
-            onStatusChange={handleStatusChange}
-            onNotesChange={handleNotesChange}
-            onDelete={handleDeleteAssignment}
-            onGenerateSchedule={handleGenerateSchedule}
-            onCopyLast={handleCopyLastService}
-            bulletinPlanTitle={bulletinPlanTitle}
-            bulletinSlots={bulletinSlots}
-            onBulletinSlotUpdate={handleBulletinSlotUpdate}
-            onBulletinSlotDelete={handleBulletinSlotDelete}
-            bulletinItems={bulletinItems}
-            onBulletinItemUpdate={handleBulletinItemUpdate}
-            onRefresh={() => { refresh(); refreshBulletin(); }}
-          />
-        </PageGridFull>
-
         <PageGridRowTwoOne
-          className="animate-fade-in-up [animation-delay:200ms] opacity-0"
+          split="wideMain"
+          className="animate-fade-in-up [animation-delay:80ms]"
           main={
-            <div className="space-y-8">
-              <ScheduleBuilder
-                roles={roles}
-                slotRoleId={slotRoleId}
-                slotCount={slotCount}
-                slots={slots}
-                onSlotRoleChange={setSlotRoleId}
-                onSlotCountChange={setSlotCount}
-                onAddSlot={handleAddSlot}
-                onRemoveSlot={handleRemoveSlot}
-                onGenerateSchedule={handleGenerateSchedule}
-                onCopyLast={handleCopyLastService}
-              />
+            <div className="space-y-10">
+              {hasData ? (
+                <AssignmentsTable
+                  profiles={profiles}
+                  showOpenOnly={showOpenOnly}
+                  showPendingOnly={showPendingOnly}
+                  showDeclinedOnly={showDeclinedOnly}
+                  searchTerm={searchTerm}
+                  onToggleOpenOnly={setShowOpenOnly}
+                  onTogglePendingOnly={setShowPendingOnly}
+                  onToggleDeclinedOnly={setShowDeclinedOnly}
+                  onSearchChange={setSearchTerm}
+                  onGenerateSchedule={handleGenerateSchedule}
+                  onCopyLast={handleCopyLastService}
+                  bulletinPlanTitle={bulletinPlanTitle}
+                  bulletinPlanHref={bulletinPlanId ? `/admin/service-plans/${bulletinPlanId}` : null}
+                  bulletinSlots={bulletinSlots}
+                  onBulletinSlotUpdate={handleBulletinSlotUpdate}
+                  onBulletinSlotDelete={handleBulletinSlotDelete}
+                  bulletinItems={bulletinItems}
+                  onBulletinItemUpdate={handleBulletinItemUpdate}
+                  onRefresh={refreshBulletin}
+                />
+              ) : (
+                <ScheduleBuilder
+                  roles={roles}
+                  slotRoleId={slotRoleId}
+                  slotCount={slotCount}
+                  slots={slots}
+                  onSlotRoleChange={setSlotRoleId}
+                  onSlotCountChange={setSlotCount}
+                  onAddSlot={handleAddSlot}
+                  onRemoveSlot={handleRemoveSlot}
+                  onGenerateSchedule={handleGenerateSchedule}
+                  onCopyLast={handleCopyLastService}
+                />
+              )}
             </div>
           }
           side={
             <div className="space-y-6">
-              <RolesCard
-                roles={roles}
-                newRoleName={newRoleName}
-                newRoleMinistry={newRoleMinistry}
-                newRoleDescription={newRoleDescription}
-                editingRoleId={editingRoleId}
-                editRoleName={editRoleName}
-                editRoleMinistry={editRoleMinistry}
-                editRoleDescription={editRoleDescription}
-                onNewRoleNameChange={setNewRoleName}
-                onNewRoleMinistryChange={setNewRoleMinistry}
-                onNewRoleDescriptionChange={setNewRoleDescription}
-                onAddRole={handleAddRole}
-                onEditRole={handleEditRole}
-                onEditRoleNameChange={setEditRoleName}
-                onEditRoleMinistryChange={setEditRoleMinistry}
-                onEditRoleDescriptionChange={setEditRoleDescription}
-                onSaveRole={handleSaveRole}
-                onCancelEdit={() => setEditingRoleId(null)}
-                onDeleteRole={handleDeleteRole}
+              <NextServiceReadinessStrip
+                serviceLabel={serviceLabel || "Not scheduled"}
+                totalSlots={readinessCounts.total}
+                openSlots={readinessCounts.open}
+                pendingConfirmations={readinessCounts.pending}
+                confirmedCount={readinessCounts.confirmed}
+                declinedCount={readinessCounts.declined}
+                onGenerate={handleGenerateSchedule}
+                onCopyLast={handleCopyLastService}
+                onSendReminders={handleSendReminders}
               />
               <PendingResponsesCard items={pendingItems} onFollowUp={handleSendReminders} />
               <DeclinedCard items={declinedItems} />

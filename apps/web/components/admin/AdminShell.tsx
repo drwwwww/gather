@@ -9,6 +9,28 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faHouse, faPeopleGroup, faClipboardUser, faClipboardList, faHammer, faBullhorn, faCalendar, faBell, faGear } from "@fortawesome/free-solid-svg-icons";
 import { supabase } from "../../lib/supabaseClient";
 
+function avatarFromUserMetadata(meta: unknown): string | null {
+  if (!meta || typeof meta !== "object") return null;
+  const m = meta as Record<string, unknown>;
+  const url = m.avatar_url ?? m.picture;
+  return typeof url === "string" && url.length > 0 ? url : null;
+}
+
+function adminInitials(fullName: string, email: string) {
+  const n = fullName.trim();
+  if (n) {
+    const parts = n.split(/\s+/).filter(Boolean);
+    if (parts.length >= 2) {
+      const a = parts[0][0];
+      const b = parts[parts.length - 1][0];
+      if (a && b) return `${a}${b}`.toUpperCase();
+    }
+    return n.slice(0, 2).toUpperCase();
+  }
+  const local = (email.split("@")[0] ?? "?").trim();
+  return local.slice(0, 2).toUpperCase() || "?";
+}
+
 const navItems = [
   { href: "/admin", label: "Dashboard", icon: () => <FontAwesomeIcon icon={faHouse} className="w-5 h-5" /> },
   { href: "/people", label: "People", icon: () => <FontAwesomeIcon icon={faPeopleGroup} className="w-5 h-5" /> },
@@ -26,6 +48,8 @@ export default function AdminShell({ children }: { children: ReactNode }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [notificationCount, setNotificationCount] = useState(0);
   const [notificationScope, setNotificationScope] = useState<{ userId: string; churchId: string } | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState("");
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
@@ -44,6 +68,8 @@ export default function AdminShell({ children }: { children: ReactNode }) {
       const userId = authData.user?.id;
       if (!userId) return;
 
+      setAvatarUrl(avatarFromUserMetadata(authData.user?.user_metadata));
+
       const { data: profile } = await supabase
         .from("profiles")
         .select("full_name, email, role, church_id")
@@ -61,6 +87,7 @@ export default function AdminShell({ children }: { children: ReactNode }) {
       }
       const name = profile.full_name?.trim() || profile.email?.trim() || "Admin";
       setDisplayName(name);
+      setUserEmail(profile.email?.trim() ?? "");
       setDisplayRole(profile.role === "ADMIN" ? "Administrator" : profile.role.toLowerCase());
 
       if (profile.church_id) {
@@ -100,10 +127,12 @@ export default function AdminShell({ children }: { children: ReactNode }) {
     }
   }, [notificationScope]);
 
+  const initials = adminInitials(displayName, userEmail);
+
   return (
-    <div className="min-h-screen bg-[var(--surface)]">
+    <div className="min-h-screen bg-[var(--app-canvas)] text-[#1b1c1a]">
       <div className="flex">
-        {/* Sidebar - fixed so it stays visible when scrolling */}
+        {/* Sidebar — pre-Stitch: bg surface, rounded rows, primary left rail */}
         <aside
           className="fixed left-0 top-0 z-40 flex min-w-0 flex-col overflow-hidden border-r border-[var(--border)] bg-[var(--bg)]"
           style={{
@@ -117,26 +146,18 @@ export default function AdminShell({ children }: { children: ReactNode }) {
             gap: "12px",
           }}
         >
-          {/* Brand - no margin */}
-          <div className="flex flex-col">
-            <span className="text-sm font-semibold tracking-tight text-[var(--text-primary)]">
-              Gather
-            </span>
-            <span className="text-xs text-[var(--text-muted)]">
-              Admin
-            </span>
+          <div className="flex shrink-0 flex-col">
+            <span className="text-sm font-semibold tracking-tight text-[var(--text-primary)]">Gather</span>
+            <span className="text-xs text-[var(--text-muted)]">Admin</span>
           </div>
 
           <div className="h-px shrink-0 bg-[var(--divider)]" />
 
-          {/* Primary nav - scrollable so bottom links stay on screen */}
           <nav aria-label="Main navigation" className="min-h-0 min-w-0 flex-1 overflow-y-auto">
             <ul
-              className="flex list-none flex-col"
+              className="m-0 flex list-none flex-col p-0"
               style={{
                 gap: "var(--sidebar-gap)",
-                margin: 0,
-                padding: 0,
                 listStyle: "none",
               }}
             >
@@ -144,14 +165,10 @@ export default function AdminShell({ children }: { children: ReactNode }) {
                 const isActive =
                   href === "/admin" ? pathname === href : pathname?.startsWith(href);
                 return (
-                  <li
-                    key={href}
-                    className="list-none"
-                    style={{ margin: 0, padding: 0 }}
-                  >
+                  <li key={href} className="list-none" style={{ margin: 0, padding: 0 }}>
                     <Link
                       href={href}
-                      className={`relative w-full grid grid-cols-[18px_1fr] items-center rounded-[14px] no-underline transition-colors duration-200 ease-out hover:no-underline hover:bg-[var(--surface-2)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-0 ${isActive ? "bg-[var(--primary-soft)] rounded-l-none" : "bg-transparent"}`}
+                      className={`relative grid w-full grid-cols-[18px_1fr] items-center rounded-[14px] no-underline transition-colors duration-200 ease-out hover:no-underline hover:bg-[var(--surface-2)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-0 ${isActive ? "rounded-l-none bg-[var(--primary-soft)]" : "bg-transparent"}`}
                       style={{
                         height: "var(--sidebar-row-h)",
                         padding: "0 10px",
@@ -164,7 +181,7 @@ export default function AdminShell({ children }: { children: ReactNode }) {
                     >
                       {isActive && (
                         <span
-                          className="absolute left-0 top-px bottom-px w-1 rounded-full pointer-events-none"
+                          className="pointer-events-none absolute bottom-px left-0 top-px w-1 rounded-full"
                           style={{ background: "var(--primary)" }}
                           aria-hidden
                         />
@@ -182,9 +199,7 @@ export default function AdminShell({ children }: { children: ReactNode }) {
                       >
                         <Icon />
                       </span>
-                      <span className="truncate text-sm font-medium leading-none min-w-0">
-                        {label}
-                      </span>
+                      <span className="min-w-0 truncate text-sm font-medium leading-none">{label}</span>
                     </Link>
                   </li>
                 );
@@ -192,16 +207,13 @@ export default function AdminShell({ children }: { children: ReactNode }) {
             </ul>
           </nav>
 
-          {/* Bottom block: divider + nav + space so links sit above viewport bottom */}
-          <div className="flex shrink-0 flex-col" style={{ paddingBottom: "0px" }}>
+          <div className="flex shrink-0 flex-col" style={{ paddingBottom: 0 }}>
             <div className="h-px shrink-0 bg-[var(--divider)]" />
             <nav aria-label="Account navigation" className="min-w-0 shrink-0">
               <ul
-                className="flex list-none flex-col"
+                className="m-0 flex list-none flex-col p-0"
                 style={{
                   gap: "var(--sidebar-gap)",
-                  margin: 0,
-                  padding: 0,
                   listStyle: "none",
                 }}
               >
@@ -213,7 +225,7 @@ export default function AdminShell({ children }: { children: ReactNode }) {
                     isActive: pathname === "/notifications",
                     endAdornment:
                       notificationCount > 0 ? (
-                        <span className="inline-flex h-5 min-w-[18px] shrink-0 items-center justify-center rounded-full bg-[var(--primary)] px-2 text-[10px] font-semibold text-white">
+                        <span className="inline-flex h-5 min-w-[18px] shrink-0 items-center justify-center rounded-full bg-red-500 px-2 text-[10px] font-semibold text-white">
                           {notificationCount > 99 ? "99+" : notificationCount}
                         </span>
                       ) : null,
@@ -229,7 +241,7 @@ export default function AdminShell({ children }: { children: ReactNode }) {
                   <li key={href} className="list-none" style={{ margin: 0, padding: 0 }}>
                     <Link
                       href={href}
-                      className={`relative w-full grid grid-cols-[18px_1fr] items-center rounded-[14px] no-underline transition-colors duration-200 ease-out hover:no-underline hover:bg-[var(--surface-2)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-0 ${isActive ? "bg-[var(--primary-soft)] rounded-l-none" : "bg-transparent"}`}
+                      className={`relative grid w-full grid-cols-[18px_1fr] items-center rounded-[14px] no-underline transition-colors duration-200 ease-out hover:no-underline hover:bg-[var(--surface-2)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-0 ${isActive ? "rounded-l-none bg-[var(--primary-soft)]" : "bg-transparent"}`}
                       style={{
                         height: "var(--sidebar-row-h)",
                         padding: "0 10px",
@@ -242,7 +254,7 @@ export default function AdminShell({ children }: { children: ReactNode }) {
                     >
                       {isActive && (
                         <span
-                          className="absolute left-0 top-px bottom-px w-1 rounded-full pointer-events-none"
+                          className="pointer-events-none absolute bottom-px left-0 top-px w-1 rounded-full"
                           style={{ background: "var(--primary)" }}
                           aria-hidden
                         />
@@ -261,9 +273,7 @@ export default function AdminShell({ children }: { children: ReactNode }) {
                         <Icon />
                       </span>
                       <div className="flex min-w-0 items-center gap-2">
-                        <span className="truncate text-sm font-medium leading-none min-w-0">
-                          {label}
-                        </span>
+                        <span className="min-w-0 truncate text-sm font-medium leading-none">{label}</span>
                         {endAdornment}
                       </div>
                     </Link>
@@ -274,32 +284,13 @@ export default function AdminShell({ children }: { children: ReactNode }) {
           </div>
         </aside>
         {/* Main content */}
-        <main className="flex-1 min-w-0 min-h-screen" style={{ marginLeft: "var(--sidebar-w)", background: "var(--surface)" }}>
-          {/* Header */}
-          <header
-            className="sticky top-0 z-30 flex items-center h-[64px] border-b px-8"
-            style={{ background: "var(--bg)", borderColor: "var(--border)", boxShadow: "none" }}
-          >
-            {/* Left: Org name + context */}
-            <div className="flex flex-col justify-center min-w-0" style={{ flex: '0 0 auto', height: 64 }}>
-              <span
-                className="uppercase tracking-wide text-[11px] font-semibold mb-1 pl-0.5"
-                style={{ letterSpacing: '0.06em', lineHeight: '1.2', color: 'var(--text-muted)' }}
-              >
-                Church
-              </span>
-              <span
-                className="text-[28px] leading-[32px] font-semibold tracking-tight truncate max-w-[240px]"
-                style={{ letterSpacing: '-0.01em', lineHeight: '1.1', color: 'var(--text-primary)' }}
-              >
-                {churchName}
-              </span>
-              {/* Context badge (optional, placeholder for now) */}
-              {/* <span className="ml-2 px-2 py-0.5 rounded bg-[var(--muted)] text-xs font-medium text-[var(--ink)]">Org</span> */}
-            </div>
-            {/* Center: Full-width search */}
+        <main
+          className="flex min-h-screen min-w-0 flex-1 flex-col bg-[var(--app-canvas)] font-['Rubik',sans-serif]"
+          style={{ marginLeft: "var(--sidebar-w)" }}
+        >
+          <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between gap-6 border-b border-stone-200 bg-[#fdfcf8] px-6 sm:px-10 lg:px-12">
             <form
-              className="flex-1 flex justify-center px-8"
+              className="min-w-0 flex-1"
               onSubmit={(event) => {
                 event.preventDefault();
                 const trimmed = searchTerm.trim();
@@ -309,50 +300,81 @@ export default function AdminShell({ children }: { children: ReactNode }) {
               role="search"
               aria-label="Admin search"
             >
-              <div className="w-full max-w-[420px]">
-                <label className="sr-only" htmlFor="admin-search">Search</label>
-                <div className="relative">
+              <div className="w-full max-w-md">
+                <label className="sr-only" htmlFor="admin-search">
+                  Search
+                </label>
+                <div className="relative flex h-11 max-w-sm items-center rounded-full bg-[var(--surface-container-low)] px-4 py-2 lg:max-w-md">
+                  <Search className="pointer-events-none mr-2 h-5 w-5 shrink-0 text-stone-400" aria-hidden="true" />
                   <input
                     id="admin-search"
                     type="search"
-                    className="h-10 w-full rounded-[10px] border border-[var(--border)] px-10 text-[14px] bg-transparent placeholder:text-[var(--text-muted)] transition-all duration-150 focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary-soft)] outline-none hover:border-[color-mix(in_srgb,var(--border),#000_8%)]"
-                    placeholder="Search members, events, or records..."
+                    className="h-full min-w-0 flex-1 border-0 bg-transparent p-0 text-sm text-[#1b1c1a] outline-none ring-0 placeholder:text-stone-400 focus:ring-0"
+                    placeholder="Search members, events, or plans..."
                     value={searchTerm}
                     onChange={(event) => setSearchTerm(event.target.value)}
-                    aria-label="Search members, events, or records"
+                    aria-label="Search members, events, or plans"
                   />
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] w-5 h-5 pointer-events-none" aria-hidden="true" />
                 </div>
               </div>
             </form>
-            {/* Right: Profile dropdown + notifications */}
-            <div className="flex items-center gap-4 min-w-0" style={{ flex: '0 0 auto', height: 64 }}>
-              {/* Notifications icon */}
+            <div className="flex shrink-0 items-center gap-4 sm:gap-6">
               <Link
                 href="/notifications"
-                className="relative flex items-center justify-center w-10 h-10 rounded-[10px] hover:bg-[var(--surface-2)] transition-colors duration-150"
+                className="relative flex h-10 w-10 items-center justify-center rounded-full text-stone-500 transition-colors duration-150 hover:text-[#d97706] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#f59e0b]/30 active:opacity-80"
                 aria-label="Notifications"
               >
-                <FontAwesomeIcon icon={faBell} className="w-5 h-5 text-[var(--text-muted)]" />
+                <FontAwesomeIcon icon={faBell} className="h-5 w-5" />
                 {notificationCount > 0 && (
-                  <span className="absolute top-1 right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-white text-xs font-semibold flex items-center justify-center">
+                  <span className="absolute right-1 top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold text-white">
                     {notificationCount > 99 ? "99+" : notificationCount}
                   </span>
                 )}
               </Link>
-              {/* Minimal avatar and menu button */}
-              <div className="flex items-center">
+              <div className="flex min-w-0 items-center gap-3 border-l border-stone-200 pl-4 sm:pl-6">
+                <div className="hidden min-w-0 text-right sm:block">
+                  <p className="max-w-[200px] truncate text-sm font-bold text-[#1b1c1a]">{displayName}</p>
+                  <p className="truncate text-xs text-stone-500">{displayRole}</p>
+                </div>
+                {avatarUrl ? (
+                  <img
+                    src={avatarUrl}
+                    alt={displayName}
+                    className="h-10 w-10 shrink-0 rounded-full object-cover ring-2 ring-[var(--border)]"
+                  />
+                ) : (
+                  <div
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--surface-container-low)] text-xs font-bold text-[var(--nav-active-foreground)] ring-2 ring-[var(--border)]"
+                    aria-hidden
+                  >
+                    {initials}
+                  </div>
+                )}
                 <button
                   type="button"
-                  className="btn btn-ghost btn-sm"
+                  className="hidden shrink-0 text-sm font-semibold text-stone-500 underline-offset-4 hover:text-[#d97706] hover:underline sm:inline"
                   onClick={() => router.push("/logout")}
                 >
-                  Logout
+                  Log out
                 </button>
               </div>
             </div>
           </header>
-          {children}
+          <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+          <footer className="mt-auto flex flex-col gap-4 border-t border-stone-100 px-6 py-10 text-sm text-stone-400 sm:flex-row sm:items-center sm:justify-between sm:px-10 lg:px-12">
+            <p className="m-0">
+              © {new Date().getFullYear()} {churchName}. All rights reserved.
+            </p>
+            <div className="flex flex-wrap gap-6">
+              <Link href="/join" className="transition-colors hover:text-[#f59e0b]">
+                Support
+              </Link>
+              <Link href="/account" className="transition-colors hover:text-[#f59e0b]">
+                Privacy
+              </Link>
+              <span className="text-stone-300">Documentation</span>
+            </div>
+          </footer>
         </main>
       </div>
     </div>

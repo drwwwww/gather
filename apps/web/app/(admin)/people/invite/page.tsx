@@ -4,14 +4,14 @@ import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Role } from "@gather/lib";
-import { PageGrid, PageGridFull } from "../../../components/layout/PageGrid";
-import InviteMembersForm from "../../../components/people/InviteMembersForm";
-import type { InviteEntry } from "../../../components/people/memberUtils";
-import { buildJoinLink, buildInviteMessage } from "../../../lib/format";
-import { appendPendingInvites } from "../../../lib/pendingInvitesStorage";
-import { getCurrentContext } from "../../../lib/supabaseData";
+import { PageGrid, PageGridFull } from "../../../../components/layout/PageGrid";
+import InviteMembersForm from "../../../../components/people/InviteMembersForm";
+import type { InviteEntry } from "../../../../components/people/memberUtils";
+import { buildJoinLink, buildInviteMessage } from "../../../../lib/format";
+import { appendPendingInvites } from "../../../../lib/pendingInvitesStorage";
+import { getCurrentContext } from "../../../../lib/supabaseData";
 
-export default function JoinHubPage() {
+export default function PeopleInviteHubPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const codeParam = (searchParams.get("code") ?? "").trim();
@@ -30,7 +30,7 @@ export default function JoinHubPage() {
     try {
       const context = await getCurrentContext();
       if (!context) {
-        router.replace("/login?next=/join");
+        router.replace("/login?next=/people/invite");
         return;
       }
       if (context.profile.role !== "ADMIN") {
@@ -69,14 +69,8 @@ export default function JoinHubPage() {
   }, [codeParam, router]);
 
   useEffect(() => {
-    load();
+    void load();
   }, [load]);
-
-  useEffect(() => {
-    if (!loading && churchSlug && !codeParam && typeof window !== "undefined") {
-      router.replace(`/join?code=${encodeURIComponent(churchSlug)}`);
-    }
-  }, [loading, churchSlug, codeParam, router]);
 
   const smsBody = useMemo(() => {
     if (!churchName || !churchSlug || !joinLink) return "";
@@ -101,7 +95,7 @@ export default function JoinHubPage() {
       email,
       role,
       message,
-      createdAt: now
+      createdAt: now,
     }));
     appendPendingInvites(churchId, newInvites);
   };
@@ -140,11 +134,11 @@ export default function JoinHubPage() {
             </button>
           </div>
 
-          <div className="rounded-2xl border border-primary/20 bg-[var(--surface)] p-8 shadow-sm print:border-none print:shadow-none">
+          <div className="rounded-2xl border border-primary/20 bg-[var(--surface-container-lowest)] p-8 shadow-sm print:border-none print:shadow-none">
             <h1 className="text-2xl font-semibold text-base-content">Invite people to {churchName || "your church"}</h1>
             <p className="mt-2 text-sm text-base-content/60">
-              Share the join link or code, scan the QR code in the Gather app flow, or send the message by email or
-              text.
+              Share the join link or code. The QR code opens the public join page so people can sign in and join this
+              church. You can also send the message by email or text.
             </p>
 
             {error ? <p className="mt-3 text-sm text-error">{error}</p> : null}

@@ -64,20 +64,20 @@ export default function EventsList({
   const list = activeTab === "UPCOMING" ? upcoming : past;
 
   return (
-    <div className="card shadow-sm p-4">
+    <div className="card card-elevated p-4">
       <div className="flex items-center justify-between">
         <div className="card-title">Events</div>
         <div className="flex items-center gap-2">
             <button
               type="button"
-              className={`btn btn-sm ${activeTab === "UPCOMING" ? "btn-primary" : "btn-outline"}`}
+              className={`btn btn-sm rounded-full ${activeTab === "UPCOMING" ? "btn-primary-gradient" : "btn-outline-amber"}`}
               onClick={() => onTabChange("UPCOMING")}
             >
               Upcoming
             </button>
             <button
               type="button"
-              className={`btn btn-sm ${activeTab === "PAST" ? "btn-primary" : "btn-outline"}`}
+              className={`btn btn-sm rounded-full ${activeTab === "PAST" ? "btn-primary-gradient" : "btn-outline-amber"}`}
               onClick={() => onTabChange("PAST")}
             >
               Past

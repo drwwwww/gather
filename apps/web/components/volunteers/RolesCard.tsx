@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Pencil, Trash2, Check, X } from "lucide-react";
+import { Pencil, Trash2, Check, X, Users } from "lucide-react";
 import { Button } from "../ui/button";
 
 export type RoleItem = {
@@ -12,6 +12,8 @@ export type RoleItem = {
 };
 
 type RolesCardProps = {
+  /** `stitch` — volunteers page handoff surfaces. Default matches service-plans sidebar. */
+  variant?: "default" | "stitch";
   roles: RoleItem[];
   newRoleName: string;
   newRoleMinistry: string;
@@ -34,6 +36,7 @@ type RolesCardProps = {
 };
 
 export default function RolesCard({
+  variant = "default",
   roles,
   newRoleName,
   newRoleMinistry,
@@ -54,6 +57,7 @@ export default function RolesCard({
   onCancelEdit,
   onDeleteRole
 }: RolesCardProps) {
+  const isStitch = variant === "stitch";
   const [showAdd, setShowAdd] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
@@ -71,10 +75,24 @@ export default function RolesCard({
     }
   };
 
+  const shell = isStitch ? "stitch-section-card flex flex-col gap-4" : "card card-elevated flex flex-col gap-4 p-6 sm:p-8";
+
   return (
-    <div className="card shadow-sm p-5 flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <span className="card-title text-base">Roles</span>
+    <div className={shell}>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        {isStitch ? (
+          <div className="flex min-w-0 items-center gap-4">
+            <div className="stitch-icon-well" aria-hidden>
+              <Users className="h-6 w-6" strokeWidth={2} />
+            </div>
+            <div className="min-w-0">
+              <h2 className="m-0 text-2xl font-bold tracking-tight text-[var(--text-primary)]">Roles</h2>
+              <p className="mt-1 text-sm text-[var(--text-muted)]">Volunteer roles for scheduling.</p>
+            </div>
+          </div>
+        ) : (
+          <h2 className="m-0 text-xl font-bold text-[var(--text-primary)]">Roles</h2>
+        )}
         {!showAdd && (
           <Button variant="secondary" size="sm" onClick={() => setShowAdd(true)}>
             + Add role

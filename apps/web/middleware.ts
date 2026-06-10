@@ -30,7 +30,5 @@ export const config = {
     "/account/:path*",
     "/member",
     "/member/:path*",
-    "/join",
-    "/join/:path*",
   ],
 };

@@ -11,7 +11,7 @@ export default function AnnouncementPreview({ title, body, audience }: Announcem
   const hasContent = title.trim() || body.trim();
 
   return (
-    <div className="card shadow-sm p-4">
+    <div className="card card-elevated p-4">
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <p className="text-xs uppercase tracking-[0.2em] text-[var(--text-muted)]">Preview</p>

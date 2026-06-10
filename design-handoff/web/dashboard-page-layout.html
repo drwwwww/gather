@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gather — Admin dashboard layout mirror</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --text-primary: #111827;
+      --text-muted: #9ca3af;
+      --text-secondary: #4b5563;
+      --border: #e5e7eb;
+      --bg: #fafafa;
+      --surface: #f4f4f5;
+      --surface-2: #e4e4e7;
+    }
+    .amber-aura-gradient {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-[var(--bg)] text-[var(--text-primary)] antialiased">
+  <!-- Mirrors apps/web/app/(admin)/layout.tsx content wrapper (approx widths) -->
+  <div class="mx-auto w-full max-w-7xl space-y-8 px-4 py-8 sm:px-8 lg:space-y-12 lg:px-12 lg:py-12">
+
+    <!-- apps/web/app/(admin)/admin/page.tsx — PageGrid -->
+    <div class="grid w-full grid-cols-12 gap-x-6 gap-y-4 md:gap-y-5">
+
+      <!-- PageGridFull -->
+      <div class="col-span-12 min-w-0 space-y-4">
+        <header class="flex flex-col gap-2">
+          <h1 class="text-xl font-semibold tracking-tight text-[var(--text-primary)]">Welcome back, Admin</h1>
+          <p class="mt-0.5 text-sm text-[var(--text-muted)]">Weekly operations overview</p>
+        </header>
+
+        <!-- Next service hero (amber-aura-gradient in app) -->
+        <section aria-labelledby="dash-next-service">
+          <div class="amber-aura-gradient relative overflow-hidden rounded-2xl border border-stone-900/10 text-white">
+            <div class="relative z-10 p-5 sm:p-6">
+              <div class="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+                <div class="min-w-0 space-y-2">
+                  <div class="text-[11px] uppercase tracking-[0.2em] text-white/80">Next service</div>
+                  <div id="dash-next-service" class="text-2xl font-semibold tracking-tight sm:text-3xl">Sunday, Apr 20 · 10:00 AM</div>
+                  <p class="text-sm font-medium text-white/90">Plan title from service_plans.title</p>
+                  <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-white/80">
+                    <span class="inline-flex items-center gap-1.5">⏱ <span>Countdown copy</span></span>
+                    <span class="text-white/60">·</span>
+                    <span class="inline-flex items-center gap-1.5">📍 <span>Church address</span></span>
+                  </div>
+                  <div class="text-sm text-white/90">N open slots · M pending confirmations</div>
+                </div>
+                <div class="flex shrink-0 flex-wrap gap-2 sm:justify-end">
+                  <a href="/admin/service-plans" class="inline-flex items-center justify-center rounded-full border border-white/40 bg-white/10 px-4 py-2 text-sm font-semibold text-white hover:bg-white/20">View plan</a>
+                  <a href="/volunteers" class="inline-flex items-center justify-center rounded-full bg-gradient-to-br from-amber-500 to-amber-700 px-4 py-2 text-sm font-semibold text-white">Volunteers</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- VenusAccentStrip → PageGridRowThirds -->
+        <section class="col-span-12 grid grid-cols-1 gap-6 md:grid-cols-3 lg:items-start" aria-label="Shortcuts">
+          <a href="/volunteers" class="flex min-h-0 flex-col overflow-hidden rounded-[25px] border border-[var(--border)] bg-white shadow-sm">
+            <div class="relative h-[170px] overflow-hidden bg-[var(--surface-2)]">
+              <div class="flex h-full w-full items-center justify-center text-xs text-[var(--text-muted)]">Image: /volunteer.jpg</div>
+            </div>
+            <div class="flex-1 border-t border-[var(--border)] bg-[var(--bg)] p-4">
+              <h3 class="font-semibold">Volunteer schedule</h3>
+              <p class="mt-1 text-sm text-[var(--text-muted)]">Assignments, confirmations, and readiness.</p>
+            </div>
+          </a>
+          <a href="/events" class="flex min-h-0 flex-col overflow-hidden rounded-[25px] border border-[var(--border)] bg-white shadow-sm">
+            <div class="relative h-[170px] overflow-hidden bg-[var(--surface-2)]">
+              <div class="flex h-full w-full items-center justify-center text-xs text-[var(--text-muted)]">Image: /events.jpg</div>
+            </div>
+            <div class="flex-1 border-t border-[var(--border)] bg-[var(--bg)] p-4">
+              <h3 class="font-semibold">Events calendar</h3>
+              <p class="mt-1 text-sm text-[var(--text-muted)]">Services and church-wide events.</p>
+            </div>
+          </a>
+          <a href="/people" class="flex min-h-0 flex-col overflow-hidden rounded-[25px] border border-[var(--border)] bg-white shadow-sm">
+            <div class="relative h-[170px] overflow-hidden bg-[var(--surface-2)]">
+              <div class="flex h-full w-full items-center justify-center text-xs text-[var(--text-muted)]">Image: /people.jpg</div>
+            </div>
+            <div class="flex-1 border-t border-[var(--border)] bg-[var(--bg)] p-4">
+              <h3 class="font-semibold">People</h3>
+              <p class="mt-1 text-sm text-[var(--text-muted)]">Members, roles, and contact info.</p>
+            </div>
+          </a>
+        </section>
+      </div>
+
+      <!-- PageGridRowTwoOne -->
+      <div class="col-span-12 grid grid-cols-1 gap-6 lg:grid-cols-3 lg:items-start">
+        <div class="min-w-0 space-y-6 lg:col-span-2">
+          <article class="rounded-[25px] border border-[var(--border)] bg-white p-6 shadow-sm">
+            <header class="mb-4 flex items-center justify-between">
+              <h2 class="text-base font-semibold">Next Service Team</h2>
+              <span class="rounded-full bg-[var(--surface)] px-2.5 py-1 text-xs font-medium text-[var(--text-muted)]">Service date pill</span>
+            </header>
+            <div class="rounded-2xl border border-[var(--border)] text-sm">
+              <table class="w-full border-collapse">
+                <thead>
+                  <tr class="border-b border-[var(--border)] text-left text-xs uppercase text-[var(--text-muted)]">
+                    <th class="p-3">Role</th>
+                    <th class="p-3">Assigned</th>
+                    <th class="p-3">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="border-b border-[var(--border)]">
+                    <td class="p-3">Example role</td>
+                    <td class="p-3">Member</td>
+                    <td class="p-3">CONFIRMED</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </article>
+
+          <article class="rounded-[25px] border border-[var(--border)] bg-white p-6 shadow-sm">
+            <header class="mb-4 flex items-center justify-between">
+              <h2 class="text-base font-semibold">Pending Responses</h2>
+              <a href="/volunteers" class="rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-semibold text-white">Resolve assignments</a>
+            </header>
+            <p class="text-sm text-[var(--text-muted)]">List of pending rows (default card variant)</p>
+          </article>
+
+          <div class="grid min-h-0 grid-cols-1 gap-6 md:grid-cols-2 md:items-stretch">
+            <article class="rounded-[25px] border border-[var(--border)] bg-white p-6 shadow-sm">
+              <h2 class="mb-4 text-base font-semibold">Recent Activity</h2>
+              <p class="text-sm text-[var(--text-muted)]">String list or empty state</p>
+            </article>
+            <article class="rounded-[25px] border border-[var(--border)] bg-white p-6 shadow-sm">
+              <h2 class="mb-4 text-base font-semibold">Upcoming Events</h2>
+              <p class="text-sm text-[var(--text-muted)]">Table (default card variant)</p>
+            </article>
+          </div>
+        </div>
+
+        <aside class="min-w-0 space-y-6 lg:col-span-1">
+          <article class="rounded-lg bg-[var(--surface)] p-8">
+            <h3 class="mb-6 text-xl font-bold">Roster Mix</h3>
+            <div class="relative mx-auto mb-8 flex h-48 w-48 items-center justify-center">
+              <div class="absolute inset-0 flex flex-col items-center justify-center">
+                <span class="text-3xl font-bold">70%</span>
+                <span class="text-[10px] font-bold uppercase text-[var(--text-muted)]">Filled</span>
+              </div>
+              <p class="text-center text-xs text-[var(--text-muted)]">SVG donut — RosterDonutCard variant=&quot;stitch&quot;</p>
+            </div>
+            <ul class="space-y-4 text-sm">
+              <li class="flex justify-between"><span>Confirmed</span><strong>0</strong></li>
+              <li class="flex justify-between"><span>Awaiting reply</span><strong>0</strong></li>
+              <li class="flex justify-between"><span>Open slots</span><strong>0</strong></li>
+            </ul>
+          </article>
+
+          <article class="rounded-[25px] border border-[var(--border)] bg-white p-6 shadow-sm">
+            <h2 class="mb-4 text-base font-semibold">Latest Announcements</h2>
+            <p class="text-sm text-[var(--text-muted)]">Default card list</p>
+          </article>
+        </aside>
+      </div>
+    </div>
+  </div>
+  <p class="mx-auto max-w-7xl px-4 pb-8 text-center text-xs text-[var(--text-muted)]">
+    Layout mirror for <code>apps/web/app/(admin)/admin/page.tsx</code> — not wired to data. AdminShell header/sidebar/footer omitted.
+  </p>
+</body>
+</html>

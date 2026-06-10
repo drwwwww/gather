@@ -23,7 +23,7 @@ export default function ProfileCard({
         </div>
         <button
           type="button"
-          className="btn btn-sm btn-primary"
+          className="btn btn-sm btn-primary-gradient"
           onClick={onSave}
           disabled={saveDisabled}
         >

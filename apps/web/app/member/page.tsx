@@ -35,15 +35,10 @@ export default function MemberHomePage() {
   return (
     <div className="mx-auto max-w-2xl">
       <section
-        className="overflow-hidden rounded-3xl border-2 border-[var(--primary)] bg-[color-mix(in_oklch,var(--primary)_14%,var(--surface))] shadow-lg"
+        className="overflow-hidden rounded-3xl border-2 border-[var(--primary)] bg-[color-mix(in_oklch,var(--primary)_14%,var(--surface))]"
         aria-labelledby="member-app-heading"
       >
         <div className="relative px-6 pb-10 pt-10 sm:px-10 sm:pb-12 sm:pt-12">
-          <div
-            className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full opacity-30 blur-2xl"
-            style={{ background: "var(--primary)" }}
-            aria-hidden
-          />
           <div className="relative">
             <p className="inline-flex items-center gap-1.5 rounded-full border border-[color-mix(in_oklch,var(--primary)_35%,transparent)] bg-[var(--surface)] px-3 py-1 text-xs font-medium text-[var(--text-primary)]">
               <Sparkles className="h-3.5 w-3.5 shrink-0 text-[var(--primary)]" aria-hidden />
@@ -94,7 +89,7 @@ export default function MemberHomePage() {
                     href={IOS_URL}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="btn btn-primary btn-lg h-auto min-h-[3.25rem] w-full justify-center gap-2 px-6 py-4 text-base font-semibold shadow-md"
+                    className="btn btn-primary-gradient btn-lg h-auto min-h-[3.25rem] w-full justify-center gap-2 px-6 py-4 text-base font-semibold"
                   >
                     <Download className="h-5 w-5 shrink-0" aria-hidden />
                     Download on the App Store

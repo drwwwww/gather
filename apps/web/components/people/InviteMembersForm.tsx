@@ -49,7 +49,7 @@ export default function InviteMembersForm({
   };
 
   return (
-    <div className="card shadow-sm p-5">
+    <div className="card card-elevated p-5">
       <div className="card-title">Invite by email</div>
       <p className="mt-1 text-sm text-base-content/60">
         Generate a message you can paste into email. Addresses are tracked here so you can see pending invites on the
@@ -81,10 +81,10 @@ export default function InviteMembersForm({
           </select>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button type="button" className="btn btn-primary" onClick={handleGenerate} disabled={!emailList.length}>
+          <button type="button" className="btn btn-primary-gradient" onClick={handleGenerate} disabled={!emailList.length}>
             Generate invite message
           </button>
-          <button type="button" className="btn btn-outline" onClick={handleCopy} disabled={!message}>
+          <button type="button" className="btn btn-outline-amber" onClick={handleCopy} disabled={!message}>
             Copy invite message
           </button>
         </div>

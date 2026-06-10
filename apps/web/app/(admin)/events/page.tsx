@@ -292,7 +292,7 @@ export default function EventsPage() {
         className="animate-fade-in-up [animation-delay:100ms] opacity-0"
         main={
           loading && events.length === 0 ? (
-            <div className="card h-[600px] bg-[var(--surface)] animate-pulse-subtle" />
+            <div className="card card-elevated h-[600px] animate-pulse-subtle bg-[var(--surface)]" />
           ) : (
             <EventForm
               values={formValues}
@@ -309,8 +309,8 @@ export default function EventsPage() {
         side={
           loading && events.length === 0 ? (
             <div className="space-y-6 animate-pulse-subtle">
-              <div className="card h-[400px] bg-[var(--surface)]" />
-              <div className="card h-[200px] bg-[var(--surface)]" />
+              <div className="card card-elevated h-[400px] bg-[var(--surface)]" />
+              <div className="card card-elevated h-[200px] bg-[var(--surface)]" />
             </div>
           ) : (
             <div className="space-y-6">

@@ -21,7 +21,7 @@ export default function GenerateFromPresetButton({
 
   return (
     <>
-      <button className="btn btn-primary btn-sm" onClick={handleClick} disabled={disabled}>
+      <button className="btn btn-primary-gradient btn-sm" onClick={handleClick} disabled={disabled}>
         Generate from preset
       </button>
       {open && (
@@ -34,7 +34,7 @@ export default function GenerateFromPresetButton({
                 Cancel
               </button>
               <button
-                className="btn btn-primary"
+                className="btn btn-primary-gradient"
                 onClick={() => {
                   setOpen(false);
                   onGenerate();

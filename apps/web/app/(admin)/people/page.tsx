@@ -21,9 +21,10 @@ import {
 } from "../../../components/people/memberUtils";
 import type { Database, Role } from "@gather/lib";
 
+import type { PlanSlotRow } from "../../../components/people/types";
+
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 type ChurchRow = Database["public"]["Tables"]["churches"]["Row"];
-type AssignmentRow = Database["public"]["Tables"]["volunteer_assignments"]["Row"];
 type ServiceTimeRow = Database["public"]["Tables"]["service_times"]["Row"];
 type RoleRow = Database["public"]["Tables"]["volunteer_roles"]["Row"];
 
@@ -34,7 +35,7 @@ type SortBy = "NEWEST" | "NAME";
 export default function PeoplePage() {
   const [members, setMembers] = useState<ProfileRow[]>([]);
   const [invites, setInvites] = useState<InviteEntry[]>([]);
-  const [assignments, setAssignments] = useState<AssignmentRow[]>([]);
+  const [planSlots, setPlanSlots] = useState<PlanSlotRow[]>([]);
   const [serviceTimes, setServiceTimes] = useState<ServiceTimeRow[]>([]);
   const [volunteerRoles, setVolunteerRoles] = useState<RoleRow[]>([]);
   const [church, setChurch] = useState<ChurchRow | null>(null);
@@ -63,28 +64,54 @@ export default function PeoplePage() {
       setCurrentUserId(context.userId);
       setServiceTimes(context.serviceTimes);
 
-      const [profiles, assignmentsResult, rolesResult] = await Promise.all([
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const [profiles, rolesResult, plansResult] = await Promise.all([
         listProfilesByChurch(context.profile.church_id),
-        supabase
-          .from("volunteer_assignments")
-          .select("*")
-          .eq("church_id", context.profile.church_id),
         supabase
           .from("volunteer_roles")
           .select("*")
+          .eq("church_id", context.profile.church_id),
+        supabase
+          .from("service_plans")
+          .select("id, service_date, service_time_id")
           .eq("church_id", context.profile.church_id)
+          .gte("service_date", todayStr),
       ]);
-
-      if (assignmentsResult.error) {
-        throw new Error(assignmentsResult.error.message);
-      }
 
       if (rolesResult.error) {
         throw new Error(rolesResult.error.message);
       }
+      if (plansResult.error) {
+        throw new Error(plansResult.error.message);
+      }
+
+      const planIds = (plansResult.data ?? []).map((p) => p.id);
+      const planById = Object.fromEntries((plansResult.data ?? []).map((p) => [p.id, p]));
+
+      let mergedSlots: PlanSlotRow[] = [];
+      if (planIds.length > 0) {
+        const slotsResult = await supabase
+          .from("service_plan_role_slots")
+          .select("id, plan_id, role_id, assigned_user_id, status")
+          .in("plan_id", planIds);
+
+        if (slotsResult.error) {
+          throw new Error(slotsResult.error.message);
+        }
+
+        mergedSlots = (slotsResult.data ?? []).map((s) => ({
+          id: s.id,
+          plan_id: s.plan_id,
+          role_id: s.role_id,
+          assigned_user_id: s.assigned_user_id,
+          status: s.status,
+          service_date: planById[s.plan_id]?.service_date ?? "",
+          service_time_id: planById[s.plan_id]?.service_time_id ?? "",
+        }));
+      }
 
       setMembers((profiles ?? []) as ProfileRow[]);
-      setAssignments((assignmentsResult.data ?? []) as AssignmentRow[]);
+      setPlanSlots(mergedSlots);
       setVolunteerRoles((rolesResult.data ?? []) as RoleRow[]);
       setInvites(readPendingInvites(context.profile.church_id));
 
@@ -161,13 +188,13 @@ export default function PeoplePage() {
 
   const selectedAssignments = useMemo(() => {
     if (!selectedMember?.profile) return [];
-    const upcoming = getUpcomingAssignments(assignments, serviceTimes, selectedMember.profile.id);
-    return upcoming.map((assignment) => ({
-      id: assignment.id,
-      role: volunteerRoles.find((role) => role.id === assignment.roleId)?.name ?? "Role",
-      serviceLabel: assignment.serviceLabel
+    const upcoming = getUpcomingAssignments(planSlots, serviceTimes, selectedMember.profile.id);
+    return upcoming.map((slot) => ({
+      id: slot.id,
+      role: volunteerRoles.find((role) => role.id === slot.roleId)?.name ?? "Role",
+      serviceLabel: slot.serviceLabel
     }));
-  }, [assignments, selectedMember, serviceTimes, volunteerRoles]);
+  }, [planSlots, selectedMember, serviceTimes, volunteerRoles]);
 
   const handleRoleChange = async (userId: string, role: Role) => {
     const member = memberEntries.find((entry) => entry.id === userId);
@@ -263,7 +290,7 @@ export default function PeoplePage() {
           <div className="h-4 w-64 rounded-md bg-[var(--surface-2)]" />
         </PageGridFull>
         <PageGridFull>
-          <div className="card h-[600px] bg-[var(--surface)]" />
+          <div className="card card-elevated h-[600px] bg-[var(--surface)]" />
         </PageGridFull>
       </PageGrid>
     );
@@ -278,10 +305,10 @@ export default function PeoplePage() {
           actions={
             <button
               type="button"
-              className="btn btn-primary"
+              className="btn btn-primary-gradient"
               onClick={() => {
                 const slug = church?.slug ?? "";
-                if (slug) router.push(`/join?code=${encodeURIComponent(slug)}`);
+                if (slug) router.push("/people/invite");
               }}
             >
               Invite members
