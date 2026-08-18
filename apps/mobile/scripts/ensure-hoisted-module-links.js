@@ -18,7 +18,11 @@ if (fs.existsSync(nestedReactNavigation)) {
   console.log("[ensure-hoisted-module-links] removed apps/mobile/node_modules/@react-navigation (monorepo hoisted copy only)");
 }
 
-const PACKAGES = ["expo-font"];
+const PACKAGES = [
+  "expo-font",
+  "expo-image-picker",
+  "@react-native-async-storage/async-storage",
+];
 
 for (const name of PACKAGES) {
   const target = path.resolve(workspaceRoot, "node_modules", name);
@@ -31,7 +35,10 @@ for (const name of PACKAGES) {
   if (fs.existsSync(linkPath)) {
     continue;
   }
-  fs.mkdirSync(mobileNm, { recursive: true });
+  // path.dirname(linkPath), not mobileNm — a scoped package like
+  // @react-native-async-storage/async-storage needs its scope folder created
+  // first, or the symlink itself has nowhere to go.
+  fs.mkdirSync(path.dirname(linkPath), { recursive: true });
   const type = process.platform === "win32" ? "junction" : "dir";
   fs.symlinkSync(target, linkPath, type);
   console.log(`[ensure-hoisted-module-links] linked ${name} -> ${target}`);

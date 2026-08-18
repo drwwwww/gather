@@ -1,11 +1,13 @@
 const path = require("path");
-const { getDefaultConfig } = require("expo/metro-config");
+const {
+  getSentryExpoConfig
+} = require("@sentry/react-native/metro");
 
 const projectRoot = __dirname;
 const workspaceRoot = path.resolve(projectRoot, "../..");
 const rootNavigation = path.join(workspaceRoot, "node_modules", "@react-navigation");
 
-const config = getDefaultConfig(projectRoot);
+const config = getSentryExpoConfig(projectRoot);
 
 config.watchFolders = [workspaceRoot];
 // Project first: mobile must resolve its own React 19 (Expo 54); web stays on React 18.

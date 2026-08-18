@@ -1,13 +1,28 @@
 import "./globals.css";
 import type { ReactNode } from "react";
+import * as Sentry from "@sentry/nextjs";
+import type { Metadata } from "next";
 
 /** Cookie/session auth + Supabase browser client require request-time rendering; avoids prerender errors. */
 export const dynamic = "force-dynamic";
 
-export const metadata = {
-  title: "Gather",
-  description: "Church coordination platform"
-};
+export function generateMetadata(): Metadata {
+  return {
+    title: "Gather",
+    description: "Church coordination platform",
+    icons: {
+      icon: [
+        { url: "/favicon.ico", sizes: "any" },
+        { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+        { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+      ],
+      apple: { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    },
+    other: {
+      ...Sentry.getTraceData(),
+    },
+  };
+}
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (

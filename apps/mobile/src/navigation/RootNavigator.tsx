@@ -7,8 +7,10 @@ import SignInScreen from "../screens/SignInScreen";
 import SignUpScreen from "../screens/SignUpScreen";
 import ChurchSelectScreen from "../screens/ChurchSelectScreen";
 import AccountDisabledScreen from "../screens/AccountDisabledScreen";
+import ProfilePhotoScreen from "../screens/ProfilePhotoScreen";
+import ProfileVerseScreen from "../screens/ProfileVerseScreen";
 import AppNavigator from "./AppNavigator";
-import { theme } from "../theme/theme";
+import { palette, font } from "../theme/ds";
 import type { AuthStackParamList } from "./paramLists";
 
 export type { AuthStackParamList };
@@ -20,9 +22,9 @@ export default function RootNavigator() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: theme.colors.background }}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
-        <Text style={{ marginTop: 16, color: theme.colors.muted }}>Loading...</Text>
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: palette.bg }}>
+        <ActivityIndicator size="large" color={palette.amber} />
+        <Text style={{ marginTop: 16, color: palette.inkMuted, fontFamily: font.regular }}>Loading…</Text>
       </View>
     );
   }
@@ -48,18 +50,36 @@ export default function RootNavigator() {
     );
   }
 
+  // Brand new user (no church, never been through the profile-builder) — build
+  // their profile before they ever see church selection. Existing users who
+  // later lose their church (profile_completed_at already set, backfilled for
+  // every pre-existing row) skip straight to ChurchSelect/rejoin as before.
+  if (profile && !profile.church_id && !profile.profile_completed_at) {
+    return (
+      <NavigationContainer>
+        <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="ProfilePhoto">
+          <Stack.Screen name="ProfilePhoto" component={ProfilePhotoScreen} />
+          <Stack.Screen name="ProfileVerse" component={ProfileVerseScreen} />
+        </Stack.Navigator>
+      </NavigationContainer>
+    );
+  }
+
   if (!profile?.church_id) {
+    // Only frame this as "step 4 of 4" for someone who just finished the
+    // builder — not for an existing member re-picking a church after being
+    // removed from one. There's no separate profile_completed_at "just now"
+    // flag, so a short recency window is the simplest honest signal.
+    const justFinishedBuilder =
+      !!profile?.profile_completed_at &&
+      Date.now() - new Date(profile.profile_completed_at).getTime() < 10 * 60 * 1000;
     return (
       <NavigationContainer>
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           <Stack.Screen
             name="ChurchSelect"
             component={ChurchSelectScreen}
-            initialParams={{
-              userId: user.id,
-              fullName: user.user_metadata?.full_name ?? "",
-              email: user.email ?? "",
-            }}
+            initialParams={{ userId: user.id, showOnboardingProgress: justFinishedBuilder }}
           />
         </Stack.Navigator>
       </NavigationContainer>

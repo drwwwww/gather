@@ -1,8 +1,5 @@
-import { Text, ScrollView } from "react-native";
-import { AppShell } from "../components/app/AppShell";
-import { StitchStackBackRow, StitchHero } from "../components/app/StitchStackChrome";
-import { theme } from "../theme/theme";
-import { STITCH_PAD_H, stitchFilledCard } from "../theme/stitch";
+import { ScrollView } from "react-native";
+import { Screen, AppBar, EmptyState, space } from "../components/ds";
 
 export default function FeaturePlaceholderScreen({ navigation, route }: any) {
   const title = route.params?.title ?? "Coming soon";
@@ -11,14 +8,11 @@ export default function FeaturePlaceholderScreen({ navigation, route }: any) {
     "This area is not available in the app yet. Use the web dashboard for full church management tools.";
 
   return (
-    <AppShell>
-      <StitchStackBackRow navigation={navigation} />
-      <ScrollView contentContainerStyle={{ paddingBottom: 120, paddingHorizontal: STITCH_PAD_H }}>
-        <StitchHero title={title} />
-        <View style={stitchFilledCard()}>
-          <Text style={{ fontFamily: theme.typography.fontFamily, fontSize: theme.typography.fontSize.md, lineHeight: 24, color: theme.colors.textSecondary }}>{subtitle}</Text>
-        </View>
+    <Screen>
+      <AppBar title={title} onBack={() => navigation.goBack()} />
+      <ScrollView contentContainerStyle={{ paddingHorizontal: space.gutter, paddingTop: 40, paddingBottom: 60 }}>
+        <EmptyState icon="sparkle" title={title} body={subtitle} />
       </ScrollView>
-    </AppShell>
+    </Screen>
   );
 }

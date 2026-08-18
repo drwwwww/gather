@@ -97,15 +97,19 @@ export function adjustPlanRoleSlotCount(
   return reindexPlanRoleSlots(merged, churchRoles);
 }
 
-export async function fetchPresetsWithCounts(churchId: string, serviceTimeId: string) {
+/** Fetch presets for a church, optionally filtered by worship_day (0=Sun…6=Sat). */
+export async function fetchPresetsWithCounts(churchId: string, worshipDay?: number) {
   if (!supabase) return [] as PresetWithCount[];
-  const { data: presetData, error: presetError } = await supabase
+  let query = supabase
     .from("service_presets")
     .select("*")
     .eq("church_id", churchId)
-    .eq("service_time_id", serviceTimeId)
     .order("is_default", { ascending: false })
     .order("created_at", { ascending: false });
+  if (worshipDay !== undefined) {
+    query = query.eq("worship_day", worshipDay);
+  }
+  const { data: presetData, error: presetError } = await query;
 
   if (presetError) {
     throw new Error(presetError.message);
@@ -135,14 +139,27 @@ export async function fetchPresetsWithCounts(churchId: string, serviceTimeId: st
   }));
 }
 
-export async function fetchPlanByDate(churchId: string, serviceTimeId: string, serviceDate: string) {
+export async function fetchAllPlansForDate(churchId: string, serviceDate: string): Promise<ServicePlan[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("service_plans")
+    .select("*")
+    .eq("church_id", churchId)
+    .eq("service_date", serviceDate)
+    .order("start_time", { ascending: true });
+  if (error) throw new Error(error.message);
+  return data ?? [];
+}
+
+export async function fetchPlanByDate(churchId: string, serviceDate: string) {
   if (!supabase) return null;
   const { data, error } = await supabase
     .from("service_plans")
     .select("*")
     .eq("church_id", churchId)
-    .eq("service_time_id", serviceTimeId)
     .eq("service_date", serviceDate)
+    .order("created_at", { ascending: false })
+    .limit(1)
     .maybeSingle();
 
   if (error) {
@@ -185,26 +202,26 @@ export async function fetchPlanRoleSlots(planId: string) {
 
 export async function createPlanRow({
   churchId,
-  serviceTimeId,
   serviceDate,
   presetId,
-  title
+  title,
+  startTime,
 }: {
   churchId: string;
-  serviceTimeId: string;
   serviceDate: string;
   presetId?: string | null;
   title?: string;
+  startTime?: string | null;
 }) {
   if (!supabase) return null;
   const { data, error } = await supabase
     .from("service_plans")
     .insert({
       church_id: churchId,
-      service_time_id: serviceTimeId,
       service_date: serviceDate,
       preset_id: presetId ?? null,
-      title: title ?? "Service Plan"
+      title: title ?? "Service Plan",
+      start_time: startTime ?? null,
     })
     .select("*")
     .single();
@@ -306,13 +323,12 @@ export async function fetchPresetItems(presetId: string) {
   return data ?? [];
 }
 
-export async function fetchPreviousPlan(churchId: string, serviceTimeId: string, serviceDate: string) {
+export async function fetchPreviousPlan(churchId: string, serviceDate: string) {
   if (!supabase) return null;
   const { data, error } = await supabase
     .from("service_plans")
     .select("*")
     .eq("church_id", churchId)
-    .eq("service_time_id", serviceTimeId)
     .lt("service_date", serviceDate)
     .order("service_date", { ascending: false })
     .limit(1)

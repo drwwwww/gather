@@ -8,9 +8,9 @@ export type Database = {
   public: {
     Tables: {
       churches: {
-        Row: { id: string; name: string; slug: string; timezone: string; address: string | null; created_at: string };
-        Insert: { id?: string; name: string; slug: string; timezone: string; address?: string | null; created_at?: string };
-        Update: { name?: string; slug?: string; timezone?: string; address?: string | null };
+        Row: { id: string; name: string; slug: string; timezone: string; address: string | null; created_at: string; worship_days: number[] | null };
+        Insert: { id?: string; name: string; slug: string; timezone: string; address?: string | null; created_at?: string; worship_days?: number[] | null };
+        Update: { name?: string; slug?: string; timezone?: string; address?: string | null; worship_days?: number[] | null };
       };
       profiles: {
         Row: {
@@ -21,6 +21,10 @@ export type Database = {
           role: Role;
           disabled: boolean;
           created_at: string;
+          avatar_url: string | null;
+          favorite_verse: string | null;
+          ministry_interests: string[] | null;
+          profile_completed_at: string | null;
         };
         Insert: {
           id: string;
@@ -30,6 +34,10 @@ export type Database = {
           role?: Role;
           disabled?: boolean;
           created_at?: string;
+          avatar_url?: string | null;
+          favorite_verse?: string | null;
+          ministry_interests?: string[] | null;
+          profile_completed_at?: string | null;
         };
         Update: {
           church_id?: string | null;
@@ -37,6 +45,10 @@ export type Database = {
           email?: string | null;
           role?: Role;
           disabled?: boolean;
+          avatar_url?: string | null;
+          favorite_verse?: string | null;
+          ministry_interests?: string[] | null;
+          profile_completed_at?: string | null;
         };
       };
       ministries: {
@@ -150,27 +162,51 @@ export type Database = {
         Insert: { id?: string; church_id: string; user_id?: string | null; type: string; payload: Record<string, unknown>; sent_at?: string | null; read_at?: string | null };
         Update: { sent_at?: string | null; read_at?: string | null };
       };
-      service_presets: {
+      serve_requests: {
         Row: {
           id: string;
           church_id: string;
-          service_time_id: string;
-          name: string;
-          is_default: boolean;
+          user_id: string;
+          role_ids: string[];
+          role_names: string[];
+          note: string | null;
           created_at: string;
         };
         Insert: {
           id?: string;
           church_id: string;
-          service_time_id: string;
+          user_id: string;
+          role_ids?: string[];
+          role_names?: string[];
+          note?: string | null;
+          created_at?: string;
+        };
+        Update: { note?: string | null };
+      };
+      service_presets: {
+        Row: {
+          id: string;
+          church_id: string;
+          service_time_id: string | null;
+          name: string;
+          is_default: boolean;
+          created_at: string;
+          worship_day: number | null;
+        };
+        Insert: {
+          id?: string;
+          church_id: string;
+          service_time_id?: string | null;
           name: string;
           is_default?: boolean;
           created_at?: string;
+          worship_day?: number | null;
         };
         Update: {
-          service_time_id?: string;
+          service_time_id?: string | null;
           name?: string;
           is_default?: boolean;
+          worship_day?: number | null;
         };
       };
       service_preset_items: {
@@ -206,26 +242,29 @@ export type Database = {
         Row: {
           id: string;
           church_id: string;
-          service_time_id: string;
+          service_time_id: string | null;
           service_date: string;
           preset_id: string | null;
           title: string;
           created_at: string;
+          start_time: string | null;
         };
         Insert: {
           id?: string;
           church_id: string;
-          service_time_id: string;
+          service_time_id?: string | null;
           service_date: string;
           preset_id?: string | null;
           title?: string;
           created_at?: string;
+          start_time?: string | null;
         };
         Update: {
-          service_time_id?: string;
+          service_time_id?: string | null;
           service_date?: string;
           preset_id?: string | null;
           title?: string;
+          start_time?: string | null;
         };
       };
       service_plan_items: {
@@ -314,6 +353,10 @@ export type Database = {
       };
       create_service_plan_from_preset: {
         Args: { p_service_time_id: string; p_service_date: string; p_preset_id: string };
+        Returns: string;
+      };
+      request_to_serve: {
+        Args: { p_role_ids?: string[]; p_note?: string | null };
         Returns: string;
       };
     };

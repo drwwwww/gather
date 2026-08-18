@@ -11,7 +11,7 @@ import EventsList, { type EventListTab } from "../../../components/events/Events
 import RsvpPanel from "../../../components/events/RsvpPanel";
 import AttendeeListDialog from "../../../components/events/AttendeeListDialog";
 import type { EventTemplate } from "../../../components/events/EventTemplates";
-import { PageGrid, PageGridFull, PageGridRowTwoOne } from "../../../components/layout/PageGrid";
+import { PageGrid, PageGridFull } from "../../../components/layout/PageGrid";
 import type { Database } from "@gather/lib";
 
 type EventItem = Database["public"]["Tables"]["events"]["Row"];
@@ -30,8 +30,10 @@ export default function EventsPage() {
     startTime: "",
     endDate: "",
     endTime: "",
-    allDay: false
+    allDay: false,
+    imageUrl: null,
   });
+  const [churchId, setChurchId] = useState<string>("");
   const [activeTab, setActiveTab] = useState<EventListTab>("UPCOMING");
   const [events, setEvents] = useState<EventItem[]>([]);
   const [allRsvps, setAllRsvps] = useState<EventRsvp[]>([]);
@@ -53,6 +55,7 @@ export default function EventsPage() {
     }
 
     setTimezoneLabel(context.church.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone);
+    setChurchId(context.profile.church_id);
 
     const { data: eventsData, error: eventsError } = await supabase
       .from("events")
@@ -135,8 +138,10 @@ export default function EventsPage() {
 
   const pastEvents = useMemo(() => {
     const now = new Date().toISOString();
-    return events.filter((event) => event.start_at < now);
+    return events.filter((event) => event.start_at < now && !event.is_cancelled);
   }, [events]);
+
+  const cancelledEvents = useMemo(() => events.filter((event) => event.is_cancelled), [events]);
 
   const rsvpGoingCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -184,7 +189,8 @@ export default function EventsPage() {
       end_at: endAtValue,
       audience: formValues.audience as EventItem["audience"],
       location: formValues.location.trim() || null,
-      description: formValues.description.trim() || null
+      description: formValues.description.trim() || null,
+      ...(formValues.imageUrl ? { image_url: formValues.imageUrl } as any : {}),
     };
 
     if (selectedEventId) {
@@ -220,7 +226,8 @@ export default function EventsPage() {
       startTime: toTimeInput(event.start_at),
       endDate: event.end_at ? toDateInput(event.end_at) : "",
       endTime: event.end_at ? toTimeInput(event.end_at) : "",
-      allDay: false
+      allDay: false,
+      imageUrl: (event as any).image_url ?? null,
     });
   };
 
@@ -235,7 +242,8 @@ export default function EventsPage() {
       startTime: toTimeInput(event.start_at),
       endDate: event.end_at ? toDateInput(event.end_at) : "",
       endTime: event.end_at ? toTimeInput(event.end_at) : "",
-      allDay: false
+      allDay: false,
+      imageUrl: (event as any).image_url ?? null,
     });
   };
 
@@ -249,8 +257,19 @@ export default function EventsPage() {
       setError(updateError.message);
       return;
     }
-    if (selectedEventId === event.id) {
-      resetForm();
+    if (selectedEventId === event.id) resetForm();
+    refresh();
+  };
+
+  const handleRestoreEvent = async (event: EventItem) => {
+    if (!supabase) return;
+    const { error: updateError } = await supabase
+      .from("events")
+      .update({ is_cancelled: false })
+      .eq("id", event.id);
+    if (updateError) {
+      setError(updateError.message);
+      return;
     }
     refresh();
   };
@@ -266,7 +285,8 @@ export default function EventsPage() {
       startTime: "",
       endDate: "",
       endTime: "",
-      allDay: false
+      allDay: false,
+      imageUrl: null,
     });
   };
 
@@ -279,72 +299,111 @@ export default function EventsPage() {
     }));
   };
 
+  const [composerOpen, setComposerOpen] = useState(false);
+  const totalRsvps = useMemo(() => upcomingEvents.reduce((s, e) => {
+    const c = rsvpCountsByEvent[e.id];
+    return s + (c ? c.GOING + c.MAYBE + c.NO : 0);
+  }, 0), [upcomingEvents, rsvpCountsByEvent]);
+  const cancelledCount = useMemo(() => events.filter(e => e.is_cancelled).length, [events]);
+
+  const openCreate = () => { resetForm(); setComposerOpen(true); };
+  const openEdit = (event: EventItem) => { handleSelectEvent(event); setComposerOpen(true); };
+
   return (
     <PageGrid>
+      {/* Header */}
       <PageGridFull className="animate-fade-in-up">
-        <AdminHeader
-          title="Events"
-          subtitle="Create events and track RSVP counts."
-        />
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <AdminHeader title="Events" subtitle="Schedule gatherings, services, and activities for your community." />
+          <button type="button" onClick={openCreate} className="btn btn-primary-gradient flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14" /></svg>
+            New Event
+          </button>
+        </div>
       </PageGridFull>
 
-      <PageGridRowTwoOne
-        className="animate-fade-in-up [animation-delay:100ms] opacity-0"
-        main={
-          loading && events.length === 0 ? (
-            <div className="card card-elevated h-[600px] animate-pulse-subtle bg-[var(--surface)]" />
-          ) : (
+      {/* Stats */}
+      <PageGridFull className="animate-fade-in-up [animation-delay:50ms]">
+        <div className="grid grid-cols-3 gap-5">
+          {[
+            { label: "Upcoming", value: upcomingEvents.length, sub: "events" },
+            { label: "Upcoming RSVPs", value: totalRsvps, sub: "responses" },
+            { label: "Cancelled", value: cancelledCount, sub: "events" },
+          ].map(({ label, value, sub }) => (
+            <div key={label} className="stitch-section-card space-y-2">
+              <span className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)]">{label}</span>
+              <div className="flex items-baseline gap-2">
+                <span className="text-4xl font-bold text-[var(--text-primary)]">{value}</span>
+                <span className="text-sm text-[var(--text-muted)]">{sub}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </PageGridFull>
+
+      {/* Main: list + RSVP panel */}
+      <PageGridFull className="animate-fade-in-up [animation-delay:100ms]">
+        {loading && events.length === 0 ? (
+          <div className="space-y-3">
+            {[1,2,3].map(i => <div key={i} className="h-20 animate-pulse rounded-2xl border border-[var(--border)] bg-[var(--surface)]" />)}
+          </div>
+        ) : (
+          <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
+            <EventsList
+              upcoming={upcomingEvents}
+              past={pastEvents}
+              cancelled={cancelledEvents}
+              selectedEventId={selectedEventId}
+              activeTab={activeTab}
+              rsvpCounts={rsvpGoingCounts}
+              onTabChange={setActiveTab}
+              onSelect={handleSelectEvent}
+              onEdit={openEdit}
+              onDuplicate={(e) => { handleDuplicate(e); setComposerOpen(true); }}
+              onCancel={handleCancelEvent}
+              onRestore={handleRestoreEvent}
+              onTemplateSelect={(t) => { handleTemplateSelect(t); setComposerOpen(true); }}
+            />
+            <RsvpPanel
+              selectedEventTitle={selectedEvent?.title ?? null}
+              selectedEventIsPast={selectedEvent ? new Date(selectedEvent.start_at) < new Date() : false}
+              going={selectedCounts.GOING}
+              maybe={selectedCounts.MAYBE}
+              no={selectedCounts.NO}
+              onViewAttendees={() => setViewAttendees(true)}
+            />
+          </div>
+        )}
+      </PageGridFull>
+
+      {/* Create / Edit modal */}
+      {composerOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="relative w-full max-w-lg overflow-hidden rounded-2xl bg-[var(--surface-container-lowest)] shadow-2xl" style={{ maxHeight: "90vh", overflowY: "auto" }}>
+            <div className="flex items-center justify-between border-b border-[var(--border)] px-6 py-5">
+              <h2 className="text-lg font-bold text-[var(--text-primary)]">{selectedEventId ? "Edit Event" : "New Event"}</h2>
+              <button type="button" onClick={() => { setComposerOpen(false); resetForm(); }}
+                className="flex h-8 w-8 items-center justify-center rounded-full text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-2)] hover:text-[var(--text-primary)]">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
             <EventForm
               values={formValues}
               timezoneLabel={timezoneLabel}
               isEditing={!!selectedEventId}
+              churchId={churchId}
               onChange={(patch) => setFormValues((prev) => ({ ...prev, ...patch }))}
-              onSubmit={handleCreateOrUpdate}
-              onCancelEdit={resetForm}
+              onSubmit={() => { void handleCreateOrUpdate(); setComposerOpen(false); }}
+              onCancelEdit={() => { setComposerOpen(false); resetForm(); }}
               onTemplateSelect={handleTemplateSelect}
               error={error}
             />
-          )
-        }
-        side={
-          loading && events.length === 0 ? (
-            <div className="space-y-6 animate-pulse-subtle">
-              <div className="card card-elevated h-[400px] bg-[var(--surface)]" />
-              <div className="card card-elevated h-[200px] bg-[var(--surface)]" />
-            </div>
-          ) : (
-            <div className="space-y-6">
-              <EventsList
-                upcoming={upcomingEvents}
-                past={pastEvents}
-                selectedEventId={selectedEventId}
-                activeTab={activeTab}
-                rsvpCounts={rsvpGoingCounts}
-                onTabChange={setActiveTab}
-                onSelect={handleSelectEvent}
-                onEdit={handleSelectEvent}
-                onDuplicate={handleDuplicate}
-                onCancel={handleCancelEvent}
-                onTemplateSelect={handleTemplateSelect}
-              />
-              <RsvpPanel
-                selectedEventTitle={selectedEvent?.title ?? null}
-                going={selectedCounts.GOING}
-                maybe={selectedCounts.MAYBE}
-                no={selectedCounts.NO}
-                onViewAttendees={() => setViewAttendees(true)}
-              />
-            </div>
-          )
-        }
-      />
+          </div>
+        </div>
+      )}
 
       <PageGridFull>
-        <AttendeeListDialog
-          open={viewAttendees}
-          attendees={attendees}
-          onClose={() => setViewAttendees(false)}
-        />
+        <AttendeeListDialog open={viewAttendees} attendees={attendees} onClose={() => setViewAttendees(false)} />
       </PageGridFull>
     </PageGrid>
   );

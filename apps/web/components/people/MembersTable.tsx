@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Users } from "lucide-react";
+import { Users, MoreHorizontal, Copy, Trash2, UserMinus, Shield, Wrench, User } from "lucide-react";
+import { formatRelativeTime } from "../../lib/format";
 import type { Role } from "@gather/lib";
-import Badge from "../ui/Badge";
 
 export type MemberStatus = "ACTIVE" | "INACTIVE" | "INVITED";
 
@@ -16,6 +16,7 @@ export type MemberRow = {
   disabled: boolean;
   source: "member" | "invite";
   isCurrentUser: boolean;
+  createdAt?: string;
 };
 
 type MembersTableProps = {
@@ -28,39 +29,69 @@ type MembersTableProps = {
   onRemoveFromChurch: (memberId: string) => void;
   onRemoveInvite: (memberId: string) => void;
   error?: string | null;
+  loading?: boolean;
 };
 
-const statusVariant: Record<MemberStatus, "default" | "success" | "warning" | "neutral"> = {
-  ACTIVE: "success",
-  INACTIVE: "warning",
-  INVITED: "neutral"
+const STATUS_META: Record<MemberStatus, { label: string; cls: string }> = {
+  ACTIVE:  { label: "Active",  cls: "bg-green-50 text-green-700 ring-green-200"   },
+  INACTIVE: { label: "Inactive", cls: "bg-slate-100 text-slate-500 ring-slate-200" },
+  INVITED:  { label: "Invited",  cls: "bg-amber-50 text-amber-700 ring-amber-200"  },
 };
 
-function memberRowInitials(name: string, email: string) {
+const ROLE_META: Record<string, { icon: typeof Shield; label: string; cls: string }> = {
+  ADMIN:   { icon: Shield,  label: "Admin",        cls: "text-purple-700 bg-purple-50"  },
+  SERVICE: { icon: Wrench,  label: "Service Team",  cls: "text-blue-700   bg-blue-50"   },
+  MEMBER:  { icon: User,    label: "Member",        cls: "text-slate-600  bg-slate-100" },
+};
+
+function memberInitials(name: string, email: string) {
   const n = name.trim();
   if (n) {
     const parts = n.split(/\s+/).filter(Boolean);
-    if (parts.length >= 2) {
-      const a = parts[0][0];
-      const b = parts[parts.length - 1][0];
-      if (a && b) return `${a}${b}`.toUpperCase();
-    }
+    if (parts.length >= 2) return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
     return n.slice(0, 2).toUpperCase();
   }
-  const local = (email.split("@")[0] ?? "?").trim();
-  return local.slice(0, 2).toUpperCase() || "?";
+  return (email.split("@")[0] ?? "?").slice(0, 2).toUpperCase() || "?";
+}
+
+const AVATAR_COLORS = [
+  "bg-violet-100 text-violet-700",
+  "bg-blue-100 text-blue-700",
+  "bg-emerald-100 text-emerald-700",
+  "bg-rose-100 text-rose-700",
+  "bg-amber-100 text-amber-700",
+  "bg-cyan-100 text-cyan-700",
+];
+
+function avatarColor(name: string) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
+
+function SkeletonRow() {
+  return (
+    <tr className="animate-pulse">
+      <td className="py-4 pl-6 pr-4">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 shrink-0 rounded-full bg-[var(--surface-2)]" />
+          <div className="space-y-1.5">
+            <div className="h-3.5 w-28 rounded-full bg-[var(--surface-2)]" />
+            <div className="h-3 w-36 rounded-full bg-[var(--surface-2)]" />
+          </div>
+        </div>
+      </td>
+      <td className="px-4 py-4"><div className="h-6 w-20 rounded-full bg-[var(--surface-2)]" /></td>
+      <td className="px-4 py-4"><div className="h-6 w-16 rounded-full bg-[var(--surface-2)]" /></td>
+      <td className="px-4 py-4"><div className="h-3 w-20 rounded-full bg-[var(--surface-2)]" /></td>
+      <td className="py-4 pl-4 pr-6"><div className="ml-auto h-7 w-7 rounded-lg bg-[var(--surface-2)]" /></td>
+    </tr>
+  );
 }
 
 export default function MembersTable({
-  members,
-  roleOptions,
-  onRoleChange,
-  onToggleStatus,
-  onViewDetails,
-  onCopyInvite,
-  onRemoveFromChurch,
-  onRemoveInvite,
-  error
+  members, roleOptions, onRoleChange, onToggleStatus, onViewDetails,
+  onCopyInvite, onRemoveFromChurch, onRemoveInvite, error, loading = false,
 }: MembersTableProps) {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [openRoleMenuId, setOpenRoleMenuId] = useState<string | null>(null);
@@ -79,10 +110,7 @@ export default function MembersTable({
   }, [openMenuId, openRoleMenuId]);
 
   const confirmRemoveFromChurch = (memberId: string, label: string) => {
-    if (
-      typeof window !== "undefined" &&
-      window.confirm(`Remove ${label} from this church? They can rejoin later with your church code.`)
-    ) {
+    if (typeof window !== "undefined" && window.confirm(`Remove ${label} from this church? They can rejoin later with your church code.`)) {
       onRemoveFromChurch(memberId);
     }
     setOpenMenuId(null);
@@ -96,240 +124,211 @@ export default function MembersTable({
   };
 
   return (
-    <div className="card card-elevated p-5 min-w-0">
-      <div className="flex items-center justify-between gap-2 min-w-0">
-        <div className="card-title shrink-0">Members</div>
-        <span className="text-xs text-base-content/60 shrink-0">{members.length} total</span>
-      </div>
+    <div className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
+      {error && (
+        <div className="border-b border-red-100 bg-red-50 px-6 py-3">
+          <p className="text-sm text-red-600">{error}</p>
+        </div>
+      )}
 
-      {error ? <p className="mt-3 text-sm text-error">{error}</p> : null}
-
-      <div className="mt-5 min-w-0 rounded-xl">
-        <table className="table table-fixed w-full min-w-0">
-          <colgroup>
-            <col style={{ width: "30%" }} />
-            <col style={{ width: "22%" }} />
-            <col style={{ width: "22%" }} />
-            <col style={{ width: "13%" }} />
-            <col style={{ width: "13%" }} />
-          </colgroup>
-          <thead>
+      <table className="w-full table-fixed text-sm">
+        <colgroup>
+          <col style={{ width: "36%" }} />
+          <col style={{ width: "18%" }} />
+          <col style={{ width: "16%" }} />
+          <col style={{ width: "18%" }} />
+          <col style={{ width: "12%" }} />
+        </colgroup>
+        <thead>
+          <tr className="border-b border-[var(--border)] bg-[var(--surface-container-low)]">
+            {["Member", "Role", "Status", "Joined", ""].map((col, i) => (
+              <th key={i} className={`px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-widest text-[var(--text-muted)] ${i === 0 ? "pl-6" : ""} ${i === 4 ? "pr-6" : ""}`}>
+                {col}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-[var(--border)]">
+          {loading ? (
+            Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)
+          ) : members.length === 0 ? (
             <tr>
-              <th className="min-w-0">Name</th>
-              <th className="min-w-0">Email</th>
-              <th className="min-w-0">Role</th>
-              <th className="min-w-0">Status</th>
-              <th className="min-w-0 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {members.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="p-0 border-0">
-                  <div className="flex flex-col items-center justify-center gap-3 rounded-b-xl border-t-0 bg-[var(--surface)] px-6 py-12 text-center">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--surface-2)]">
-                      <Users className="h-5 w-5" style={{ color: "var(--text-muted)" }} />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>No members found</p>
-                      <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>Invite people to join your church.</p>
-                    </div>
+              <td colSpan={5} className="px-6 py-14 text-center">
+                <div className="flex flex-col items-center gap-3">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--surface-2)]">
+                    <Users className="h-6 w-6 text-[var(--text-muted)]" />
                   </div>
-                </td>
-              </tr>
-            ) : (
-              members.map((member) => (
+                  <div>
+                    <p className="text-sm font-semibold text-[var(--text-primary)]">No members found</p>
+                    <p className="mt-1 text-xs text-[var(--text-muted)]">Try adjusting your search or filters.</p>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          ) : (
+            members.map((member) => {
+              const initials = memberInitials(member.name || "", member.email);
+              const avatarCls = avatarColor(member.name || member.email);
+              const statusMeta = STATUS_META[member.status];
+              const roleMeta = ROLE_META[member.role] ?? ROLE_META.MEMBER;
+              const RoleIcon = roleMeta.icon;
+              const joinedLabel = member.createdAt ? formatRelativeTime(member.createdAt) : "—";
+              const isMenuOpen = openMenuId === member.id;
+              const isRoleMenuOpen = openRoleMenuId === member.id;
+
+              return (
                 <tr
                   key={member.id}
-                  className={`group transition-colors duration-200 hover:bg-[rgb(255,247,230,0.35)] ${member.disabled ? "opacity-60" : ""}`}
+                  className={`group cursor-pointer transition-colors hover:bg-[var(--surface-container-low)] ${member.disabled ? "opacity-60" : ""}`}
+                  onClick={() => onViewDetails(member.id)}
                 >
-                  <td className="min-w-0 align-middle">
-                    <button
-                      type="button"
-                      className="flex max-w-full items-center gap-3 truncate text-left"
-                      title={member.name || "(No name)"}
-                      onClick={() => onViewDetails(member.id)}
-                    >
-                      <span
-                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-[var(--surface-container-low)] bg-[var(--surface-container-low)] text-xs font-bold text-[var(--nav-active-foreground)]"
-                        aria-hidden
-                      >
-                        {memberRowInitials(member.name || "", member.email)}
+                  {/* Member: avatar + name + email */}
+                  <td className="py-4 pl-6 pr-4">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-bold ${avatarCls}`}>
+                        {initials}
                       </span>
-                      <span className="min-w-0 truncate font-medium text-base-content group-hover:text-[var(--nav-active-foreground)] group-hover:underline">
-                        {member.name || "(No name)"}
-                      </span>
-                    </button>
+                      <div className="min-w-0">
+                        <p className="truncate font-semibold text-[var(--text-primary)] group-hover:text-amber-700 transition-colors">
+                          {member.name || "(No name)"}
+                          {member.isCurrentUser && (
+                            <span className="ml-2 rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-[10px] font-medium text-[var(--text-muted)]">You</span>
+                          )}
+                        </p>
+                        <p className="truncate text-xs text-[var(--text-muted)]">{member.email}</p>
+                      </div>
+                    </div>
                   </td>
-                  <td className="min-w-0 align-middle">
-                    <span className="block max-w-full truncate text-sm" title={member.email}>
-                      {member.email}
-                    </span>
-                  </td>
-                  <td className="relative min-w-0 align-middle">
+
+                  {/* Role */}
+                  <td className="relative px-4 py-4" onClick={(e) => e.stopPropagation()}>
                     {member.source === "invite" ? (
-                      <span
-                        className="inline-flex h-7 min-w-[7.5rem] items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-3 text-xs font-semibold leading-none whitespace-nowrap text-[var(--text-primary)]"
-                      >
-                        {member.role}
+                      <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${roleMeta.cls}`}>
+                        <RoleIcon className="h-3 w-3" />
+                        {roleMeta.label}
                       </span>
                     ) : (
-                      <div data-members-role-menu className="relative inline-block shrink-0">
+                      <div data-members-role-menu className="relative inline-block">
                         <button
                           type="button"
-                          className="inline-flex h-7 min-w-[7.5rem] items-center justify-between gap-2 rounded-full border border-[var(--border)] bg-[var(--surface-2)] px-3 text-xs font-semibold leading-none whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (!member.isCurrentUser) setOpenRoleMenuId((id) => (id === member.id ? null : member.id));
-                          }}
                           disabled={member.isCurrentUser}
-                          aria-expanded={openRoleMenuId === member.id}
-                          aria-haspopup="listbox"
+                          onClick={() => setOpenRoleMenuId(isRoleMenuOpen ? null : member.id)}
+                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${roleMeta.cls} ${member.isCurrentUser ? "cursor-not-allowed opacity-70" : "hover:ring-1 hover:ring-current/30 cursor-pointer"}`}
+                          aria-expanded={isRoleMenuOpen}
                         >
-                          <span>{member.role}</span>
-                          <svg className="h-3.5 w-3.5 shrink-0 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                          </svg>
+                          <RoleIcon className="h-3 w-3" />
+                          {roleMeta.label}
                         </button>
-                        {openRoleMenuId === member.id ? (
-                          <ul
-                            className="dropdown-menu absolute left-0 top-full z-50 mt-2 flex min-w-[100px] flex-col gap-0.5 p-2"
-                            role="listbox"
-                          >
-                            {roleOptions.map((role) => (
-                              <li key={role} role="option" className="list-none">
-                                <button
-                                  type="button"
-                                  className={`dropdown-menu-item ${member.role === role ? "font-semibold" : ""}`}
-                                  onClick={() => {
-                                    onRoleChange(member.id, role);
-                                    setOpenRoleMenuId(null);
-                                  }}
-                                >
-                                  {role}
-                                </button>
-                              </li>
-                            ))}
+                        {isRoleMenuOpen && (
+                          <ul className="absolute left-0 top-full z-50 mt-1.5 w-44 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-lg" role="listbox">
+                            {roleOptions.map((role) => {
+                              const rm = ROLE_META[role] ?? ROLE_META.MEMBER;
+                              const RI = rm.icon;
+                              return (
+                                <li key={role} role="option" className="list-none">
+                                  <button
+                                    type="button"
+                                    className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-[var(--surface-2)] ${member.role === role ? "font-semibold text-amber-700" : "text-[var(--text-primary)]"}`}
+                                    onClick={() => { onRoleChange(member.id, role); setOpenRoleMenuId(null); }}
+                                  >
+                                    <RI className="h-3.5 w-3.5" />
+                                    {rm.label}
+                                  </button>
+                                </li>
+                              );
+                            })}
                           </ul>
-                        ) : null}
+                        )}
                       </div>
                     )}
                   </td>
-                  <td className="min-w-0 align-middle">
-                    <Badge variant={statusVariant[member.status]}>{member.status}</Badge>
+
+                  {/* Status */}
+                  <td className="px-4 py-4">
+                    <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${statusMeta.cls}`}>
+                      {statusMeta.label}
+                    </span>
                   </td>
-                  <td className="relative min-w-0 align-middle text-right">
+
+                  {/* Joined */}
+                  <td className="px-4 py-4">
+                    <span className="text-xs text-[var(--text-muted)]">{joinedLabel}</span>
+                  </td>
+
+                  {/* Actions */}
+                  <td className="py-4 pl-4 pr-6 text-right" onClick={(e) => e.stopPropagation()}>
                     <div data-members-actions-menu className="relative inline-flex justify-end">
                       <button
                         type="button"
-                        className="btn btn-ghost btn-sm btn-square shrink-0"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setOpenMenuId((id) => (id === member.id ? null : member.id));
-                        }}
-                        aria-expanded={openMenuId === member.id}
-                        aria-haspopup="true"
+                        onClick={(e) => { e.stopPropagation(); setOpenMenuId(isMenuOpen ? null : member.id); }}
+                        className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] opacity-0 transition-all group-hover:opacity-100 hover:bg-[var(--surface-2)] hover:text-[var(--text-primary)]"
+                        aria-expanded={isMenuOpen}
                       >
-                        &#x22EF;
+                        <MoreHorizontal className="h-4 w-4" />
                       </button>
-                      {openMenuId === member.id ? (
-                        <ul
-                          className="dropdown-menu absolute right-0 top-full z-50 mt-2 flex w-52 flex-col gap-0.5 p-2"
-                          role="menu"
-                        >
-                          <li role="none" className="list-none">
-                            <button
-                              type="button"
-                              role="menuitem"
-                              className="dropdown-menu-item"
-                              onClick={() => {
-                                onViewDetails(member.id);
-                                setOpenMenuId(null);
-                              }}
-                            >
-                              View
+                      {isMenuOpen && (
+                        <ul className="absolute right-0 top-full z-50 mt-1 w-52 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-lg" role="menu">
+                          <li className="list-none">
+                            <button type="button" role="menuitem" className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-sm text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-2)]"
+                              onClick={() => { onViewDetails(member.id); setOpenMenuId(null); }}>
+                              <User className="h-4 w-4 text-[var(--text-muted)]" />
+                              View profile
                             </button>
                           </li>
                           {member.source === "invite" ? (
                             <>
-                              <li role="none" className="list-none">
-                                <button
-                                  type="button"
-                                  role="menuitem"
-                                  className="dropdown-menu-item"
-                                  onClick={() => {
-                                    onCopyInvite(member.id);
-                                    setOpenMenuId(null);
-                                  }}
-                                >
-                                  Copy invite
+                              <li className="list-none">
+                                <button type="button" role="menuitem" className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-sm text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-2)]"
+                                  onClick={() => { onCopyInvite(member.id); setOpenMenuId(null); }}>
+                                  <Copy className="h-4 w-4 text-[var(--text-muted)]" />
+                                  Copy invite link
                                 </button>
                               </li>
-                              <li role="none" className="list-none">
-                                <button
-                                  type="button"
-                                  role="menuitem"
-                                  className="dropdown-menu-item text-error"
-                                  onClick={() => confirmRemoveInvite(member.id, member.email)}
-                                >
+                              <li className="list-none">
+                                <button type="button" role="menuitem" className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-sm text-red-500 transition-colors hover:bg-red-50"
+                                  onClick={() => confirmRemoveInvite(member.id, member.email)}>
+                                  <Trash2 className="h-4 w-4" />
                                   Remove invite
                                 </button>
                               </li>
                             </>
                           ) : (
                             <>
-                              <li role="none" className="list-none">
-                                <button
-                                  type="button"
-                                  role="menuitem"
-                                  className="dropdown-menu-item disabled:opacity-50 disabled:hover:bg-transparent"
-                                  onClick={() => {
-                                    onToggleStatus(member.id, !member.disabled);
-                                    setOpenMenuId(null);
-                                  }}
-                                  disabled={member.isCurrentUser}
-                                >
-                                  {member.disabled ? "Activate" : "Deactivate"}
+                              <li className="list-none">
+                                <button type="button" role="menuitem" disabled={member.isCurrentUser}
+                                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-sm text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-2)] disabled:cursor-not-allowed disabled:opacity-40"
+                                  onClick={() => { onToggleStatus(member.id, !member.disabled); setOpenMenuId(null); }}>
+                                  <UserMinus className="h-4 w-4 text-[var(--text-muted)]" />
+                                  {member.disabled ? "Activate member" : "Deactivate member"}
                                 </button>
                               </li>
-                              <li role="none" className="list-none">
-                                <button
-                                  type="button"
-                                  role="menuitem"
-                                  className="dropdown-menu-item disabled:opacity-50 disabled:hover:bg-transparent"
-                                  onClick={() =>
-                                    confirmRemoveFromChurch(member.id, member.name || member.email)
-                                  }
-                                  disabled={member.isCurrentUser}
-                                >
+                              <li className="list-none">
+                                <button type="button" role="menuitem" disabled={member.isCurrentUser}
+                                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-sm text-red-500 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
+                                  onClick={() => confirmRemoveFromChurch(member.id, member.name || member.email)}>
+                                  <Trash2 className="h-4 w-4" />
                                   Remove from church
                                 </button>
                               </li>
                             </>
                           )}
-                          <li role="none" className="list-none">
-                            <button
-                              type="button"
-                              role="menuitem"
-                              className="dropdown-menu-item"
-                              onClick={() => {
-                                setOpenMenuId(null);
-                                window.location.href = "/volunteers";
-                              }}
-                            >
-                              Scheduling
-                            </button>
-                          </li>
                         </ul>
-                      ) : null}
+                      )}
                     </div>
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              );
+            })
+          )}
+        </tbody>
+      </table>
+
+      {/* Footer count */}
+      {!loading && members.length > 0 && (
+        <div className="border-t border-[var(--border)] px-6 py-3">
+          <p className="text-xs text-[var(--text-muted)]">{members.length} {members.length === 1 ? "member" : "members"}</p>
+        </div>
+      )}
     </div>
   );
 }

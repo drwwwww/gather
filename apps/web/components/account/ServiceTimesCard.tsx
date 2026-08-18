@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { Pencil, Trash2, Check, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { Pencil, Trash2, Check, X, ChevronDown, Clock } from "lucide-react";
 import { Button } from "../ui/button";
 
 export type ServiceTimeItem = {
@@ -21,6 +22,121 @@ function formatTime(t: string) {
   const ampm = h >= 12 ? "PM" : "AM";
   const hour = h > 12 ? h - 12 : h === 0 ? 12 : h;
   return `${hour}:${String(m).padStart(2, "0")} ${ampm}`;
+}
+
+const TIME_OPTIONS: { label: string; value: string }[] = (() => {
+  const opts: { label: string; value: string }[] = [];
+  for (let h = 5; h < 24; h++) {
+    for (let m = 0; m < 60; m += 15) {
+      opts.push({ label: formatTime(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`), value: `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}` });
+    }
+  }
+  return opts;
+})();
+
+/** Small portal-based dropdown shared shape for both pickers below — anchored to the trigger button, closes on outside click. */
+function useDropdownAnchor() {
+  const [open, setOpen] = useState(false);
+  const [anchor, setAnchor] = useState<{ left: number; top: number; width: number } | null>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  const toggle = () => {
+    if (!open && btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect();
+      setAnchor({ left: r.left, top: r.bottom + 4, width: r.width });
+    }
+    setOpen((o) => !o);
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (btnRef.current?.contains(e.target as Node) || listRef.current?.contains(e.target as Node)) return;
+      setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  return { open, setOpen, anchor, btnRef, listRef, toggle };
+}
+
+function DaySelect({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  const { open, setOpen, anchor, btnRef, listRef, toggle } = useDropdownAnchor();
+  return (
+    <>
+      <button
+        ref={btnRef}
+        type="button"
+        onClick={toggle}
+        className="flex h-8 w-full items-center justify-between rounded-lg border px-2.5 text-sm transition-colors hover:border-amber-400"
+        style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--text-primary)" }}
+      >
+        <span className="truncate">{DAYS[value]}</span>
+        <ChevronDown className={`ml-1 h-3.5 w-3.5 shrink-0 transition-transform ${open ? "rotate-180" : ""}`} style={{ color: "var(--text-muted)" }} />
+      </button>
+      {open && anchor && typeof document !== "undefined" && createPortal(
+        <div
+          ref={listRef}
+          style={{ position: "fixed", left: anchor.left, top: anchor.top, width: Math.max(anchor.width, 150), borderColor: "var(--border)", background: "var(--surface)" } as React.CSSProperties}
+          className="z-[1001] overflow-hidden rounded-xl border shadow-lg"
+        >
+          {DAYS.map((day, i) => (
+            <button
+              key={day}
+              type="button"
+              onClick={() => { onChange(i); setOpen(false); }}
+              className={`block w-full px-3 py-2 text-left text-sm transition-colors hover:bg-amber-50 hover:text-amber-800 ${value === i ? "font-semibold text-amber-600" : ""}`}
+              style={value === i ? {} : { color: "var(--text-primary)" }}
+            >
+              {day}
+            </button>
+          ))}
+        </div>,
+        document.body
+      )}
+    </>
+  );
+}
+
+function TimeSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const { open, setOpen, anchor, btnRef, listRef, toggle } = useDropdownAnchor();
+  return (
+    <>
+      <button
+        ref={btnRef}
+        type="button"
+        onClick={toggle}
+        className="flex h-8 w-full items-center gap-1.5 rounded-lg border px-2.5 text-sm transition-colors hover:border-amber-400"
+        style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--text-primary)" }}
+      >
+        <Clock className="h-3.5 w-3.5 shrink-0" style={{ color: "var(--text-muted)" }} />
+        <span className="min-w-0 flex-1 truncate text-left">{formatTime(value)}</span>
+        <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform ${open ? "rotate-180" : ""}`} style={{ color: "var(--text-muted)" }} />
+      </button>
+      {open && anchor && typeof document !== "undefined" && createPortal(
+        <div
+          ref={listRef}
+          style={{ position: "fixed", left: anchor.left, top: anchor.top, width: Math.max(anchor.width, 130), borderColor: "var(--border)", background: "var(--surface)" } as React.CSSProperties}
+          className="z-[1001] max-h-56 overflow-y-auto rounded-xl border p-1.5 shadow-lg"
+        >
+          {TIME_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => { onChange(opt.value); setOpen(false); }}
+              className={`block w-full rounded-lg px-3 py-1.5 text-left text-sm transition-colors ${opt.value === value ? "bg-amber-500 font-semibold text-white" : "hover:bg-amber-50"}`}
+              style={opt.value === value ? {} : { color: "var(--text-primary)" }}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>,
+        document.body
+      )}
+    </>
+  );
 }
 
 type Draft = { name: string; day_of_week: number; start_time: string };
@@ -113,23 +229,16 @@ export default function ServiceTimesCard({
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-xs uppercase tracking-[0.15em]" style={{ color: "var(--text-muted)" }}>Day</label>
-              <select
-                className="select select-bordered select-sm w-full"
+              <DaySelect
                 value={addDraft.day_of_week}
-                onChange={(e) => setAddDraft((d) => ({ ...d, day_of_week: parseInt(e.target.value, 10) }))}
-              >
-                {DAYS.map((day, i) => (
-                  <option key={i} value={i}>{day}</option>
-                ))}
-              </select>
+                onChange={(v) => setAddDraft((d) => ({ ...d, day_of_week: v }))}
+              />
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-xs uppercase tracking-[0.15em]" style={{ color: "var(--text-muted)" }}>Start time</label>
-              <input
-                type="time"
-                className="input input-bordered input-sm w-full"
+              <TimeSelect
                 value={addDraft.start_time}
-                onChange={(e) => setAddDraft((d) => ({ ...d, start_time: e.target.value }))}
+                onChange={(v) => setAddDraft((d) => ({ ...d, start_time: v }))}
               />
             </div>
           </div>
@@ -166,23 +275,16 @@ export default function ServiceTimesCard({
                   <div className="grid gap-2 sm:grid-cols-2">
                     <div className="flex flex-col gap-1">
                       <label className="text-xs uppercase tracking-[0.15em]" style={{ color: "var(--text-muted)" }}>Day</label>
-                      <select
-                        className="select select-bordered select-sm w-full"
+                      <DaySelect
                         value={editDraft.day_of_week}
-                        onChange={(e) => setEditDraft((d) => ({ ...d, day_of_week: parseInt(e.target.value, 10) }))}
-                      >
-                        {DAYS.map((day, i) => (
-                          <option key={i} value={i}>{day}</option>
-                        ))}
-                      </select>
+                        onChange={(v) => setEditDraft((d) => ({ ...d, day_of_week: v }))}
+                      />
                     </div>
                     <div className="flex flex-col gap-1">
                       <label className="text-xs uppercase tracking-[0.15em]" style={{ color: "var(--text-muted)" }}>Start time</label>
-                      <input
-                        type="time"
-                        className="input input-bordered input-sm w-full"
+                      <TimeSelect
                         value={editDraft.start_time}
-                        onChange={(e) => setEditDraft((d) => ({ ...d, start_time: e.target.value }))}
+                        onChange={(v) => setEditDraft((d) => ({ ...d, start_time: v }))}
                       />
                     </div>
                   </div>

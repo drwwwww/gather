@@ -1,21 +1,16 @@
 
 export default function PlanCard() {
   return (
-    <div className="card shadow-sm p-4">
+    <div className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="card-title font-bold">Plan</h2>
-          <p className="text-sm text-[var(--text-muted)]">Starter - $79/month</p>
+          <h2 className="text-sm font-semibold text-[var(--text-primary)]">Subscription</h2>
+          <p className="mt-0.5 text-xs text-[var(--text-muted)]">Billing and plan management coming soon.</p>
         </div>
-        <button
-          type="button"
-          className="btn btn-sm btn-outline"
-          disabled
-        >
-          Manage subscription (Coming soon)
-        </button>
+        <span className="rounded-lg bg-[var(--surface-2)] px-2.5 py-1 text-xs font-medium text-[var(--text-muted)]">
+          Coming soon
+        </span>
       </div>
-      <p className="mt-4 text-sm text-[var(--text-muted)]">Your subscription tools will appear here.</p>
     </div>
   );
 }

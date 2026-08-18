@@ -15,13 +15,14 @@ import { PageGrid, PageGridFull } from "../../../components/layout/PageGrid";
 import {
   buildMemberEntries,
   getUpcomingAssignments,
+  getUpcomingItemAssignments,
   roleOptions,
   type InviteEntry,
   type MemberEntryWithFlags
 } from "../../../components/people/memberUtils";
 import type { Database, Role } from "@gather/lib";
 
-import type { PlanSlotRow } from "../../../components/people/types";
+import type { PlanItemRow, PlanSlotRow } from "../../../components/people/types";
 
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 type ChurchRow = Database["public"]["Tables"]["churches"]["Row"];
@@ -36,6 +37,7 @@ export default function PeoplePage() {
   const [members, setMembers] = useState<ProfileRow[]>([]);
   const [invites, setInvites] = useState<InviteEntry[]>([]);
   const [planSlots, setPlanSlots] = useState<PlanSlotRow[]>([]);
+  const [planItems, setPlanItems] = useState<PlanItemRow[]>([]);
   const [serviceTimes, setServiceTimes] = useState<ServiceTimeRow[]>([]);
   const [volunteerRoles, setVolunteerRoles] = useState<RoleRow[]>([]);
   const [church, setChurch] = useState<ChurchRow | null>(null);
@@ -53,6 +55,7 @@ export default function PeoplePage() {
   const refresh = async () => {
     if (!supabase) return;
     setLoading(true);
+    setError(null);
     try {
       const context = await getCurrentContext();
       if (!context) {
@@ -85,21 +88,30 @@ export default function PeoplePage() {
         throw new Error(plansResult.error.message);
       }
 
-      const planIds = (plansResult.data ?? []).map((p) => p.id);
-      const planById = Object.fromEntries((plansResult.data ?? []).map((p) => [p.id, p]));
+      type PlanRow = { id: string; service_date: string; service_time_id: string | null };
+      const planRows = (plansResult.data ?? []) as PlanRow[];
+      const planIds = planRows.map((p) => p.id);
+      const planById = Object.fromEntries(planRows.map((p) => [p.id, p]));
 
       let mergedSlots: PlanSlotRow[] = [];
+      let mergedItems: PlanItemRow[] = [];
       if (planIds.length > 0) {
-        const slotsResult = await supabase
-          .from("service_plan_role_slots")
-          .select("id, plan_id, role_id, assigned_user_id, status")
-          .in("plan_id", planIds);
+        const [slotsResult, itemsResult] = await Promise.all([
+          supabase
+            .from("service_plan_role_slots")
+            .select("id, plan_id, role_id, assigned_user_id, status")
+            .in("plan_id", planIds),
+          supabase
+            .from("service_plan_items")
+            .select("id, plan_id, title, assigned_user_id")
+            .in("plan_id", planIds)
+            .not("assigned_user_id", "is", null),
+        ]);
 
-        if (slotsResult.error) {
-          throw new Error(slotsResult.error.message);
-        }
+        if (slotsResult.error) throw new Error(slotsResult.error.message);
 
-        mergedSlots = (slotsResult.data ?? []).map((s) => ({
+        type SlotResult = { id: string; plan_id: string; role_id: string; assigned_user_id: string | null; status: string };
+        mergedSlots = ((slotsResult.data ?? []) as SlotResult[]).map((s) => ({
           id: s.id,
           plan_id: s.plan_id,
           role_id: s.role_id,
@@ -108,10 +120,20 @@ export default function PeoplePage() {
           service_date: planById[s.plan_id]?.service_date ?? "",
           service_time_id: planById[s.plan_id]?.service_time_id ?? "",
         }));
+
+        type ItemResult = { id: string; plan_id: string; title: string | null; assigned_user_id: string | null };
+        mergedItems = ((itemsResult.data ?? []) as ItemResult[]).map((item) => ({
+          id: item.id,
+          plan_id: item.plan_id,
+          title: item.title ?? "",
+          assigned_user_id: item.assigned_user_id,
+          service_date: planById[item.plan_id]?.service_date ?? "",
+        }));
       }
 
       setMembers((profiles ?? []) as ProfileRow[]);
       setPlanSlots(mergedSlots);
+      setPlanItems(mergedItems);
       setVolunteerRoles((rolesResult.data ?? []) as RoleRow[]);
       setInvites(readPendingInvites(context.profile.church_id));
 
@@ -146,12 +168,15 @@ export default function PeoplePage() {
 
   const counts = useMemo(
     () => ({
-      all: memberEntries.length,
-      service: memberEntries.filter((member) => member.role === "SERVICE").length,
-      admins: memberEntries.filter((member) => member.role === "ADMIN").length
+      all:     memberEntries.length,
+      active:  memberEntries.filter((m) => m.status === "ACTIVE").length,
+      service: memberEntries.filter((m) => m.role === "SERVICE").length,
+      admins:  memberEntries.filter((m) => m.role === "ADMIN").length,
+      invited: memberEntries.filter((m) => m.status === "INVITED").length,
     }),
     [memberEntries]
   );
+
 
   const filteredMembers = useMemo(() => {
     return memberEntries
@@ -188,13 +213,22 @@ export default function PeoplePage() {
 
   const selectedAssignments = useMemo(() => {
     if (!selectedMember?.profile) return [];
-    const upcoming = getUpcomingAssignments(planSlots, serviceTimes, selectedMember.profile.id);
-    return upcoming.map((slot) => ({
-      id: slot.id,
-      role: volunteerRoles.find((role) => role.id === slot.roleId)?.name ?? "Role",
-      serviceLabel: slot.serviceLabel
+    const memberId = selectedMember.profile.id;
+    const slotAssignments = getUpcomingAssignments(planSlots, serviceTimes, memberId).map((s) => ({
+      id: s.id,
+      role: volunteerRoles.find((r) => r.id === s.roleId)?.name ?? "Role",
+      serviceLabel: s.serviceLabel,
+      sortKey: s.serviceLabel,
     }));
-  }, [planSlots, selectedMember, serviceTimes, volunteerRoles]);
+    const itemAssignments = getUpcomingItemAssignments(planItems, memberId).map((item) => ({
+      ...item,
+      sortKey: item.serviceLabel,
+    }));
+    return [...slotAssignments, ...itemAssignments]
+      .sort((a, b) => a.sortKey.localeCompare(b.sortKey))
+      .slice(0, 5)
+      .map(({ id, role, serviceLabel }) => ({ id, role, serviceLabel }));
+  }, [planSlots, planItems, selectedMember, serviceTimes, volunteerRoles]);
 
   const handleRoleChange = async (userId: string, role: Role) => {
     const member = memberEntries.find((entry) => entry.id === userId);
@@ -282,40 +316,45 @@ export default function PeoplePage() {
     }
   };
 
-  if (loading) {
-    return (
-      <PageGrid className="animate-pulse-subtle">
-        <PageGridFull className="space-y-4">
-          <div className="h-8 w-48 rounded-md bg-[var(--surface-2)]" />
-          <div className="h-4 w-64 rounded-md bg-[var(--surface-2)]" />
-        </PageGridFull>
-        <PageGridFull>
-          <div className="card card-elevated h-[600px] bg-[var(--surface)]" />
-        </PageGridFull>
-      </PageGrid>
-    );
-  }
-
   return (
     <PageGrid>
       <PageGridFull className="animate-fade-in-up">
-        <AdminHeader
-          title="People & Roles"
-          subtitle="Manage members, roles, invites, and onboarding across the church."
-          actions={
-            <button
-              type="button"
-              className="btn btn-primary-gradient"
-              onClick={() => {
-                const slug = church?.slug ?? "";
-                if (slug) router.push("/people/invite");
-              }}
-            >
-              Invite members
-            </button>
-          }
-        />
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <AdminHeader
+            title="People & Roles"
+            subtitle="Manage members, roles, invites, and onboarding across the church."
+          />
+          <button
+            type="button"
+            className="btn btn-primary-gradient"
+            onClick={() => { if (church?.slug) router.push("/people/invite"); }}
+          >
+            Invite members
+          </button>
+        </div>
       </PageGridFull>
+
+      {/* Stats */}
+      {!loading && (
+        <PageGridFull className="animate-fade-in-up [animation-delay:50ms]">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            {[
+              { label: "Total members",  value: counts.all,     sub: "in church"      },
+              { label: "Active",         value: counts.active,  sub: "members"        },
+              { label: "Service team",   value: counts.service, sub: "volunteers"     },
+              { label: "Invited",        value: counts.invited, sub: "pending"        },
+            ].map(({ label, value, sub }) => (
+              <div key={label} className="stitch-section-card space-y-2">
+                <span className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)]">{label}</span>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-3xl font-bold text-[var(--text-primary)]">{value}</span>
+                  <span className="text-xs text-[var(--text-muted)]">{sub}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </PageGridFull>
+      )}
 
       <PageGridFull className="animate-fade-in-up [animation-delay:100ms] opacity-0">
         <div className="space-y-6">
@@ -334,7 +373,7 @@ export default function PeoplePage() {
           />
 
           <MembersTable
-            members={filteredMembers}
+            members={filteredMembers.map((m) => ({ ...m, createdAt: m.profile?.created_at }))}
             roleOptions={roleOptions}
             onRoleChange={handleRoleChange}
             onToggleStatus={handleStatusToggle}
@@ -343,6 +382,7 @@ export default function PeoplePage() {
             onRemoveFromChurch={handleRemoveFromChurch}
             onRemoveInvite={handleRemoveInvite}
             error={error}
+            loading={loading}
           />
         </div>
       </PageGridFull>
@@ -356,7 +396,9 @@ export default function PeoplePage() {
           statusLabel={selectedMember?.status || ""}
           source={selectedMember?.source ?? "member"}
           assignments={selectedAssignments}
+          joinedAt={selectedMember?.profile?.created_at ?? undefined}
           onClose={() => setSelectedMemberId(null)}
+          onCopyInvite={selectedMember?.source === "invite" ? () => handleCopyInvite(selectedMember.id) : undefined}
           onRemoveFromChurch={
             selectedMember?.source === "member" && !selectedMember.isCurrentUser
               ? () => handleRemoveFromChurch(selectedMember.id)

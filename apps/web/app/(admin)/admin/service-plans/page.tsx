@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { ChevronDown, ChevronRight, Settings2 } from "lucide-react";
 import { Button } from "../../../../components/ui/button";
 import AdminHeader from "../../../../components/admin/AdminHeader";
 import ServicePlanHeader from "../../../../components/servicePlans/ServicePlanHeader";
@@ -18,6 +20,7 @@ import { formatFriendlyLocalDate } from "../../../../lib/format";
 import { useToast } from "../../../../lib/toast";
 import {
   createPlanRow,
+  fetchAllPlansForDate,
   fetchPlanByDate,
   fetchPlanItems,
   fetchPresetItems,
@@ -36,6 +39,7 @@ import {
   type ServicePlanItem,
   type ServicePresetItem
 } from "../../../../lib/db/servicePlans";
+import type { ServiceEntry } from "../../../../components/servicePlans/ServicePlanHeader";
 import { supabase } from "../../../../lib/supabaseClient";
 import type { Database, ServicePlanStatus } from "@gather/lib";
 
@@ -52,8 +56,8 @@ const createLocalId = () => {
 };
 
 export default function ServicePlansPage() {
-  const [serviceTimes, setServiceTimes] = useState<ServiceTime[]>([]);
-  const [serviceTimeId, setServiceTimeId] = useState("");
+  const [plansForDate, setPlansForDate] = useState<ServicePlan[]>([]);
+  const [planStartTime, setPlanStartTime] = useState("");
   const [serviceDate, setServiceDate] = useState(() => {
     const d = new Date();
     const yyyy = d.getFullYear();
@@ -83,6 +87,9 @@ export default function ServicePlansPage() {
   const [editRoleName, setEditRoleName] = useState("");
   const [editRoleMinistry, setEditRoleMinistry] = useState("");
   const [editRoleDescription, setEditRoleDescription] = useState("");
+  const [rolesOpen, setRolesOpen] = useState(false);
+  const [presetOpen, setPresetOpen] = useState(false);
+  const presetRef = useRef<HTMLDivElement>(null);
   const skipAutosaveRef = useRef(true);
   const saveTimerRef = useRef<number | null>(null);
   const router = useRouter();
@@ -157,10 +164,10 @@ export default function ServicePlansPage() {
     loadRoles(churchId);
   };
 
-  const loadPresets = async (activeChurchId: string, timeId: string) => {
+  const loadPresets = async (activeChurchId: string, _dateValue?: string) => {
     setLoadingPresets(true);
     try {
-      const data: PresetWithCount[] = await fetchPresetsWithCounts(activeChurchId, timeId);
+      const data: PresetWithCount[] = await fetchPresetsWithCounts(activeChurchId);
       setPresets(data ?? []);
       const defaultPreset = (data ?? []).find((preset: PresetWithCount) => preset.is_default);
       setSelectedPresetId(defaultPreset?.id ?? data?.[0]?.id ?? "");
@@ -171,31 +178,36 @@ export default function ServicePlansPage() {
     }
   };
 
-  const loadPlan = async (activeChurchId: string, timeId: string, dateValue: string) => {
+  const loadPlanData = async (planData: ServicePlan | null) => {
+    setPlan(planData ?? null);
+    setPlanTitle(planData?.title ?? "Service Plan");
+    setPlanStartTime((planData as any)?.start_time ?? "");
+    if (planData?.preset_id) setSelectedPresetId(planData.preset_id);
+    if (planData?.id) {
+      const [items, slots] = await Promise.all([fetchPlanItems(planData.id), fetchPlanRoleSlots(planData.id)]);
+      setPlanItems(mapPlanItems(items));
+      setRoleSlotDrafts(mapRoleSlotRows(slots));
+    } else {
+      setPlanItems([]);
+      setRoleSlotDrafts([]);
+    }
+  };
+
+  const loadPlan = async (activeChurchId: string, dateValue: string, activePlanId?: string) => {
     setLoadingPlan(true);
     skipAutosaveRef.current = true;
     try {
-      const planData = await fetchPlanByDate(activeChurchId, timeId, dateValue);
-      setPlan(planData ?? null);
-      setPlanTitle(planData?.title ?? "Service Plan");
-      if (planData?.preset_id) {
-        setSelectedPresetId(planData.preset_id);
-      }
-      if (planData?.id) {
-        const [items, slots] = await Promise.all([fetchPlanItems(planData.id), fetchPlanRoleSlots(planData.id)]);
-        setPlanItems(mapPlanItems(items));
-        setRoleSlotDrafts(mapRoleSlotRows(slots));
-      } else {
-        setPlanItems([]);
-        setRoleSlotDrafts([]);
-      }
+      const allPlans = await fetchAllPlansForDate(activeChurchId, dateValue);
+      setPlansForDate(allPlans);
+      const targetPlan = activePlanId
+        ? (allPlans.find((p) => p.id === activePlanId) ?? allPlans[0] ?? null)
+        : (allPlans[0] ?? null);
+      await loadPlanData(targetPlan);
     } catch (err) {
       pushToast(err instanceof Error ? err.message : "Unable to load plan.", "error");
     } finally {
       setLoadingPlan(false);
-      window.setTimeout(() => {
-        skipAutosaveRef.current = false;
-      }, 0);
+      window.setTimeout(() => { skipAutosaveRef.current = false; }, 0);
     }
   };
 
@@ -211,17 +223,12 @@ export default function ServicePlansPage() {
         setStatus("restricted");
         return;
       }
-      setServiceTimes(context.serviceTimes);
       setChurchId(context.profile.church_id);
-      const firstTimeId = context.serviceTimes[0]?.id ?? "";
-      setServiceTimeId(firstTimeId);
-      if (firstTimeId) {
-        await Promise.all([
-          loadRoles(context.profile.church_id),
-          loadPresets(context.profile.church_id, firstTimeId),
-          loadPlan(context.profile.church_id, firstTimeId, serviceDate)
-        ]);
-      }
+      await Promise.all([
+        loadRoles(context.profile.church_id),
+        loadPresets(context.profile.church_id, serviceDate),
+        loadPlan(context.profile.church_id, serviceDate),
+      ]);
       setStatus("ready");
     };
 
@@ -252,11 +259,11 @@ export default function ServicePlansPage() {
   }, [churchId]);
 
   useEffect(() => {
-    if (churchId && serviceTimeId) {
-      loadPresets(churchId, serviceTimeId);
-      loadPlan(churchId, serviceTimeId, serviceDate);
+    if (churchId && serviceDate) {
+      loadPresets(churchId, serviceDate);
+      loadPlan(churchId, serviceDate);
     }
-  }, [churchId, serviceTimeId, serviceDate]);
+  }, [churchId, serviceDate]);
 
   const persistPlan = useCallback(
     async (planId: string, options?: { notify?: boolean }) => {
@@ -316,84 +323,87 @@ export default function ServicePlansPage() {
   }, [plan, persistPlan]);
 
   const handleGenerateFromPreset = async () => {
-    if (!churchId || !serviceTimeId || !selectedPresetId) return;
+    if (!churchId || !selectedPresetId) return;
     try {
       let activePlan = plan;
       if (!activePlan) {
         const preset = presets.find((item) => item.id === selectedPresetId);
-        const title = preset?.name || "Service Plan";
         activePlan = await createPlanRow({
-          churchId,
-          serviceTimeId,
-          serviceDate,
+          churchId, serviceDate,
           presetId: selectedPresetId,
-          title
+          title: preset?.name || "Service Plan",
+          startTime: planStartTime || null,
         });
         if (!activePlan) return;
       } else {
-        await supabase
-          ?.from("service_plans")
-          .update({ preset_id: selectedPresetId })
-          .eq("id", activePlan.id);
+        await supabase?.from("service_plans").update({ preset_id: selectedPresetId }).eq("id", activePlan.id);
       }
-
       const presetItems = await fetchPresetItems(selectedPresetId);
       const draftItems = presetItems.map((item: ServicePresetItem) => ({
-        id: item.id,
-        title: item.title,
-        duration_minutes: item.duration_minutes,
-        notes: item.notes ?? "",
-        owner_role_id: item.owner_role_id,
-        assigned_user_id: null as string | null,
-        backup_user_id: null as string | null,
-        status: "PLANNED" as ServicePlanStatus
+        id: item.id, title: item.title, duration_minutes: item.duration_minutes,
+        notes: item.notes ?? "", owner_role_id: item.owner_role_id,
+        assigned_user_id: null as string | null, backup_user_id: null as string | null,
+        status: "PLANNED" as ServicePlanStatus,
       }));
-
       await replacePlanItems(activePlan.id, draftItems);
-      await loadPlan(churchId, serviceTimeId, serviceDate);
+      await loadPlan(churchId, serviceDate, activePlan.id);
     } catch (err) {
       pushToast(err instanceof Error ? err.message : "Unable to generate plan.", "error");
     }
   };
 
   const handleCopyLastPlan = async () => {
-    if (!churchId || !serviceTimeId) return;
+    if (!churchId) return;
     try {
-      const previousPlan = await fetchPreviousPlan(churchId, serviceTimeId, serviceDate);
-      if (!previousPlan) {
-        pushToast("No previous plan found for this service time.", "error");
-        return;
-      }
-
+      const previousPlan = await fetchPreviousPlan(churchId, serviceDate);
+      if (!previousPlan) { pushToast("No previous plan found.", "error"); return; }
       const previousItems = await fetchPlanItems(previousPlan.id);
       let activePlan = plan;
       if (!activePlan) {
         activePlan = await createPlanRow({
-          churchId,
-          serviceTimeId,
-          serviceDate,
+          churchId, serviceDate,
           presetId: previousPlan.preset_id,
-          title: previousPlan.title || "Service Plan"
+          title: previousPlan.title || "Service Plan",
+          startTime: planStartTime || null,
         });
         if (!activePlan) return;
       }
-
       const draftItems = mapPlanItems(previousItems);
       await replacePlanItems(activePlan.id, draftItems);
       const previousSlots: ServicePlanRoleSlot[] = await fetchPlanRoleSlots(previousPlan.id);
-      const slotDrafts: PlanRoleSlotDraft[] = previousSlots.map((s) => ({
-        id: createLocalId(),
-        role_id: s.role_id,
-        sort_order: s.sort_order,
-        assigned_user_id: s.assigned_user_id,
-        backup_user_id: s.backup_user_id,
-        status: s.status,
-        notes: s.notes ?? ""
-      }));
-      await replacePlanRoleSlots(activePlan.id, slotDrafts);
-      await loadPlan(churchId, serviceTimeId, serviceDate);
+      await replacePlanRoleSlots(activePlan.id, previousSlots.map((s) => ({
+        id: createLocalId(), role_id: s.role_id, sort_order: s.sort_order,
+        assigned_user_id: s.assigned_user_id, backup_user_id: s.backup_user_id,
+        status: s.status, notes: s.notes ?? "",
+      })));
+      await loadPlan(churchId, serviceDate, activePlan.id);
     } catch (err) {
       pushToast(err instanceof Error ? err.message : "Unable to copy previous plan.", "error");
+    }
+  };
+
+  const handleSwitchService = async (planId: string) => {
+    if (!churchId || planId === plan?.id) return;
+    if (plan) await persistPlan(plan.id);
+    setLoadingPlan(true);
+    skipAutosaveRef.current = true;
+    try {
+      const target = plansForDate.find((p) => p.id === planId) ?? null;
+      await loadPlanData(target);
+    } finally {
+      setLoadingPlan(false);
+      window.setTimeout(() => { skipAutosaveRef.current = false; }, 0);
+    }
+  };
+
+  const handleAddSecondService = async (startTime: string) => {
+    if (!churchId) return;
+    try {
+      const newPlan = await createPlanRow({ churchId, serviceDate, startTime, title: "Service Plan" });
+      if (!newPlan) return;
+      await loadPlan(churchId, serviceDate, newPlan.id);
+    } catch (err) {
+      pushToast(err instanceof Error ? err.message : "Unable to add second service.", "error");
     }
   };
 
@@ -452,30 +462,38 @@ export default function ServicePlansPage() {
     );
   }
 
+  const selectedPreset = presets.find((p) => p.id === selectedPresetId);
+
   return (
     <PageGrid>
+      {/* Page header */}
       <PageGridFull className="animate-fade-in-up">
         <AdminHeader
           title="Service Plans"
-          subtitle="See the run of show and keep the team aligned for each service."
+          subtitle="Run of show, roles, and team readiness in one place."
           actions={
-            <Link href="/admin/service-presets" className="inline-flex items-center justify-center h-[34px] px-3 rounded-xl font-medium text-sm bg-[var(--surface)] text-[var(--text-primary)] border border-[var(--border)] hover:bg-[var(--surface-2)] transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2">
+            <Link
+              href="/admin/service-presets"
+              className="btn btn-secondary btn-sm"
+            >
               Manage presets
             </Link>
           }
         />
       </PageGridFull>
 
-      <PageGridRowTwoOne
-        className="animate-fade-in-up [animation-delay:100ms] opacity-0"
-        main={<div className="space-y-6">
+      {/* Control bar */}
+      <PageGridFull className="animate-fade-in-up [animation-delay:60ms]">
         <ServicePlanHeader
-          serviceTimes={serviceTimes}
-          serviceTimeId={serviceTimeId}
           serviceDate={serviceDate}
+          startTime={planStartTime}
           statusLabel={loadingPlan ? "NOT CREATED" : planStatusLabel}
-          onServiceTimeChange={setServiceTimeId}
+          servicesOnDate={plansForDate.map((p): ServiceEntry => ({ id: p.id, startTime: (p as any).start_time ?? null }))}
+          activePlanId={plan?.id ?? null}
           onServiceDateChange={setServiceDate}
+          onStartTimeChange={setPlanStartTime}
+          onSwitchService={handleSwitchService}
+          onAddSecondService={handleAddSecondService}
           actions={
             <>
               <Button
@@ -485,89 +503,129 @@ export default function ServicePlansPage() {
                 disabled={!plan}
                 loading={saveState === "saving"}
               >
-                Save plan
+                {saveState === "saved" ? "Saved ✓" : "Save plan"}
               </Button>
               <Button size="sm" variant="secondary" onClick={handlePrint} disabled={!plan}>
-                Print plan
+                Print
               </Button>
             </>
           }
         />
+      </PageGridFull>
 
-        <div className="card shadow-sm p-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-base-content">Generate from preset</p>
-              <p className="text-xs text-base-content/60">Presets keep your flow consistent.</p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <select
-                className="select select-bordered"
-                value={selectedPresetId}
-                onChange={(event) => setSelectedPresetId(event.target.value)}
-                disabled={!hasPresets || loadingPresets}
-              >
-                {presets.map((preset) => (
-                  <option key={preset.id} value={preset.id}>
-                    {preset.name} ({preset.stepCount} steps)
-                  </option>
-                ))}
-              </select>
-              <GenerateFromPresetButton
-                disabled={!hasPresets || !selectedPresetId}
-                hasPlan={!!plan}
-                onGenerate={handleGenerateFromPreset}
-              />
-              <CopyLastPlanButton onCopy={handleCopyLastPlan} disabled={loadingPlan || !serviceTimeId} />
-            </div>
+      {/* Preset / copy toolbar */}
+      <PageGridFull className="animate-fade-in-up [animation-delay:100ms]">
+        <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface-container-low)] px-5 py-3">
+          <div className="flex flex-col gap-0.5">
+            <span className="text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">Start from</span>
+            <span className="text-[10px] text-[var(--text-muted)]">Presets are reusable run-of-show templates you apply to a specific date.</span>
           </div>
-        </div>
 
+          {/* Preset custom dropdown — portal-rendered to escape stacking context */}
+          <div ref={presetRef} className="relative">
+            <button
+              type="button"
+              disabled={!hasPresets || loadingPresets}
+              onClick={() => {
+                setPresetOpen((o) => !o);
+              }}
+              className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-2)] disabled:opacity-50 focus:outline-none"
+            >
+              <span>{selectedPreset ? `${selectedPreset.name} (${selectedPreset.stepCount} steps)` : (loadingPresets ? "Loading…" : "No presets")}</span>
+              <ChevronDown className={`h-3.5 w-3.5 text-[var(--text-muted)] transition-transform duration-150 ${presetOpen ? "rotate-180" : ""}`} />
+            </button>
+            {presetOpen && typeof document !== "undefined" && createPortal(
+              <div
+                className="fixed inset-0 z-[900]"
+                onClick={() => setPresetOpen(false)}
+              >
+                <ul
+                  className="absolute overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-lg"
+                  style={(() => {
+                    const rect = presetRef.current?.getBoundingClientRect();
+                    return rect
+                      ? { top: rect.bottom + 6, left: rect.left, minWidth: rect.width }
+                      : {};
+                  })()}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {presets.map((p) => (
+                    <li key={p.id} className="list-none">
+                      <button
+                        type="button"
+                        className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-[var(--surface-2)] ${p.id === selectedPresetId ? "font-semibold text-amber-700 bg-amber-50" : "text-[var(--text-primary)]"}`}
+                        onClick={() => { setSelectedPresetId(p.id); setPresetOpen(false); }}
+                      >
+                        <span>{p.name}</span>
+                        <span className="ml-4 text-xs text-[var(--text-muted)]">{p.stepCount} steps</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>,
+              document.body
+            )}
+          </div>
+
+          <GenerateFromPresetButton
+            disabled={!hasPresets || !selectedPresetId}
+            hasPlan={!!plan}
+            onGenerate={handleGenerateFromPreset}
+          />
+
+          <span className="text-xs text-[var(--text-muted)]">or</span>
+
+          <CopyLastPlanButton onCopy={handleCopyLastPlan} disabled={loadingPlan} />
+        </div>
+      </PageGridFull>
+
+      {/* Main content */}
+      <PageGridFull className="animate-fade-in-up [animation-delay:140ms]">
         {!plan ? (
           <ServicePlanEmptyState
             friendlyDate={formatFriendlyLocalDate(serviceDate) || serviceDate}
+            hasPresets={hasPresets}
             onGenerate={handleGenerateFromPreset}
             onCopyLast={handleCopyLastPlan}
             generateDisabled={!hasPresets || !selectedPresetId}
             copyDisabled={loadingPlan}
           />
         ) : (
-          <>
-            <div className="card shadow-sm p-4">
-              <label className="text-xs uppercase tracking-[0.2em] text-base-content/60">Plan title</label>
+          <div className="space-y-6">
+            {/* Inline plan title */}
+            <div className="flex items-center gap-3">
               <input
                 type="text"
                 value={planTitle}
-                onChange={(event) => setPlanTitle(event.target.value)}
-                className="input input-bordered w-full max-w-xl mt-2"
-                placeholder="e.g. Sunday 9:00 — Easter"
+                onChange={(e) => setPlanTitle(e.target.value)}
+                className="flex-1 bg-transparent text-2xl font-bold tracking-tight text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none"
+                placeholder="Service Plan"
               />
-              <p className="text-xs text-base-content/50 mt-2">
-                Changes auto-save after you pause typing. Use <span className="font-medium">Save plan</span> in the header to save immediately.
-              </p>
+              {saveState === "saving" && (
+                <span className="text-xs text-[var(--text-muted)]">Saving…</span>
+              )}
+              {saveState === "saved" && (
+                <span className="text-xs text-green-600">Saved</span>
+              )}
             </div>
+
             <ServicePlanRoleSlotsSection
               slots={roleSlotDrafts}
               roles={roles}
               members={members}
               onChange={(id, patch) =>
                 setRoleSlotDrafts((prev) =>
-                  reindexPlanRoleSlots(
-                    prev.map((s) => (s.id === id ? { ...s, ...patch } : s)),
-                    roles
-                  )
+                  reindexPlanRoleSlots(prev.map((s) => (s.id === id ? { ...s, ...patch } : s)), roles)
                 )
               }
               onAdjustRoleCount={(roleId, delta) =>
                 setRoleSlotDrafts((prev) => adjustPlanRoleSlotCount(prev, roles, roleId, delta, createLocalId))
               }
               onRemoveSlot={(id) =>
-                setRoleSlotDrafts((prev) => reindexPlanRoleSlots(
-                  prev.filter((s) => s.id !== id),
-                  roles
-                ))
+                setRoleSlotDrafts((prev) => reindexPlanRoleSlots(prev.filter((s) => s.id !== id), roles))
               }
             />
+
             <ServicePlanStepsEditor
               items={planItems}
               members={members}
@@ -577,41 +635,62 @@ export default function ServicePlansPage() {
               onAddStep={() => handleAddStep("New step")}
               onAddQuickStep={handleAddStep}
             />
-          </>
+          </div>
         )}
-      </div>}
-        side={
-          <RolesCard
-            roles={roles}
-            newRoleName={newRoleName}
-            newRoleMinistry={newRoleMinistry}
-            newRoleDescription={newRoleDescription}
-            editingRoleId={editingRoleId}
-            editRoleName={editRoleName}
-            editRoleMinistry={editRoleMinistry}
-            editRoleDescription={editRoleDescription}
-            onNewRoleNameChange={setNewRoleName}
-            onNewRoleMinistryChange={setNewRoleMinistry}
-            onNewRoleDescriptionChange={setNewRoleDescription}
-            onAddRole={handleAddRole}
-            onEditRole={handleEditRole}
-            onEditRoleNameChange={setEditRoleName}
-            onEditRoleMinistryChange={setEditRoleMinistry}
-            onEditRoleDescriptionChange={setEditRoleDescription}
-            onSaveRole={handleSaveRole}
-            onCancelEdit={() => setEditingRoleId(null)}
-            onDeleteRole={handleDeleteRole}
-          />
-        }
-      />
+      </PageGridFull>
 
-      {toast ? (
+      {/* Collapsible roles panel */}
+      <PageGridFull className="animate-fade-in-up [animation-delay:180ms]">
+        <div className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
+          <button
+            type="button"
+            onClick={() => setRolesOpen((o) => !o)}
+            className="flex w-full items-center justify-between px-5 py-4 text-left transition-colors hover:bg-[var(--surface-2)]"
+          >
+            <div className="flex items-center gap-3">
+              <Settings2 className="h-5 w-5 text-[var(--text-muted)]" aria-hidden />
+              <div>
+                <p className="text-sm font-semibold text-[var(--text-primary)]">Volunteer roles</p>
+                <p className="text-xs text-[var(--text-muted)]">{roles.length} role{roles.length !== 1 ? "s" : ""} configured</p>
+              </div>
+            </div>
+            <ChevronRight className={`h-4 w-4 text-[var(--text-muted)] transition-transform duration-200 ${rolesOpen ? "rotate-90" : ""}`} />
+          </button>
+          {rolesOpen && (
+            <div className="border-t border-[var(--border)] p-5">
+              <RolesCard
+                roles={roles}
+                newRoleName={newRoleName}
+                newRoleMinistry={newRoleMinistry}
+                newRoleDescription={newRoleDescription}
+                editingRoleId={editingRoleId}
+                editRoleName={editRoleName}
+                editRoleMinistry={editRoleMinistry}
+                editRoleDescription={editRoleDescription}
+                onNewRoleNameChange={setNewRoleName}
+                onNewRoleMinistryChange={setNewRoleMinistry}
+                onNewRoleDescriptionChange={setNewRoleDescription}
+                onAddRole={handleAddRole}
+                onEditRole={handleEditRole}
+                onEditRoleNameChange={setEditRoleName}
+                onEditRoleMinistryChange={setEditRoleMinistry}
+                onEditRoleDescriptionChange={setEditRoleDescription}
+                onSaveRole={handleSaveRole}
+                onCancelEdit={() => setEditingRoleId(null)}
+                onDeleteRole={handleDeleteRole}
+              />
+            </div>
+          )}
+        </div>
+      </PageGridFull>
+
+      {toast && (
         <PageGridFull>
-          <div className="fixed right-6 top-6 z-50 rounded-xl bg-[var(--surface-2)] px-4 py-3 text-sm shadow">
-            <p className={toast.tone === "error" ? "text-error" : "text-base-content"}>{toast.message}</p>
+          <div className="fixed right-6 top-20 z-50 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm shadow-lg">
+            <p className={toast.tone === "error" ? "text-red-600" : "text-green-700"}>{toast.message}</p>
           </div>
         </PageGridFull>
-      ) : null}
+      )}
     </PageGrid>
   );
 }

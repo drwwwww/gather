@@ -1,5 +1,5 @@
 import type { Role } from "@gather/lib";
-import type { PlanSlotRow, ProfileRow, ServiceTimeRow } from "./types";
+import type { PlanItemRow, PlanSlotRow, ProfileRow, ServiceTimeRow } from "./types";
 import { formatShortWeekdayDateTime } from "../../lib/format";
 
 export type InviteEntry = {
@@ -62,38 +62,37 @@ export function buildMemberEntries(
   }));
 }
 
-export function getUpcomingAssignments(
-  planSlots: PlanSlotRow[],
-  serviceTimes: ServiceTimeRow[],
+export function getUpcomingItemAssignments(
+  planItems: PlanItemRow[],
   profileId: string
 ) {
   const nowDate = new Date().toISOString().slice(0, 10);
-  const serviceTimeMap = serviceTimes.reduce<Record<string, ServiceTimeRow>>((acc, service) => {
-    acc[service.id] = service;
-    return acc;
-  }, {});
+  return planItems
+    .filter((item) => item.assigned_user_id === profileId && item.service_date >= nowDate)
+    .sort((a, b) => a.service_date.localeCompare(b.service_date))
+    .slice(0, 5)
+    .map((item) => {
+      const [y, m, d] = item.service_date.split("-").map(Number);
+      const date = new Date(y, (m ?? 1) - 1, d ?? 1);
+      return { id: item.id, role: item.title, serviceLabel: formatShortWeekdayDateTime(date) };
+    });
+}
 
+export function getUpcomingAssignments(
+  planSlots: PlanSlotRow[],
+  _serviceTimes: ServiceTimeRow[],
+  profileId: string
+) {
+  const nowDate = new Date().toISOString().slice(0, 10);
   return planSlots
     .filter((slot) => slot.assigned_user_id === profileId && slot.service_date >= nowDate)
     .sort((a, b) => a.service_date.localeCompare(b.service_date))
     .slice(0, 3)
     .map((slot) => {
-      const service = serviceTimeMap[slot.service_time_id];
-      const label = service
-        ? formatShortWeekdayDateTime(buildServiceDateTime(slot.service_date, service.start_time))
-        : slot.service_date;
-      return {
-        id: slot.id,
-        roleId: slot.role_id,
-        serviceLabel: label
-      };
+      // Format service_date as a friendly label (no service time needed)
+      const [y, m, d] = slot.service_date.split("-").map(Number);
+      const date = new Date(y, (m ?? 1) - 1, d ?? 1);
+      const label = formatShortWeekdayDateTime(date);
+      return { id: slot.id, roleId: slot.role_id, serviceLabel: label };
     });
-}
-
-function buildServiceDateTime(serviceDate: string, startTime: string) {
-  const [hours, minutes] = startTime.split(":").map(Number);
-  const date = new Date(serviceDate);
-  if (Number.isNaN(date.getTime())) return null;
-  date.setHours(hours || 0, minutes || 0, 0, 0);
-  return date;
 }

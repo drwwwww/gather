@@ -24,7 +24,7 @@ export default function LatestAnnouncementsCard({ items }: { items: Announcement
         <h2 className="m-0 text-[13px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">Announcements</h2>
         <Link
           href="/announcements"
-          className="text-sm font-bold text-[#f59e0b] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#f59e0b]/30 rounded-sm"
+          className="text-sm font-bold text-[#f59e0b] transition-colors hover:text-amber-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#f59e0b]/30 rounded-sm"
         >
           View all
         </Link>
@@ -37,7 +37,7 @@ export default function LatestAnnouncementsCard({ items }: { items: Announcement
           <p className="m-0 mt-1 text-xs text-[var(--text-muted)]">Your first announcement will appear here once published.</p>
           <Link
             href="/announcements"
-            className="mt-4 inline-block text-sm font-bold text-[#f59e0b] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#f59e0b]/30 rounded-sm"
+            className="mt-4 inline-block text-sm font-bold text-[#f59e0b] transition-colors hover:text-amber-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#f59e0b]/30 rounded-sm"
           >
             Write your first announcement
           </Link>

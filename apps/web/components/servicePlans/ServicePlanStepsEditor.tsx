@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { List } from "lucide-react";
+import { ChevronDown, ChevronRight, List } from "lucide-react";
 import StepList from "../runOfShow/StepList";
 import type { RunOfShowStep, StepMemberOption } from "../runOfShow/StepRow";
 import StepEditorToolbar from "../runOfShow/StepEditorToolbar";
@@ -22,6 +22,7 @@ export default function ServicePlanStepsEditor({
   onAddStep: () => void;
   onAddQuickStep: (title: string) => void;
 }) {
+  const [collapsed, setCollapsed] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
 
@@ -75,50 +76,69 @@ export default function ServicePlanStepsEditor({
       }}
     >
       <div className="space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p
-              className="text-sm font-semibold"
-              style={{ color: 'var(--text-primary)' }}
-            >
-              Service plan steps
-            </p>
-            <p
-              className="text-xs mt-1"
-              style={{ color: 'var(--text-muted)' }}
-            >
-              Keep the flow and assignments in one place.
-            </p>
+        {/* Header — always visible, click to collapse */}
+        <div
+          className="flex flex-wrap items-center justify-between gap-3 cursor-pointer select-none"
+          onClick={() => setCollapsed((c) => !c)}
+        >
+          <div className="flex items-center gap-2">
+            {collapsed
+              ? <ChevronRight className="h-4 w-4 shrink-0" style={{ color: "var(--text-muted)" }} />
+              : <ChevronDown className="h-4 w-4 shrink-0" style={{ color: "var(--text-muted)" }} />
+            }
+            <div>
+              <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+                Service plan steps
+              </p>
+              {!collapsed && (
+                <p className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                  Keep the flow and assignments in one place.
+                </p>
+              )}
+            </div>
+            {collapsed && steps.length > 0 && (
+              <span className="text-xs px-1.5 py-0.5 rounded-md" style={{ background: "var(--surface-2)", color: "var(--text-muted)" }}>
+                {steps.length} step{steps.length !== 1 ? "s" : ""}
+              </span>
+            )}
           </div>
         </div>
-        <StepEditorToolbar
-          saving={savingState === "saving"}
-          lastSavedAt={lastSavedAt}
-          onAddStep={onAddStep}
-          onAddQuickStep={onAddQuickStep}
-        />
-        {steps.length === 0 ? (
-          <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-[var(--border)] bg-[var(--surface)] px-6 py-8 text-center mt-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--surface-2)]">
-              <List className="h-5 w-5" style={{ color: "var(--text-muted)" }} />
+
+        {/* Body — hidden when collapsed */}
+        {!collapsed && (
+          <>
+            <div onClick={(e) => e.stopPropagation()}>
+              <StepEditorToolbar
+                saving={savingState === "saving"}
+                lastSavedAt={lastSavedAt}
+                onAddStep={onAddStep}
+                onAddQuickStep={onAddQuickStep}
+              />
             </div>
-            <div>
-              <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>No steps yet</p>
-              <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>Add a step to build your plan.</p>
-            </div>
-          </div>
-        ) : (
-          <StepList
-            items={steps}
-            members={members}
-            selectedId={selectedId}
-            focusId={focusItemId}
-            showStatus
-            onSelect={(id) => setSelectedId(id)}
-            onUpdate={(id, patch) => handleItemChange(id, patch)}
-            onRemove={handleRemove}
-            onReorder={handleReorder}
-          />
+            {steps.length === 0 ? (
+              <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-[var(--border)] bg-[var(--surface)] px-6 py-8 text-center mt-4">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--surface-2)]">
+                  <List className="h-5 w-5" style={{ color: "var(--text-muted)" }} />
+                </div>
+                <div>
+                  <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>No steps yet</p>
+                  <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>Add a step to build your plan.</p>
+                </div>
+              </div>
+            ) : (
+              <StepList
+                items={steps}
+                members={members}
+                selectedId={selectedId}
+                focusId={focusItemId}
+                showStatus
+                onSelect={(id) => setSelectedId(id)}
+                onUpdate={(id, patch) => handleItemChange(id, patch)}
+                onRemove={handleRemove}
+                onReorder={handleReorder}
+              />
+            )}
+          </>
         )}
       </div>
     </div>

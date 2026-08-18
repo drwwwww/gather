@@ -1,244 +1,246 @@
 import { useState } from "react";
 import {
-  View,
-  Text,
-  TextInput,
-  ScrollView,
-  TouchableOpacity,
-  KeyboardAvoidingView,
-  Platform,
+  View, Text, TextInput, Pressable,
+  KeyboardAvoidingView, Platform, StyleSheet,
 } from "react-native";
-import { Button } from "../components/ui/Button";
-import { GradientButton } from "../components/ui/GradientButton";
-import { AppShell } from "../components/app/AppShell";
-import { GatherMark } from "../components/app/GatherMark";
-import { theme } from "../theme/theme";
+import { Icon } from "../components/ui/Icon";
+import {
+  Screen, Txt, Button, BrandMark,
+  palette, font, radius,
+} from "../components/ds";
 import { supabase } from "../supabase";
 
-const inputStyle = {
-  width: "100%" as const,
-  paddingHorizontal: theme.spacing.lg,
-  paddingVertical: 16,
-  backgroundColor: theme.colors.surface,
-  borderWidth: 1,
-  borderColor: theme.colors.border,
-  borderRadius: theme.radii.lg,
-  fontSize: theme.typography.fontSize.md,
-  color: theme.colors.primaryText,
-  fontFamily: theme.typography.fontFamily,
-};
+function Field({
+  label, placeholder, value, onChangeText, secureTextEntry = false,
+  keyboardType = "default", autoCapitalize = "none", rightSlot, onRightPress, rightLabel,
+}: {
+  label: string;
+  placeholder: string;
+  value: string;
+  onChangeText: (v: string) => void;
+  secureTextEntry?: boolean;
+  keyboardType?: any;
+  autoCapitalize?: any;
+  rightSlot?: React.ReactNode;
+  onRightPress?: () => void;
+  rightLabel?: string;
+}) {
+  return (
+    <View style={{ marginBottom: 16 }}>
+      <View style={styles.labelRow}>
+        <Text style={styles.fieldLabel}>{label}</Text>
+        {rightLabel && onRightPress ? (
+          <Pressable onPress={onRightPress} hitSlop={8}>
+            <Text style={styles.forgot}>{rightLabel}</Text>
+          </Pressable>
+        ) : null}
+      </View>
+      <View style={{ position: "relative" }}>
+        <TextInput
+          placeholder={placeholder}
+          placeholderTextColor={palette.inkMuted}
+          value={value}
+          onChangeText={onChangeText}
+          secureTextEntry={secureTextEntry}
+          keyboardType={keyboardType}
+          autoCapitalize={autoCapitalize}
+          style={[styles.input, rightSlot ? { paddingRight: 60 } : null]}
+        />
+        {rightSlot ? <View style={styles.rightSlot}>{rightSlot}</View> : null}
+      </View>
+    </View>
+  );
+}
 
 export default function SignInScreen({ navigation }: any) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [forgotMode, setForgotMode] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotSent, setForgotSent] = useState(false);
+  const [forgotLoading, setForgotLoading] = useState(false);
 
   const handleSignIn = async () => {
     if (!supabase) return;
     setError(null);
+    setLoading(true);
     const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-    if (signInError) {
-      setError(signInError.message);
-      return;
-    }
+    if (signInError) setError(signInError.message);
+    setLoading(false);
+  };
+
+  const handleForgotPassword = async () => {
+    if (!supabase || !forgotEmail.trim()) return;
+    setForgotLoading(true);
+    await supabase.auth.resetPasswordForEmail(forgotEmail.trim());
+    setForgotSent(true);
+    setForgotLoading(false);
   };
 
   return (
-    <AppShell>
+    <Screen edges={["top", "bottom"]}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <ScrollView
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{
-            flexGrow: 1,
-            paddingHorizontal: theme.spacing.lg,
-            paddingTop: theme.spacing.xl,
-            paddingBottom: theme.spacing.xl * 2,
-            justifyContent: "center",
-          }}
-        >
-          <GatherMark layout="stacked" />
-
-          <View style={{ marginBottom: 40 }}>
-            <Text
-              style={{
-                fontFamily: theme.typography.fontFamily,
-                fontSize: 56,
-                fontWeight: theme.typography.fontWeight.bold as any,
-                color: theme.colors.primaryText,
-                letterSpacing: -0.5,
-                lineHeight: 62,
-                marginBottom: 8,
-              }}
-            >
-              Welcome back
-            </Text>
-            <Text
-              style={{
-                fontFamily: theme.typography.fontFamily,
-                fontSize: theme.typography.fontSize.lg,
-                color: theme.colors.textSecondary,
-                lineHeight: 26,
-                maxWidth: 320,
-              }}
-            >
-              Step back into the sanctuary. Your community is waiting.
-            </Text>
+        <View style={styles.inner}>
+          {/* Brand */}
+          <View style={styles.brand}>
+            <BrandMark size={72} rounding={22} glow style={{ marginBottom: 18 }} />
+            <Text style={styles.wordmark}>Gather</Text>
+            <Txt variant="bodyLg" color="inkMuted" center>
+              Your church community,{"\n"}all in one place.
+            </Txt>
           </View>
 
-          <View style={{ marginBottom: theme.spacing.md }}>
-            <Text
-              style={{
-                fontFamily: theme.typography.fontFamily,
-                fontSize: theme.typography.fontSize.sm,
-                fontWeight: theme.typography.fontWeight.medium as any,
-                color: theme.colors.textSecondary,
-                marginBottom: 8,
-                paddingLeft: 4,
-              }}
-            >
-              Email Address
-            </Text>
-            <TextInput
-              placeholder="yourname@domain.com"
-              placeholderTextColor={theme.colors.textMuted}
-              value={email}
-              onChangeText={setEmail}
-              style={inputStyle}
-              autoCapitalize="none"
-              keyboardType="email-address"
-            />
-          </View>
-
-          <View style={{ marginBottom: theme.spacing.md }}>
-            <View
-              style={{
-                flexDirection: "row",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: 8,
-                paddingLeft: 4,
-                paddingRight: 4,
-              }}
-            >
-              <Text
-                style={{
-                  fontFamily: theme.typography.fontFamily,
-                  fontSize: theme.typography.fontSize.sm,
-                  fontWeight: theme.typography.fontWeight.medium as any,
-                  color: theme.colors.textSecondary,
-                }}
+          {forgotMode ? (
+            <View>
+              <Pressable
+                onPress={() => { setForgotMode(false); setForgotSent(false); setForgotEmail(""); }}
+                style={styles.backRow}
+                hitSlop={8}
               >
-                Password
-              </Text>
-              <TouchableOpacity onPress={() => {}} accessibilityRole="button">
-                <Text
-                  style={{
-                    fontFamily: theme.typography.fontFamily,
-                    fontSize: theme.typography.fontSize.sm,
-                    fontWeight: theme.typography.fontWeight.medium as any,
-                    color: theme.colors.primary,
-                  }}
-                >
-                  Forgot?
-                </Text>
-              </TouchableOpacity>
+                <Icon name="chevronLeft" size={18} color={palette.amber} />
+                <Text style={styles.backTxt}>Back to sign in</Text>
+              </Pressable>
+
+              <Txt variant="h2" style={{ marginBottom: 6 }}>Reset password</Txt>
+              <Txt variant="body" color="inkSoft" style={{ marginBottom: 24 }}>
+                {forgotSent
+                  ? `A reset link was sent to ${forgotEmail}. Check your inbox.`
+                  : "Enter your email and we'll send you a reset link."}
+              </Txt>
+
+              {!forgotSent ? (
+                <>
+                  <Field
+                    label="EMAIL ADDRESS"
+                    placeholder="you@example.com"
+                    value={forgotEmail}
+                    onChangeText={setForgotEmail}
+                    keyboardType="email-address"
+                  />
+                  <Button
+                    label="Send reset link"
+                    onPress={handleForgotPassword}
+                    loading={forgotLoading}
+                    disabled={!forgotEmail.trim()}
+                    style={{ marginTop: 8 }}
+                  />
+                </>
+              ) : (
+                <View style={styles.successCard}>
+                  <View style={styles.successIcon}>
+                    <Icon name="check" size={22} color={palette.amber} />
+                  </View>
+                  <Txt variant="body" color="inkSoft" style={{ flex: 1 }}>
+                    Check your inbox for the reset link.
+                  </Txt>
+                </View>
+              )}
             </View>
-            <View style={{ position: "relative" }}>
-              <TextInput
+          ) : (
+            <View>
+              <Txt variant="h1" style={{ marginBottom: 6 }}>Welcome back</Txt>
+              <Txt variant="body" color="inkSoft" style={{ marginBottom: 24 }}>
+                Sign in to your church account.
+              </Txt>
+
+              <Field
+                label="EMAIL ADDRESS"
+                placeholder="you@example.com"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+              />
+              <Field
+                label="PASSWORD"
                 placeholder="••••••••"
-                placeholderTextColor={theme.colors.textMuted}
-                secureTextEntry={!showPassword}
                 value={password}
                 onChangeText={setPassword}
-                style={[inputStyle, { paddingRight: 52 }]}
+                secureTextEntry={!showPassword}
+                rightLabel="Forgot?"
+                onRightPress={() => setForgotMode(true)}
+                rightSlot={
+                  <Pressable onPress={() => setShowPassword((v) => !v)} hitSlop={8}>
+                    <Text style={styles.showHide}>{showPassword ? "Hide" : "Show"}</Text>
+                  </Pressable>
+                }
               />
-              <TouchableOpacity
-                onPress={() => setShowPassword((v) => !v)}
-                style={{ position: "absolute", right: 16, top: 0, bottom: 0, justifyContent: "center" }}
-                accessibilityLabel={showPassword ? "Hide password" : "Show password"}
-              >
-                <Text style={{ fontSize: 13, color: theme.colors.textSecondary, fontWeight: "600" }}>
-                  {showPassword ? "Hide" : "Show"}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
 
-          {error ? (
-            <Text
-              style={{
-                color: theme.colors.error,
-                marginBottom: theme.spacing.md,
-                fontFamily: theme.typography.fontFamily,
-              }}
-            >
-              {error}
-            </Text>
-          ) : null}
+              {error ? (
+                <View style={styles.errorCard}>
+                  <Text style={styles.errorTxt}>{error}</Text>
+                </View>
+              ) : null}
 
-          <GradientButton onPress={handleSignIn}>Sign In</GradientButton>
+              <Button label="Sign In" onPress={handleSignIn} loading={loading} style={{ marginTop: 8 }} />
 
-          <View style={{ marginTop: theme.spacing.xl, alignItems: "center" }}>
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                marginBottom: theme.spacing.lg,
-                width: "100%",
-              }}
-            >
-              <View style={{ flex: 1, height: 1, backgroundColor: theme.colors.border }} />
-              <Text
-                style={{
-                  marginHorizontal: theme.spacing.md,
-                  fontFamily: theme.typography.fontFamily,
-                  fontSize: 11,
-                  color: theme.colors.textMuted,
-                  letterSpacing: 2,
-                  textTransform: "uppercase",
-                  fontWeight: theme.typography.fontWeight.semibold as any,
-                }}
-              >
-                Or join with
-              </Text>
-              <View style={{ flex: 1, height: 1, backgroundColor: theme.colors.border }} />
-            </View>
-            <View style={{ flexDirection: "row", gap: theme.spacing.md, width: "100%" }}>
-              <View style={{ flex: 1, opacity: 0.45 }}>
-                <Button variant="secondary" onPress={() => {}}>
-                  Google
-                </Button>
-              </View>
-              <View style={{ flex: 1, opacity: 0.45 }}>
-                <Button variant="secondary" onPress={() => {}}>
-                  Apple
-                </Button>
+              <View style={styles.footer}>
+                <Txt variant="body" color="inkSoft">Don't have an account? </Txt>
+                <Pressable onPress={() => navigation.replace("SignUp")} hitSlop={8}>
+                  <Text style={styles.footerLink}>Sign up</Text>
+                </Pressable>
               </View>
             </View>
-            <Text
-              style={{
-                marginTop: theme.spacing.lg,
-                fontFamily: theme.typography.fontFamily,
-                fontSize: theme.typography.fontSize.md,
-                color: theme.colors.textSecondary,
-                textAlign: "center",
-              }}
-            >
-              {"Don't have an account? "}
-              <Text
-                onPress={() => navigation.replace("SignUp")}
-                style={{ color: theme.colors.primary, fontWeight: theme.typography.fontWeight.bold as any }}
-              >
-                Sign up
-              </Text>
-            </Text>
-          </View>
-        </ScrollView>
+          )}
+        </View>
       </KeyboardAvoidingView>
-    </AppShell>
+    </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  inner: { flex: 1, paddingHorizontal: 28, justifyContent: "center" },
+  brand: { alignItems: "center", marginBottom: 36 },
+  wordmark: { fontFamily: font.bold, fontSize: 40, color: palette.ink, letterSpacing: -1, marginBottom: 10 },
+  labelRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8, paddingHorizontal: 2 },
+  fieldLabel: { fontFamily: font.bold, fontSize: 11, color: palette.inkMuted, letterSpacing: 0.8 },
+  forgot: { fontFamily: font.semibold, fontSize: 12, color: palette.amber },
+  input: {
+    fontFamily: font.regular,
+    fontSize: 15,
+    color: palette.ink,
+    backgroundColor: palette.surface,
+    borderWidth: 1.5,
+    borderColor: palette.line,
+    borderRadius: radius.md,
+    paddingHorizontal: 16,
+    paddingVertical: 15,
+  },
+  rightSlot: { position: "absolute", right: 0, top: 0, bottom: 0, justifyContent: "center", paddingRight: 16 },
+  showHide: { fontFamily: font.semibold, fontSize: 12, color: palette.inkSoft },
+  backRow: { flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 20, alignSelf: "flex-start" },
+  backTxt: { fontFamily: font.semibold, fontSize: 14, color: palette.amber },
+  errorCard: {
+    backgroundColor: palette.dangerSoft,
+    borderRadius: radius.sm,
+    padding: 12,
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  errorTxt: { fontFamily: font.regular, fontSize: 13, color: palette.dangerInk, lineHeight: 18 },
+  successCard: {
+    backgroundColor: palette.amberSofter,
+    borderRadius: radius.md,
+    padding: 18,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+    marginTop: 8,
+  },
+  successIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: palette.surface,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  footer: { flexDirection: "row", justifyContent: "center", alignItems: "center", marginTop: 28 },
+  footerLink: { fontFamily: font.bold, fontSize: 15, color: palette.amber },
+});

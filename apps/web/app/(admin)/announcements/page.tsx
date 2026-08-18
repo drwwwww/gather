@@ -36,6 +36,7 @@ function mergeAnnouncementRow(prev: Announcement[], row: Announcement): Announce
 export default function AnnouncementsPage() {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [audience, setAudience] = useState("ALL");
   const [publishMode, setPublishMode] = useState<"NOW" | "SCHEDULE">("NOW");
   const [scheduleDate, setScheduleDate] = useState("");
@@ -105,6 +106,7 @@ export default function AnnouncementsPage() {
   const resetForm = () => {
     setTitle("");
     setBody("");
+    setImageUrl(null);
     setPublishMode("NOW");
     setScheduleDate("");
     setScheduleTime("");
@@ -144,7 +146,8 @@ export default function AnnouncementsPage() {
             title: trimmedTitle,
             body: trimmedBody,
             audience: audience as Announcement["audience"],
-            publish_at: publishAt
+            publish_at: publishAt,
+            ...(imageUrl ? { image_url: imageUrl } as any : {})
           })
           .eq("id", editingId)
           .select("*")
@@ -164,7 +167,8 @@ export default function AnnouncementsPage() {
             title: trimmedTitle,
             body: trimmedBody,
             audience: audience as Announcement["audience"],
-            publish_at: publishAt
+            publish_at: publishAt,
+            ...(imageUrl ? { image_url: imageUrl } as any : {})
           })
           .select("*")
           .single();
@@ -198,6 +202,7 @@ export default function AnnouncementsPage() {
     setEditingId(announcement.id);
     setTitle(announcement.title);
     setBody(announcement.body ?? "");
+    setImageUrl((announcement as any).image_url ?? null);
     setAudience(announcement.audience);
     if (announcement.publish_at && new Date(announcement.publish_at) > new Date()) {
       setPublishMode("SCHEDULE");
@@ -215,6 +220,7 @@ export default function AnnouncementsPage() {
     setEditingId(null);
     setTitle(`${announcement.title} (copy)`);
     setBody(announcement.body ?? "");
+    setImageUrl((announcement as any).image_url ?? null);
     setAudience(announcement.audience);
     setPublishMode("NOW");
     setScheduleDate("");
@@ -350,7 +356,7 @@ export default function AnnouncementsPage() {
               <span className="text-sm text-[var(--text-muted)]">total</span>
             </div>
           </div>
-          <div className="stitch-section-card space-y-3" style={{ background: "var(--primary-soft)" }}>
+          <div className="stitch-section-card space-y-3">
             <span className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Scheduled</span>
             <div className="flex items-baseline gap-2">
               <span className="text-4xl font-bold text-[var(--text-primary)]">{scheduled.length}</span>
@@ -430,7 +436,7 @@ export default function AnnouncementsPage() {
       {/* Composer modal */}
       {composerOpen ? (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[var(--text-primary)]/40 backdrop-blur-sm">
-          <div className="relative mx-4 w-full max-w-2xl overflow-hidden rounded-2xl bg-[var(--surface-container-lowest)] shadow-2xl">
+          <div className="relative mx-4 flex w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-[var(--surface-container-lowest)] shadow-2xl" style={{ maxHeight: "90vh" }}>
             <div className="flex items-center justify-between border-b border-[var(--border)] px-8 py-6">
               <h2 className="text-xl font-bold text-[var(--text-primary)]">
                 {editingId ? "Edit Announcement" : "New Announcement"}
@@ -461,6 +467,8 @@ export default function AnnouncementsPage() {
                 isEditing={!!editingId}
                 isSubmitting={isSubmitting}
                 submitVariant={submitVariant}
+                imageUrl={imageUrl}
+                churchId={churchId ?? ""}
                 onTitleChange={setTitle}
                 onBodyChange={setBody}
                 onAudienceChange={setAudience}
@@ -468,6 +476,7 @@ export default function AnnouncementsPage() {
                 onScheduleDateChange={setScheduleDate}
                 onScheduleTimeChange={setScheduleTime}
                 onPreviewModeChange={setPreviewMode}
+                onImageUrlChange={setImageUrl}
                 onPrimary={() => { void handleSubmit(); setComposerOpen(false); }}
                 onSaveDraft={() => { void handleSubmit("DRAFT"); setComposerOpen(false); }}
                 onCancelEdit={() => { resetForm(); setComposerOpen(false); }}

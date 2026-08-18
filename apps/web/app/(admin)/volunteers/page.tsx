@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
-import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import AdminHeader from "../../../components/admin/AdminHeader";
@@ -16,12 +16,10 @@ import PendingResponsesCard from "../../../components/volunteers/PendingResponse
 import DeclinedCard from "../../../components/volunteers/DeclinedCard";
 import ScheduleBuilder from "../../../components/volunteers/ScheduleBuilder";
 import { PageGrid, PageGridFull, PageGridRowTwoOne } from "../../../components/layout/PageGrid";
-import { getNextServiceDateTime } from "../../../lib/nextServiceDatetime";
 import type { Database, AssignmentStatus } from "@gather/lib";
 type ServicePlanRoleSlotRow = Database["public"]["Tables"]["service_plan_role_slots"]["Row"];
 
 type RoleRow = Database["public"]["Tables"]["volunteer_roles"]["Row"];
-type ServiceTimeRow = Database["public"]["Tables"]["service_times"]["Row"];
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 
 type StoredScheduleSlot = {
@@ -57,20 +55,18 @@ export default function VolunteersPage() {
 
   const [roles, setRoles] = useState<RoleView[]>([]);
   const [profiles, setProfiles] = useState<ProfileRow[]>([]);
-  const [serviceTimes, setServiceTimes] = useState<ServiceTimeRow[]>([]);
   /** YYYY-MM-DD dates that have an active service plan (drives the strip dots). */
   const [planDates, setPlanDates] = useState<Set<string>>(new Set());
   const [serviceDate, setServiceDate] = useState(() => getLocalDateInputValue());
   /** First day (YYYY-MM-DD) of the 7-day strip; chevrons shift this without changing selection until a pill is chosen. */
   const [dateStripStart, setDateStripStart] = useState(() => addDaysYmd(getLocalDateInputValue(), -3));
-  const calendarRef = useRef<HTMLDivElement>(null);
   const [showCalendar, setShowCalendar] = useState(false);
+  const [stripAnim, setStripAnim] = useState<"left" | "right" | null>(null);
   /** First day of the month shown in the calendar popover (YYYY-MM-01). */
   const [calendarMonth, setCalendarMonth] = useState(() => getLocalDateInputValue().slice(0, 7) + "-01");
   const [slotRoleId, setSlotRoleId] = useState("");
   const [slotCount, setSlotCount] = useState(1);
   const [slots, setSlots] = useState<StoredScheduleSlot[]>([]);
-  const [serviceTimeId, setServiceTimeId] = useState("");
   const [showOpenOnly, setShowOpenOnly] = useState(false);
   const [showPendingOnly, setShowPendingOnly] = useState(false);
   const [showDeclinedOnly, setShowDeclinedOnly] = useState(false);
@@ -79,11 +75,14 @@ export default function VolunteersPage() {
   const [toastError, setToastError] = useState<string | null>(null);
   const [toastSuccess, setToastSuccess] = useState<string | null>(null);
   const [toastLeaving, setToastLeaving] = useState(false);
+  const [nudgingId, setNudgingId] = useState<string | null>(null);
+  const [sendingReminders, setSendingReminders] = useState(false);
   // Bulletin (service plan role slots + run-of-show items) for the selected date
   const [bulletinPlanId, setBulletinPlanId] = useState<string | null>(null);
   const [bulletinPlanTitle, setBulletinPlanTitle] = useState<string | null>(null);
   const [bulletinSlots, setBulletinSlots] = useState<BulletinSlotRow[]>([]);
   const [bulletinItems, setBulletinItems] = useState<BulletinItemRow[]>([]);
+  const [bulletinLoading, setBulletinLoading] = useState(false);
   const router = useRouter();
 
   const profilesById = useMemo(() => indexProfilesById(profiles), [profiles]);
@@ -93,14 +92,36 @@ export default function VolunteersPage() {
     [dateStripStart]
   );
 
-  const serviceDaysOfWeek = useMemo(
-    () => new Set(serviceTimes.map((s) => s.day_of_week)),
-    [serviceTimes]
-  );
+  // Plans on a date determine if a "has service" dot shows on the strip
+  const serviceDaysOfWeek = useMemo(() => new Set<number>(), []);
+
+  const triggerStripAnim = (anim: "left" | "right") => {
+    setStripAnim(null);
+    requestAnimationFrame(() => setStripAnim(anim));
+  };
 
   const selectServiceDateFromStrip = (ymd: string) => {
-    setServiceDate(ymd);
-    setDateStripStart(addDaysYmd(ymd, -3));
+    const diff = dateDiffDays(serviceDate, ymd);
+    if (diff === 0) return;
+    const dir = diff > 0 ? "left" : "right";
+    const absDiff = Math.abs(diff);
+
+    // For large jumps (calendar picker), snap immediately
+    if (absDiff > 7) {
+      setServiceDate(ymd);
+      setDateStripStart(addDaysYmd(ymd, -3));
+      return;
+    }
+
+    // Step through each intermediate date, replaying the slide animation each tick
+    const step = diff > 0 ? 1 : -1;
+    Array.from({ length: absDiff }, (_, i) => addDaysYmd(serviceDate, step * (i + 1))).forEach((date, i) => {
+      setTimeout(() => {
+        triggerStripAnim(dir);
+        setServiceDate(date);
+        setDateStripStart(addDaysYmd(date, -3));
+      }, i * 160);
+    });
   };
 
   /** 6-week grid (42 cells) of YYYY-MM-DD covering the month in `calendarMonth`. */
@@ -122,28 +143,17 @@ export default function VolunteersPage() {
 
   useEffect(() => {
     if (!showCalendar) return;
-    const onPointerDown = (e: MouseEvent) => {
-      if (calendarRef.current && !calendarRef.current.contains(e.target as Node)) {
-        setShowCalendar(false);
-      }
-    };
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") setShowCalendar(false);
     };
-    document.addEventListener("mousedown", onPointerDown);
     document.addEventListener("keydown", onKeyDown);
     return () => {
-      document.removeEventListener("mousedown", onPointerDown);
       document.removeEventListener("keydown", onKeyDown);
     };
   }, [showCalendar]);
 
   const churchId = useMemo(() => profiles[0]?.church_id ?? "", [profiles]);
 
-  const selectedServiceTime = useMemo(
-    () => serviceTimes.find((service) => service.id === serviceTimeId) ?? null,
-    [serviceTimes, serviceTimeId]
-  );
 
   const readinessCounts = useMemo(() => {
     const counts = { total: 0, open: 0, pending: 0, confirmed: 0, declined: 0 };
@@ -208,15 +218,11 @@ export default function VolunteersPage() {
   }, [bulletinSlots, bulletinItems, profilesById]);
 
   const serviceLabel = useMemo(() => {
-    if (selectedServiceTime && serviceDate) {
-      const date = buildServiceDateTime(serviceDate, selectedServiceTime.start_time);
-      if (date) {
-        return formatShortWeekdayDateTime(date);
-      }
-    }
-    const nextService = getNextServiceDateTime(serviceTimes);
-    return nextService ? formatShortWeekdayDateTime(nextService) : "Not scheduled";
-  }, [selectedServiceTime, serviceDate, serviceTimes]);
+    if (!serviceDate) return "Not scheduled";
+    const [y, m, d] = serviceDate.split("-").map(Number);
+    const date = new Date(y, (m ?? 1) - 1, d ?? 1);
+    return formatShortWeekdayDateTime(date);
+  }, [serviceDate]);
 
   const refresh = async () => {
     if (!supabase) return;
@@ -225,8 +231,6 @@ export default function VolunteersPage() {
       router.push("/login");
       return;
     }
-
-    setServiceTimes(context.serviceTimes);
 
     const [rolesResult, profilesResult, plansResult] = await Promise.all([
       supabase.from("volunteer_roles").select("*").eq("church_id", context.profile.church_id).order("name"),
@@ -249,11 +253,13 @@ export default function VolunteersPage() {
   };
 
   const refreshBulletin = async () => {
-    if (!supabase || !churchId || !serviceTimeId || !serviceDate) {
+    setBulletinLoading(true);
+    if (!supabase || !churchId || !serviceDate) {
       setBulletinPlanId(null);
       setBulletinPlanTitle(null);
       setBulletinSlots([]);
       setBulletinItems([]);
+      setBulletinLoading(false);
       return;
     }
 
@@ -262,8 +268,9 @@ export default function VolunteersPage() {
       .from("service_plans")
       .select("id, title")
       .eq("church_id", churchId)
-      .eq("service_time_id", serviceTimeId)
       .eq("service_date", serviceDate)
+      .order("created_at", { ascending: false })
+      .limit(1)
       .maybeSingle();
 
     if (!planData) {
@@ -277,6 +284,7 @@ export default function VolunteersPage() {
         next.delete(serviceDate);
         return next;
       });
+      setBulletinLoading(false);
       return;
     }
 
@@ -342,6 +350,7 @@ export default function VolunteersPage() {
         };
       })
     );
+    setBulletinLoading(false);
   };
 
   useEffect(() => {
@@ -355,16 +364,10 @@ export default function VolunteersPage() {
   }, [roles, slotRoleId]);
 
   useEffect(() => {
-    if (!serviceTimes.length) return;
-    if (serviceTimes.some((service) => service.id === serviceTimeId)) return;
-    setServiceTimeId(serviceTimes[0].id);
-  }, [serviceTimes, serviceTimeId]);
-
-  useEffect(() => {
-    if (churchId && serviceTimeId && serviceDate) {
+    if (churchId && serviceDate) {
       refreshBulletin();
     }
-  }, [churchId, serviceTimeId, serviceDate]);
+  }, [churchId, serviceDate]);
 
   useEffect(() => {
     const msg = toastError ?? toastSuccess;
@@ -399,16 +402,15 @@ export default function VolunteersPage() {
   };
 
   const handleGenerateSchedule = async () => {
-    if (!supabase || !serviceTimeId || !slots.length || !churchId) return;
+    if (!supabase || !slots.length || !churchId) return;
     const context = await getCurrentContext();
     if (!context) return;
 
-    // Upsert the service plan for this date/time (UNIQUE on church_id, service_time_id, service_date)
     const { data: plan, error: planError } = await supabase
       .from("service_plans")
       .upsert(
-        { church_id: context.profile.church_id, service_time_id: serviceTimeId, service_date: serviceDate, title: "Service Plan" },
-        { onConflict: "church_id,service_time_id,service_date", ignoreDuplicates: false }
+        { church_id: context.profile.church_id, service_date: serviceDate, title: "Service Plan" } as any,
+        { onConflict: "church_id,service_date", ignoreDuplicates: false }
       )
       .select("id")
       .single();
@@ -432,7 +434,7 @@ export default function VolunteersPage() {
   };
 
   const handleCopyLastService = async () => {
-    if (!supabase || !serviceTimeId || !serviceDate || !churchId) return;
+    if (!supabase || !serviceDate || !churchId) return;
     if (bulletinSlots.length > 0 || bulletinItems.length > 0) {
       setError("A service plan already exists for this date.");
       return;
@@ -446,7 +448,6 @@ export default function VolunteersPage() {
       .from("service_plans")
       .select("id, service_date")
       .eq("church_id", context.profile.church_id)
-      .eq("service_time_id", serviceTimeId)
       .lt("service_date", serviceDate)
       .order("service_date", { ascending: false })
       .limit(1)
@@ -468,8 +469,8 @@ export default function VolunteersPage() {
     const { data: newPlan, error: newPlanError } = await supabase
       .from("service_plans")
       .upsert(
-        { church_id: context.profile.church_id, service_time_id: serviceTimeId, service_date: serviceDate, title: "Service Plan" },
-        { onConflict: "church_id,service_time_id,service_date", ignoreDuplicates: false }
+        { church_id: context.profile.church_id, service_date: serviceDate, title: "Service Plan" } as any,
+        { onConflict: "church_id,service_date", ignoreDuplicates: false }
       )
       .select("id")
       .single();
@@ -559,7 +560,9 @@ export default function VolunteersPage() {
   };
 
   const handleSendReminders = async () => {
+    if (sendingReminders) return;
     setError(null);
+    setSendingReminders(true);
     try {
       const res = await fetch("/api/notifications/dispatch", {
         method: "POST",
@@ -572,18 +575,37 @@ export default function VolunteersPage() {
       setToastSuccess(
         count > 0
           ? `${count} reminder${count === 1 ? "" : "s"} sent (schedule + bulletin).`
-          : "No pending assignments or bulletin spots in the next 7 days."
+          : "No new reminders to send — everyone pending was already notified in the last day."
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to send reminders.");
+    } finally {
+      setSendingReminders(false);
     }
   };
 
-  const serviceTimeLabel = (service: ServiceTimeRow) => {
-    const weekday = weekdayNames[service.day_of_week] ?? "Service";
-    const time = formatTimeString(service.start_time);
-    return `${weekday} Service - ${time}`;
+  const handleNudgeOne = async (row: { id: string; assignee: string }) => {
+    const slot = bulletinSlots.find((s) => s.id === row.id);
+    const item = bulletinItems.find((i) => i.id === row.id);
+    const userId = slot?.assigned_user_id ?? item?.assigned_user_id ?? null;
+    if (!userId) return;
+    setNudgingId(row.id);
+    try {
+      const res = await fetch("/api/notifications/dispatch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lookaheadHours: 365, userId })
+      });
+      const data = (await res.json().catch(() => ({}))) as { dispatched?: number; error?: string };
+      if (!res.ok) { setToastError(data.error ?? "Failed to send reminder."); }
+      else { setToastSuccess(`Reminder sent to ${row.assignee}.`); }
+    } catch (err) {
+      setToastError(err instanceof Error ? err.message : "Failed to send reminder.");
+    } finally {
+      setNudgingId(null);
+    }
   };
+
 
   return (
     <>
@@ -619,35 +641,62 @@ export default function VolunteersPage() {
         : null}
       <PageGrid>
         <PageGridFull className="animate-fade-in-up">
-          <AdminHeader
-            size="large"
-            title="Volunteer scheduling"
-            subtitle="Organize ministry teams and monitor service coverage for your upcoming gatherings."
-          />
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <AdminHeader
+              size="large"
+              title="Volunteer scheduling"
+              subtitle="Organize ministry teams and monitor service coverage for your upcoming gatherings."
+            />
+            {/* KPI chips */}
+            {hasData && (
+              <div className="flex flex-wrap items-center gap-2">
+                {[
+                  { label: "Confirmed", value: readinessCounts.confirmed, cls: "bg-green-50 text-green-700 ring-green-200" },
+                  { label: "Pending",   value: readinessCounts.pending,   cls: "bg-slate-100 text-slate-600 ring-slate-200" },
+                  { label: "Open",      value: readinessCounts.open,      cls: "bg-amber-50 text-amber-700 ring-amber-200" },
+                  { label: "Declined",  value: readinessCounts.declined,  cls: "bg-red-50 text-red-600 ring-red-200" },
+                ].filter(k => k.value > 0).map(({ label, value, cls }) => (
+                  <span key={label} className={`rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-inset ${cls}`}>
+                    {value} {label}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
         </PageGridFull>
 
         {/* Redesigned date strip — no outer pill container */}
         <PageGridFull className="relative z-50 flex justify-center">
           <div className="w-full max-w-4xl animate-volunteers-toolbar-reveal">
 
-            {/* Section label */}
-            <p className="mb-3 text-center text-[11px] font-medium uppercase tracking-widest text-[var(--text-muted)]">
-              Service Date
-            </p>
+            {/* Section label + dot legend */}
+            <div className="mb-3 flex items-center justify-center gap-4">
+              <p className="text-[11px] font-medium uppercase tracking-widest text-[var(--text-muted)]">Service Date</p>
+              <div className="flex items-center gap-1.5 text-[10px] text-[var(--text-muted)]">
+                <span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-500" aria-hidden />
+                has a service plan
+              </div>
+            </div>
 
             {/* Arrow + day items */}
-            <div className="flex items-center gap-1">
+            <div className="flex items-center justify-center gap-2">
               <button
                 type="button"
                 className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[var(--border)] text-[var(--text-secondary)] transition-colors duration-150 hover:bg-[var(--surface-2)] hover:text-[var(--text-primary)] active:scale-95"
                 aria-label="Show earlier dates"
-                onClick={() => setDateStripStart((s) => addDaysYmd(s, -1))}
+                onClick={() => selectServiceDateFromStrip(addDaysYmd(serviceDate, -1))}
               >
                 <ChevronLeft className="h-4 w-4" strokeWidth={2} />
               </button>
 
-              <div className="flex flex-1 justify-center gap-0.5 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-                {dateStripDays.map((ymd) => {
+              <div
+                className={[
+                  "flex gap-0.5 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden",
+                  stripAnim === "left"  ? "animate-strip-slide-left"  :
+                  stripAnim === "right" ? "animate-strip-slide-right" : ""
+                ].join(" ")}
+              >
+                {dateStripDays.map((ymd, i) => {
                   const isSelected = ymd === serviceDate;
                   const hasPlan = planDates.has(ymd);
                   const d = parseYmdLocal(ymd);
@@ -665,11 +714,14 @@ export default function VolunteersPage() {
                           : `Set date to ${ariaDate}`
                       }
                       aria-pressed={isSelected}
+                      style={{ animationDelay: `${i * 45}ms` }}
                       className={[
-                        "flex min-w-[52px] flex-col items-center gap-1 rounded-xl px-2 py-2 transition-colors duration-150",
+                        "flex min-w-[52px] flex-col items-center gap-1 rounded-xl px-2 py-2",
+                        "motion-safe:animate-volunteers-strip-reveal",
+                        "transition-all duration-200 ease-out",
                         isSelected
-                          ? "bg-[#EF9F27] cursor-default"
-                          : "cursor-pointer hover:bg-[#FDF3E3]"
+                          ? "bg-[#EF9F27] cursor-default scale-[1.0]"
+                          : "cursor-pointer hover:bg-[#FDF3E3] hover:scale-[1.04] hover:shadow-sm active:scale-[0.97]"
                       ].join(" ")}
                     >
                       <span className={[
@@ -701,151 +753,141 @@ export default function VolunteersPage() {
                 type="button"
                 className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[var(--border)] text-[var(--text-secondary)] transition-colors duration-150 hover:bg-[var(--surface-2)] hover:text-[var(--text-primary)] active:scale-95"
                 aria-label="Show later dates"
-                onClick={() => setDateStripStart((s) => addDaysYmd(s, 1))}
+                onClick={() => selectServiceDateFromStrip(addDaysYmd(serviceDate, 1))}
               >
                 <ChevronRight className="h-4 w-4" strokeWidth={2} />
               </button>
             </div>
 
             {/* Service time info line — inline below strip */}
-            <div className="mt-3 flex min-h-8 items-center justify-center gap-2 text-sm">
+            <div className="mt-3 flex min-h-8 items-center justify-center gap-2 text-sm animate-volunteers-service-time-reveal">
               {planDates.has(serviceDate) || serviceDaysOfWeek.has(parseYmdLocal(serviceDate).getDay()) ? (
                 <>
                   <CalendarDays className="h-4 w-4 shrink-0 text-[#EF9F27]" aria-hidden />
                   <span className="font-semibold text-[var(--text-primary)]">
                     {format(parseYmdLocal(serviceDate), "EEE, MMM d")}
                   </span>
-                  {serviceTimes.length > 0 ? (
-                    <>
-                      <span className="text-[var(--text-muted)]" aria-hidden>·</span>
-                      {serviceTimes.length > 1 ? (
-                        <select
-                          id="volunteers-service-time"
-                          className="border-0 bg-transparent text-sm font-medium text-[var(--text-secondary)] focus:outline-none cursor-pointer"
-                          value={serviceTimeId}
-                          onChange={(e) => setServiceTimeId(e.target.value)}
-                          aria-label="Service time"
-                        >
-                          {serviceTimes.map((s) => (
-                            <option key={s.id} value={s.id}>{serviceTimeLabel(s)}</option>
-                          ))}
-                        </select>
-                      ) : (
-                        <span className="text-[var(--text-secondary)]">
-                          {selectedServiceTime ? serviceTimeLabel(selectedServiceTime) : ""}
-                        </span>
-                      )}
-                    </>
-                  ) : null}
                 </>
               ) : (
                 <span className="text-xs italic text-[var(--text-muted)]">No service scheduled on this date</span>
               )}
 
-              {/* Calendar picker — always available */}
-              <div className="relative" ref={calendarRef}>
-                <button
-                  type="button"
-                  className={[
-                    "flex h-7 w-7 items-center justify-center rounded-full border border-[var(--border)] transition-colors",
-                    showCalendar
-                      ? "bg-[#FDF3E3] text-[#EF9F27]"
-                      : "text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text-secondary)]"
-                  ].join(" ")}
-                  onClick={openCalendar}
-                  aria-label="Open calendar"
-                  aria-expanded={showCalendar}
-                >
-                  <CalendarDays className="h-3.5 w-3.5" aria-hidden />
-                </button>
+              {/* Calendar picker — opens a centered modal */}
+              <button
+                type="button"
+                className={[
+                  "flex h-7 w-7 items-center justify-center rounded-full border border-[var(--border)] transition-colors",
+                  showCalendar
+                    ? "bg-[#FDF3E3] text-[#EF9F27]"
+                    : "text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text-secondary)]"
+                ].join(" ")}
+                onClick={openCalendar}
+                aria-label="Open calendar"
+                aria-expanded={showCalendar}
+              >
+                <CalendarDays className="h-3.5 w-3.5" aria-hidden />
+              </button>
 
-                {showCalendar ? (
-                  <div className="absolute left-1/2 top-9 z-50 w-[380px] max-w-[calc(100vw-2rem)] -translate-x-1/2 rounded-2xl border border-[var(--border)] bg-[var(--surface-container-lowest)] p-3 shadow-lg">
-                    {/* Month header */}
-                    <div className="mb-2 flex items-center justify-between">
-                      <button
-                        type="button"
-                        className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-2)]"
-                        aria-label="Previous month"
-                        onClick={() => {
-                          const d = parseYmdLocal(calendarMonth);
-                          d.setMonth(d.getMonth() - 1);
-                          setCalendarMonth(getLocalDateInputValue(d).slice(0, 7) + "-01");
-                        }}
+              {typeof document !== "undefined" && showCalendar
+                ? createPortal(
+                    <div
+                      className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 p-4"
+                      role="dialog"
+                      aria-modal="true"
+                      aria-label="Choose service date"
+                      onClick={() => setShowCalendar(false)}
+                    >
+                      <div
+                        className="w-[420px] max-w-[calc(100vw-2rem)] rounded-2xl border border-[var(--border)] bg-[var(--surface-container-lowest)] p-4 shadow-xl"
+                        onClick={(e) => e.stopPropagation()}
                       >
-                        <ChevronLeft className="h-4 w-4" strokeWidth={2} />
-                      </button>
-                      <span className="text-sm font-semibold text-[var(--text-primary)]">
-                        {format(parseYmdLocal(calendarMonth), "MMMM yyyy")}
-                      </span>
-                      <button
-                        type="button"
-                        className="flex h-7 w-7 items-center justify-center rounded-full text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-2)]"
-                        aria-label="Next month"
-                        onClick={() => {
-                          const d = parseYmdLocal(calendarMonth);
-                          d.setMonth(d.getMonth() + 1);
-                          setCalendarMonth(getLocalDateInputValue(d).slice(0, 7) + "-01");
-                        }}
-                      >
-                        <ChevronRight className="h-4 w-4" strokeWidth={2} />
-                      </button>
-                    </div>
-
-                    {/* Weekday headers */}
-                    <div className="mb-1 grid grid-cols-7 gap-0.5">
-                      {["S", "M", "T", "W", "T", "F", "S"].map((w, i) => (
-                        <span
-                          key={i}
-                          className="flex h-6 items-center justify-center text-[10px] font-semibold uppercase text-[var(--text-muted)]"
-                        >
-                          {w}
-                        </span>
-                      ))}
-                    </div>
-
-                    {/* Day grid */}
-                    <div className="grid grid-cols-7 gap-0.5">
-                      {calendarGridDays.map((ymd) => {
-                        const d = parseYmdLocal(ymd);
-                        const inMonth = ymd.slice(0, 7) === calendarMonth.slice(0, 7);
-                        const isSelected = ymd === serviceDate;
-                        const isToday = ymd === getLocalDateInputValue();
-                        const hasPlan = planDates.has(ymd);
-                        return (
+                        {/* Month header */}
+                        <div className="mb-3 flex items-center justify-between">
                           <button
-                            key={ymd}
                             type="button"
+                            className="flex h-8 w-8 items-center justify-center rounded-full text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-2)]"
+                            aria-label="Previous month"
                             onClick={() => {
-                              selectServiceDateFromStrip(ymd);
-                              setShowCalendar(false);
+                              const d = parseYmdLocal(calendarMonth);
+                              d.setMonth(d.getMonth() - 1);
+                              setCalendarMonth(getLocalDateInputValue(d).slice(0, 7) + "-01");
                             }}
-                            aria-label={format(d, "EEEE, MMMM d, yyyy")}
-                            aria-pressed={isSelected}
-                            className={[
-                              "relative flex h-7 w-full items-center justify-center rounded-lg text-[13px] tabular-nums transition-colors",
-                              isSelected
-                                ? "bg-[#EF9F27] font-semibold text-white"
-                                : inMonth
-                                ? "text-[var(--text-primary)] hover:bg-[#FDF3E3]"
-                                : "text-[var(--text-muted)] opacity-50 hover:bg-[var(--surface-2)]",
-                              !isSelected && isToday ? "ring-1 ring-inset ring-[#EF9F27]" : ""
-                            ].join(" ")}
                           >
-                            {d.getDate()}
-                            {hasPlan && !isSelected ? (
-                              <span
-                                aria-hidden
-                                className="absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-[#EF9F27]"
-                              />
-                            ) : null}
+                            <ChevronLeft className="h-4 w-4" strokeWidth={2} />
                           </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ) : null}
-              </div>
+                          <span className="text-base font-semibold text-[var(--text-primary)]">
+                            {format(parseYmdLocal(calendarMonth), "MMMM yyyy")}
+                          </span>
+                          <button
+                            type="button"
+                            className="flex h-8 w-8 items-center justify-center rounded-full text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-2)]"
+                            aria-label="Next month"
+                            onClick={() => {
+                              const d = parseYmdLocal(calendarMonth);
+                              d.setMonth(d.getMonth() + 1);
+                              setCalendarMonth(getLocalDateInputValue(d).slice(0, 7) + "-01");
+                            }}
+                          >
+                            <ChevronRight className="h-4 w-4" strokeWidth={2} />
+                          </button>
+                        </div>
+
+                        {/* Weekday headers */}
+                        <div className="mb-1 grid grid-cols-7 gap-1">
+                          {["S", "M", "T", "W", "T", "F", "S"].map((w, i) => (
+                            <span
+                              key={i}
+                              className="flex h-6 items-center justify-center text-[11px] font-semibold uppercase text-[var(--text-muted)]"
+                            >
+                              {w}
+                            </span>
+                          ))}
+                        </div>
+
+                        {/* Day grid */}
+                        <div className="grid grid-cols-7 gap-1">
+                          {calendarGridDays.map((ymd) => {
+                            const d = parseYmdLocal(ymd);
+                            const inMonth = ymd.slice(0, 7) === calendarMonth.slice(0, 7);
+                            const isSelected = ymd === serviceDate;
+                            const isToday = ymd === getLocalDateInputValue();
+                            const hasPlan = planDates.has(ymd);
+                            return (
+                              <button
+                                key={ymd}
+                                type="button"
+                                onClick={() => {
+                                  selectServiceDateFromStrip(ymd);
+                                  setShowCalendar(false);
+                                }}
+                                aria-label={format(d, "EEEE, MMMM d, yyyy")}
+                                aria-pressed={isSelected}
+                                className={[
+                                  "relative flex h-9 w-full items-center justify-center rounded-lg text-sm tabular-nums transition-colors",
+                                  isSelected
+                                    ? "bg-[#EF9F27] font-semibold text-white"
+                                    : inMonth
+                                    ? "text-[var(--text-primary)] hover:bg-[#FDF3E3]"
+                                    : "text-[var(--text-muted)] opacity-50 hover:bg-[var(--surface-2)]",
+                                  !isSelected && isToday ? "ring-1 ring-inset ring-[#EF9F27]" : ""
+                                ].join(" ")}
+                              >
+                                {d.getDate()}
+                                {hasPlan && !isSelected ? (
+                                  <span
+                                    aria-hidden
+                                    className="absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-[#EF9F27]"
+                                  />
+                                ) : null}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>,
+                    document.body
+                  )
+                : null}
             </div>
           </div>
         </PageGridFull>
@@ -861,7 +903,9 @@ export default function VolunteersPage() {
           className="animate-fade-in-up [animation-delay:80ms]"
           main={
             <div className="space-y-10">
-              {hasData ? (
+              {bulletinLoading ? (
+                <BulletinSkeleton />
+              ) : hasData ? (
                 <AssignmentsTable
                   profiles={profiles}
                   showOpenOnly={showOpenOnly}
@@ -900,25 +944,63 @@ export default function VolunteersPage() {
             </div>
           }
           side={
-            <div className="space-y-6">
-              <NextServiceReadinessStrip
-                serviceLabel={serviceLabel || "Not scheduled"}
-                totalSlots={readinessCounts.total}
-                openSlots={readinessCounts.open}
-                pendingConfirmations={readinessCounts.pending}
-                confirmedCount={readinessCounts.confirmed}
-                declinedCount={readinessCounts.declined}
-                onGenerate={handleGenerateSchedule}
-                onCopyLast={handleCopyLastService}
-                onSendReminders={handleSendReminders}
-              />
-              <PendingResponsesCard items={pendingItems} onFollowUp={handleSendReminders} />
-              <DeclinedCard items={declinedItems} />
-            </div>
+            <NextServiceReadinessStrip
+              serviceLabel={serviceLabel || "Not scheduled"}
+              totalSlots={readinessCounts.total}
+              openSlots={readinessCounts.open}
+              pendingConfirmations={readinessCounts.pending}
+              confirmedCount={readinessCounts.confirmed}
+              declinedCount={readinessCounts.declined}
+              bulletinPlanHref={bulletinPlanId ? `/admin/service-plans/${bulletinPlanId}` : null}
+              onGenerate={handleGenerateSchedule}
+              onCopyLast={handleCopyLastService}
+              onSendReminders={handleSendReminders}
+              sendingReminders={sendingReminders}
+            />
           }
         />
+
+        {(pendingItems.length > 0 || declinedItems.length > 0) && (
+          <PageGridFull>
+            <div className={`grid gap-6 ${pendingItems.length > 0 && declinedItems.length > 0 ? "md:grid-cols-2" : "grid-cols-1"}`}>
+              {pendingItems.length > 0 && (
+                <PendingResponsesCard items={pendingItems} onFollowUp={handleSendReminders} onNudge={handleNudgeOne} nudgingId={nudgingId} />
+              )}
+              {declinedItems.length > 0 && (
+                <DeclinedCard items={declinedItems} />
+              )}
+            </div>
+          </PageGridFull>
+        )}
       </PageGrid>
     </>
+  );
+}
+
+function dateDiffDays(from: string, to: string): number {
+  return Math.round((parseYmdLocal(to).getTime() - parseYmdLocal(from).getTime()) / 86400000);
+}
+
+function BulletinSkeleton() {
+  return (
+    <div className="card card-elevated animate-pulse p-6">
+      <div className="mb-6 flex items-center justify-between">
+        <div className="h-5 w-40 rounded-full bg-[var(--surface-2)]" />
+        <div className="h-8 w-28 rounded-lg bg-[var(--surface-2)]" />
+      </div>
+      <div className="space-y-3">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="flex items-center gap-4 rounded-xl bg-[var(--surface)] p-4">
+            <div className="h-9 w-9 shrink-0 rounded-full bg-[var(--surface-2)]" />
+            <div className="flex-1 space-y-2">
+              <div className="h-3.5 w-32 rounded-full bg-[var(--surface-2)]" />
+              <div className="h-3 w-20 rounded-full bg-[var(--surface-2)]" />
+            </div>
+            <div className="h-6 w-20 rounded-full bg-[var(--surface-2)]" />
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 

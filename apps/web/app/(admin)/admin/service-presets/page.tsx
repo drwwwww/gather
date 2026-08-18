@@ -22,8 +22,7 @@ type PresetWithItems = ServicePreset & { items: PresetItemRow[] };
 type PageState = "loading" | "ready" | "restricted";
 
 export default function ServicePresetsPage() {
-  const [serviceTimes, setServiceTimes] = useState<ServiceTime[]>([]);
-  const [serviceTimeId, setServiceTimeId] = useState("");
+  const [worshipDay, setWorshipDay] = useState<number | undefined>(undefined); // undefined = show all
   const [presets, setPresets] = useState<PresetWithItems[]>([]);
   const [roles, setRoles] = useState<RoleRow[]>([]);
   const [churchId, setChurchId] = useState<string | null>(null);
@@ -37,16 +36,13 @@ export default function ServicePresetsPage() {
 
   const canCreate = useMemo(() => newPresetName.trim().length > 0, [newPresetName]);
 
-  const loadPresets = async (activeChurchId: string, timeId: string) => {
+  const loadPresets = async (activeChurchId: string, dayFilter?: number) => {
     if (!supabase) return;
     setLoadingPresets(true);
-    const { data, error: presetError } = await supabase
-      .from("service_presets")
-      .select("*")
-      .eq("church_id", activeChurchId)
-      .eq("service_time_id", timeId)
-      .order("is_default", { ascending: false })
-      .order("created_at", { ascending: false });
+    let q = supabase.from("service_presets").select("*").eq("church_id", activeChurchId)
+      .order("is_default", { ascending: false }).order("created_at", { ascending: false });
+    if (dayFilter !== undefined) q = q.eq("worship_day", dayFilter);
+    const { data, error: presetError } = await q;
     if (presetError) {
       setError(presetError.message);
       setLoadingPresets(false);
@@ -110,14 +106,9 @@ export default function ServicePresetsPage() {
         setStatus("restricted");
         return;
       }
-      setServiceTimes(context.serviceTimes);
       setChurchId(context.profile.church_id);
-      const firstTimeId = context.serviceTimes[0]?.id ?? "";
-      setServiceTimeId(firstTimeId);
-      if (firstTimeId) {
-        await loadRoles(context.profile.church_id);
-        await loadPresets(context.profile.church_id, firstTimeId);
-      }
+      await loadRoles(context.profile.church_id);
+      await loadPresets(context.profile.church_id, worshipDay);
       setStatus("ready");
     };
 
@@ -125,22 +116,20 @@ export default function ServicePresetsPage() {
   }, [router]);
 
   useEffect(() => {
-    if (churchId && serviceTimeId) {
-      loadPresets(churchId, serviceTimeId);
-    }
-  }, [churchId, serviceTimeId]);
+    if (churchId) loadPresets(churchId, worshipDay);
+  }, [churchId, worshipDay]);
 
   useEffect(() => {
     setExpandedPresetId(null);
-  }, [serviceTimeId]);
+  }, [worshipDay]);
 
   const handleCreatePreset = async () => {
-    if (!supabase || !churchId || !serviceTimeId || !canCreate) return;
+    if (!supabase || !churchId || !canCreate) return;
     setError(null);
     const trimmed = newPresetName.trim();
     const { data, error: insertError } = await supabase
       .from("service_presets")
-      .insert({ church_id: churchId, service_time_id: serviceTimeId, name: trimmed })
+      .insert({ church_id: churchId, name: trimmed, worship_day: worshipDay ?? 0 })
       .select("*")
       .single();
 
@@ -153,17 +142,16 @@ export default function ServicePresetsPage() {
     if (data?.id) {
       setExpandedPresetId(data.id);
     }
-    await loadPresets(churchId, serviceTimeId);
+    await loadPresets(churchId, worshipDay);
   };
 
   const handleSetDefault = async (presetId: string) => {
-    if (!supabase || !churchId || !serviceTimeId) return;
+    if (!supabase || !churchId) return;
     setError(null);
     const { error: resetError } = await supabase
       .from("service_presets")
       .update({ is_default: false })
-      .eq("church_id", churchId)
-      .eq("service_time_id", serviceTimeId);
+      .eq("church_id", churchId);
     if (resetError) {
       setError(resetError.message);
       return;
@@ -176,17 +164,17 @@ export default function ServicePresetsPage() {
       setError(updateError.message);
       return;
     }
-    await loadPresets(churchId, serviceTimeId);
+    await loadPresets(churchId, worshipDay);
   };
 
   const handleDuplicate = async (preset: PresetWithItems) => {
-    if (!supabase || !churchId || !serviceTimeId) return;
+    if (!supabase || !churchId) return;
     setError(null);
     const { data, error: insertError } = await supabase
       .from("service_presets")
       .insert({
         church_id: churchId,
-        service_time_id: serviceTimeId,
+        worship_day: worshipDay ?? 0,
         name: `${preset.name} (copy)`
       })
       .select("*")
@@ -216,11 +204,11 @@ export default function ServicePresetsPage() {
     }
 
     setExpandedPresetId(data.id);
-    await loadPresets(churchId, serviceTimeId);
+    await loadPresets(churchId, worshipDay);
   };
 
   const handleDelete = async (preset: PresetWithItems) => {
-    if (!supabase || !churchId || !serviceTimeId) return;
+    if (!supabase || !churchId) return;
     setError(null);
     const { error: itemError } = await supabase
       .from("service_preset_items")
@@ -241,11 +229,11 @@ export default function ServicePresetsPage() {
     if (expandedPresetId === preset.id) {
       setExpandedPresetId(null);
     }
-    await loadPresets(churchId, serviceTimeId);
+    await loadPresets(churchId, worshipDay);
   };
 
   const handleSavePreset = async (presetId: string, name: string, items: PresetItemDraft[]) => {
-    if (!supabase || !churchId || !serviceTimeId) return;
+    if (!supabase || !churchId) return;
     const trimmedName = name.trim();
     if (!trimmedName) {
       setError("Preset name is required.");
@@ -293,17 +281,17 @@ export default function ServicePresetsPage() {
     }
 
     setSavingPresetId(null);
-    await loadPresets(churchId, serviceTimeId);
+    await loadPresets(churchId, worshipDay);
   };
 
   const handleTemplateSelect = async (template: PresetTemplate) => {
-    if (!supabase || !churchId || !serviceTimeId) return;
+    if (!supabase || !churchId) return;
     setError(null);
     const { data, error: insertError } = await supabase
       .from("service_presets")
       .insert({
         church_id: churchId,
-        service_time_id: serviceTimeId,
+        worship_day: worshipDay ?? 0,
         name: template.name
       })
       .select("*")
@@ -335,7 +323,7 @@ export default function ServicePresetsPage() {
     }
 
     setExpandedPresetId(data.id);
-    await loadPresets(churchId, serviceTimeId);
+    await loadPresets(churchId, worshipDay);
   };
 
   const handleTogglePreset = (presetId: string) => {
@@ -384,12 +372,11 @@ export default function ServicePresetsPage() {
       </PageGridFull>
       <PageGridFull className="animate-fade-in-up [animation-delay:100ms] opacity-0">
         <PresetList
-          serviceTimes={serviceTimes}
-          selectedServiceTimeId={serviceTimeId}
+          worshipDay={worshipDay}
           presets={presets}
           expandedPresetId={expandedPresetId}
           newPresetName={newPresetName}
-          onServiceTimeChange={setServiceTimeId}
+          onWorshipDayChange={setWorshipDay}
           onNewPresetNameChange={setNewPresetName}
           onCreatePreset={handleCreatePreset}
           onTemplateSelect={handleTemplateSelect}

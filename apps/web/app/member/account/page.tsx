@@ -7,12 +7,13 @@ import { supabase } from "../../../lib/supabaseClient";
 import { useToast } from "../../../lib/toast";
 import ProfileCard from "../../../components/account/ProfileCard";
 import SecurityCard from "../../../components/account/SecurityCard";
+import ServeCard from "../../../components/account/ServeCard";
 import type { Database } from "@gather/lib";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
 export default function MemberAccountPage() {
-  const { userId } = useMemberPortal();
+  const { userId, churchId } = useMemberPortal();
   const router = useRouter();
   const { toast, pushToast } = useToast();
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -105,6 +106,10 @@ export default function MemberAccountPage() {
           />
           <SecurityCard onChangePassword={handleChangePassword} onSignOut={handleSignOut} />
         </div>
+      )}
+
+      {profile?.role === "MEMBER" && (
+        <ServeCard churchId={churchId} onRequested={refresh} />
       )}
 
       {toast ? (

@@ -3,12 +3,66 @@
     "name": "Gather",
     "slug": "gather",
     "version": "1.0.0",
-    "platforms": ["ios", "android"],
-    "assetBundlePatterns": ["**/*"],
+    "platforms": [
+      "ios",
+      "android"
+    ],
+    "icon": "./assets/icon.png",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#F59E0B"
+    },
+    "ios": {
+      "icon": "./assets/icon.png",
+      "supportsTablet": true,
+      "bundleIdentifier": "com.bernadelstudios.gather",
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Gather uses your photo library so you can add a profile photo.",
+        "NSCameraUsageDescription": "Gather uses your camera so you can take a profile photo."
+      }
+    },
+    "android": {
+      "package": "com.bernadelstudios.gather",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#F59E0B"
+      },
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.ico"
+    },
     "extra": {
       "EXPO_PUBLIC_SUPABASE_URL": "https://fyvurcztcmkcwnqesfjh.supabase.co",
-      "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_l2EdZBE-Pj5HzvWng4aOzw_i5zNfXJe"
+      "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_l2EdZBE-Pj5HzvWng4aOzw_i5zNfXJe",
+      "eas": {
+        "projectId": "26babdf8-98ef-4c08-abe5-a3f49d484297"
+      }
     },
-    "plugins": ["expo-font"]
+    "plugins": [
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Gather uses your photo library so you can add a profile photo.",
+          "cameraPermission": "Gather uses your camera so you can take a profile photo."
+        }
+      ],
+      [
+        "@sentry/react-native/expo",
+        {
+          "url": "https://sentry.io/",
+          "project": "mobile",
+          "organization": "bernadel-studios"
+        }
+      ]
+    ],
+    "owner": "drww"
   }
 }

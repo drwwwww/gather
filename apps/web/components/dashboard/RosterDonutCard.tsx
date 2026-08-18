@@ -87,8 +87,14 @@ export default function RosterDonutCard({ mix, variant = "default" }: { mix: Ros
   const mid = (R_OUTER + R_INNER) / 2;
 
   if (variant === "stitch") {
-    const filledPct = total > 0 ? Math.round(((total - mix.open) / total) * 100) : 0;
-    const dashOffset = STITCH_C * (1 - filledPct / 100);
+    const assignedPct   = total > 0 ? (total - mix.open) / total : 0;          // has someone (pending + confirmed)
+    const confirmedPct  = total > 0 ? mix.confirmed / total : 0;                // actually confirmed
+    const confirmedPctLabel = total > 0 ? Math.round(confirmedPct * 100) : 0;
+    const assignedDashOffset  = STITCH_C * (1 - assignedPct);
+    const confirmedDashOffset = STITCH_C * (1 - confirmedPct);
+    // keep old name for backward compat with empty-state check
+    const filledPct = confirmedPctLabel;
+    const dashOffset = confirmedDashOffset;
 
     if (total === 0) {
       return (
@@ -119,24 +125,25 @@ export default function RosterDonutCard({ mix, variant = "default" }: { mix: Ros
       <section className="card card-elevated p-6 sm:p-8">
         <h2 className="mb-4 m-0 shrink-0 text-[13px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">Roster Mix</h2>
         <div className="relative mb-8 flex justify-center">
-          <svg className="h-48 w-48 -rotate-90" viewBox="0 0 192 192" role="img" aria-label={`Roster filled ${filledPct} percent`}>
+          <svg className="h-48 w-48 -rotate-90" viewBox="0 0 192 192" role="img" aria-label={`${confirmedPctLabel}% confirmed`}>
+            {/* Track */}
             <circle cx="96" cy="96" r={STITCH_R} fill="transparent" stroke="var(--outline-variant)" strokeWidth="12" />
-            <circle
-              cx="96"
-              cy="96"
-              r={STITCH_R}
-              fill="transparent"
-              stroke="#f59e0b"
-              strokeWidth="12"
-              strokeDasharray={STITCH_C}
-              strokeDashoffset={dashOffset}
-              strokeLinecap="round"
-              className="transition-[stroke-dashoffset] duration-500 ease-out"
-            />
+            {/* Assigned arc (pale amber) — shows slots that have someone, confirmed or not */}
+            {assignedPct > 0 && (
+              <circle cx="96" cy="96" r={STITCH_R} fill="transparent" stroke="#fde68a" strokeWidth="12"
+                strokeDasharray={STITCH_C} strokeDashoffset={assignedDashOffset} strokeLinecap="round"
+                className="transition-[stroke-dashoffset] duration-500 ease-out" />
+            )}
+            {/* Confirmed arc (solid green) — draws on top */}
+            {confirmedPct > 0 && (
+              <circle cx="96" cy="96" r={STITCH_R} fill="transparent" stroke="#34d399" strokeWidth="12"
+                strokeDasharray={STITCH_C} strokeDashoffset={confirmedDashOffset} strokeLinecap="round"
+                className="transition-[stroke-dashoffset] duration-500 ease-out" />
+            )}
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-3xl font-bold text-[var(--text-primary)]">{filledPct}%</span>
-            <span className="text-[10px] font-bold uppercase text-[var(--text-muted)]">Filled</span>
+            <span className="text-3xl font-bold text-[var(--text-primary)]">{confirmedPctLabel}%</span>
+            <span className="text-[10px] font-bold uppercase text-[var(--text-muted)]">Confirmed</span>
           </div>
         </div>
         <div className="space-y-4">

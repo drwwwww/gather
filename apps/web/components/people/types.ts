@@ -13,3 +13,12 @@ export type PlanSlotRow = {
   service_date: string;
   service_time_id: string;
 };
+
+/** A service_plan_item row augmented with the parent plan's service_date. */
+export type PlanItemRow = {
+  id: string;
+  plan_id: string;
+  title: string;
+  assigned_user_id: string | null;
+  service_date: string;
+};

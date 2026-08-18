@@ -9,7 +9,13 @@ type Profile = {
   email: string | null;
   role: string;
   disabled: boolean;
+  avatar_url: string | null;
+  favorite_verse: string | null;
+  ministry_interests: string[] | null;
+  profile_completed_at: string | null;
 };
+
+const PROFILE_COLUMNS = "id, church_id, full_name, email, role, disabled, avatar_url, favorite_verse, ministry_interests, profile_completed_at";
 
 type AuthState = {
   loading: boolean;
@@ -42,13 +48,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    const loadProfile = async (userId: string) => {
+    // On a user's very first sign-in there's no `profiles` row at all yet — create
+    // a minimal one (church_id: null) immediately, before they see any screen.
+    // This is what lets the profile-builder screens (Add a photo / Make it yours)
+    // have something to write to, ahead of church selection. See
+    // design-handoff/mobile/member-signup-profile-builder-idea.md.
+    const loadOrCreateProfile = async (authUser: User) => {
       const { data } = await client
         .from("profiles")
-        .select("id, church_id, full_name, email, role, disabled")
-        .eq("id", userId)
+        .select(PROFILE_COLUMNS)
+        .eq("id", authUser.id)
         .maybeSingle();
-      return data as Profile | null;
+      if (data) return data as Profile;
+
+      const { data: created, error } = await client
+        .from("profiles")
+        .insert({
+          id: authUser.id,
+          email: authUser.email ?? null,
+          full_name: (authUser.user_metadata?.full_name as string | undefined) ?? null,
+          role: "MEMBER",
+          disabled: false,
+        } as any)
+        .select(PROFILE_COLUMNS)
+        .single();
+      if (error) return null;
+      return created as Profile;
     };
 
     const init = async () => {
@@ -58,7 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(u);
       setSession(sessionData.session ?? null);
       if (u) {
-        const p = await loadProfile(u.id);
+        const p = await loadOrCreateProfile(u);
         setProfile(p);
       } else {
         setProfile(null);
@@ -74,7 +99,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const u = s?.user ?? null;
         setUser(u);
         if (u) {
-          const p = await loadProfile(u.id);
+          const p = await loadOrCreateProfile(u);
           setProfile(p);
         } else {
           setProfile(null);
@@ -96,7 +121,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!uid) return;
     const { data } = await supabase
       .from("profiles")
-      .select("id, church_id, full_name, email, role, disabled")
+      .select(PROFILE_COLUMNS)
       .eq("id", uid)
       .maybeSingle();
     setProfile(data as Profile | null);

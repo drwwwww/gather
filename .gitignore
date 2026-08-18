@@ -6,4 +6,6 @@ dist
 .expo
 .env
 .env.local
+.env.sentry-build-plugin
+.claude/settings.local.json
 .DS_Store

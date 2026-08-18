@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import AdminHeader from "../../../../../components/admin/AdminHeader";
 import PageLoader from "../../../../../components/ui/PageLoader";
@@ -47,7 +47,10 @@ export default function ServicePlanEditorPage() {
   const [presetName, setPresetName] = useState<string | null>(null);
   const [status, setStatus] = useState<PageState>("loading");
   const [saving, setSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const hasLoadedRef = useRef(false);
+  const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const router = useRouter();
 
   const title = useMemo(() => plan?.title || "Service Plan", [plan]);
@@ -126,6 +129,7 @@ export default function ServicePlanEditorPage() {
       }
       await loadPlan(context.profile.church_id);
       setStatus("ready");
+      hasLoadedRef.current = true;
     };
 
     load();
@@ -173,7 +177,7 @@ export default function ServicePlanEditorPage() {
     setItems((prev) => prev.filter((item) => item.id !== id));
   };
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     if (!supabase || !plan || !planId) return;
     setSaving(true);
     setError(null);
@@ -199,7 +203,48 @@ export default function ServicePlanEditorPage() {
     }
 
     setSaving(false);
-  };
+    setLastSaved(new Date());
+  }, [supabase, plan, planId, items, roleSlotDrafts]);
+
+  // Debounced autosave — fires 1.5 s after the last change, but only after the initial load
+  useEffect(() => {
+    if (!hasLoadedRef.current) return;
+    if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
+    autosaveTimerRef.current = setTimeout(() => { void handleSave(); }, 1500);
+    return () => { if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current); };
+  }, [items, roleSlotDrafts, handleSave]);
+
+  // Keep a ref to the latest autosave so the unmount/unload handlers below never
+  // close over a stale `items`/`roleSlotDrafts` snapshot from an earlier render.
+  const handleSaveRef = useRef(handleSave);
+  useEffect(() => { handleSaveRef.current = handleSave; }, [handleSave]);
+
+  // In-app navigation away (e.g. clicking a nav link): a pending debounce timer
+  // gets cancelled by the effect cleanup above with nothing to catch it. Flush
+  // it here instead of losing the edit — the fetch survives an SPA unmount.
+  useEffect(() => {
+    return () => {
+      if (autosaveTimerRef.current) {
+        clearTimeout(autosaveTimerRef.current);
+        autosaveTimerRef.current = null;
+        void handleSaveRef.current();
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- unmount-only; latest save reached via handleSaveRef
+  }, []);
+
+  // Closing the tab / hard navigation: an in-flight or about-to-fire autosave
+  // can't be guaranteed to complete, so warn instead of silently losing it.
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (autosaveTimerRef.current) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, []);
 
   if (status === "loading") {
     return (
@@ -272,6 +317,7 @@ export default function ServicePlanEditorPage() {
           onDeleteItem={handleDeleteItem}
           onSave={handleSave}
           saving={saving}
+          lastSaved={lastSaved}
           error={error}
         />
       </PageGridFull>

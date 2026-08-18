@@ -1,40 +1,35 @@
-import { Pressable, Text, type ViewStyle, type StyleProp } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
+import { Pressable, Text, View, type ViewStyle, type StyleProp } from "react-native";
 import { theme } from "../../theme/theme";
 
 type Props = {
   children: string;
   onPress: () => void;
   disabled?: boolean;
-  /** Stitch assignment cards: smaller pill (`screen-10-serve.html`). */
   compact?: boolean;
   style?: StyleProp<ViewStyle>;
 };
 
-/** Primary CTA — amber gradient (Stitch “amber aura”). */
 export function GradientButton({ children, onPress, disabled, compact, style }: Props) {
-  const padV = compact ? 12 : 18;
+  const padV = compact ? 12 : 16;
   const padH = compact ? theme.spacing.md : theme.spacing.lg;
-  const fontSize = compact ? theme.typography.fontSize.sm : theme.typography.fontSize.lg;
+  const fontSize = compact ? theme.typography.fontSize.sm : theme.typography.fontSize.md;
   return (
     <Pressable
       onPress={onPress}
       disabled={disabled}
       style={({ pressed }) => [
         {
-          borderRadius: 9999,
+          borderRadius: 12,
           overflow: "hidden",
-          opacity: disabled ? 0.5 : pressed ? 0.92 : 1,
-          transform: [{ scale: pressed && !disabled ? 0.98 : 1 }],
+          opacity: disabled ? 0.5 : 1,
+          transform: [{ scale: pressed && !disabled ? 0.97 : 1 }],
         },
         style,
       ]}
     >
-      <LinearGradient
-        colors={[theme.colors.primary, theme.colors.primaryHover]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+      <View
         style={{
+          backgroundColor: disabled ? theme.colors.primaryHover : theme.colors.primary,
           paddingVertical: padV,
           paddingHorizontal: padH,
           alignItems: "center",
@@ -51,7 +46,7 @@ export function GradientButton({ children, onPress, disabled, compact, style }: 
         >
           {children}
         </Text>
-      </LinearGradient>
+      </View>
     </Pressable>
   );
 }

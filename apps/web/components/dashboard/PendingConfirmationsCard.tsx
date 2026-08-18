@@ -25,7 +25,7 @@ export default function PendingConfirmationsCard({ items }: { items: PendingRow[
         <h2 className="m-0 text-[13px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">Pending Confirmations</h2>
         <Link
           href="/volunteers"
-          className="text-sm font-bold text-[#f59e0b] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#f59e0b]/30 rounded-sm"
+          className="text-sm font-bold text-[#f59e0b] transition-colors hover:text-amber-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#f59e0b]/30 rounded-sm"
         >
           View All Requests
         </Link>

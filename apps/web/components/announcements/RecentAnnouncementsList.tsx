@@ -75,12 +75,19 @@ export default function RecentAnnouncementsList({
           return (
             <div
               key={announcement.id}
-              className={`group flex items-start gap-6 rounded-2xl p-6 transition-all duration-200 hover:scale-[1.003] hover:shadow-lg ${
+              className={`group overflow-hidden rounded-2xl transition-all duration-200 hover:shadow-md ${
                 isDraft
                   ? "border-2 border-dashed border-[var(--primary-soft)] bg-[var(--primary-soft)]"
-                  : "bg-[var(--surface-container-lowest)] hover:shadow-[var(--shadow-sm)]"
+                  : "border border-[var(--border)] bg-[var(--surface)]"
               }`}
             >
+              {/* Banner image */}
+              {(announcement as any).image_url && (
+                <div className="h-36 w-full overflow-hidden">
+                  <img src={(announcement as any).image_url} alt="" className="h-full w-full object-cover" />
+                </div>
+              )}
+              <div className="flex items-start gap-6 p-6">
               {/* Content */}
               <div className="min-w-0 flex-1 space-y-2">
                 <div className="flex flex-wrap items-center gap-2">
@@ -142,16 +149,17 @@ export default function RecentAnnouncementsList({
               {/* Status badge */}
               <div className="flex shrink-0 flex-col items-end gap-2 pt-0.5">
                 <span
-                  className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                  className={`rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-inset ${
                     status === "PUBLISHED"
-                      ? "bg-green-50 text-green-700"
+                      ? "bg-green-50 text-green-700 ring-green-200"
                       : status === "SCHEDULED"
-                        ? "bg-amber-50 text-amber-700"
-                        : "bg-[var(--surface-2)] text-[var(--text-muted)]"
+                        ? "bg-amber-50 text-amber-700 ring-amber-200"
+                        : "bg-slate-100 text-slate-500 ring-slate-200"
                   }`}
                 >
                   {status.charAt(0) + status.slice(1).toLowerCase()}
                 </span>
+              </div>
               </div>
             </div>
           );

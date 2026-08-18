@@ -96,6 +96,29 @@ const config = {
         "volunteers-service-time-reveal": {
           "0%": { opacity: "0", transform: "translateY(10px)" },
           "100%": { opacity: "1", transform: "translateY(0)" }
+        },
+        "strip-slide-left": {
+          "0%":   { opacity: "0.5", transform: "translateX(24px)" },
+          "100%": { opacity: "1",   transform: "translateX(0)" }
+        },
+        "strip-slide-right": {
+          "0%":   { opacity: "0.5", transform: "translateX(-24px)" },
+          "100%": { opacity: "1",   transform: "translateX(0)" }
+        },
+        "strip-wheel": {
+          "0%":   { opacity: "0",   transform: "translateY(52px) scale(0.9)" },
+          "40%":  { opacity: "0.8", transform: "translateY(16px) scale(0.97)" },
+          "75%":  { opacity: "1",   transform: "translateY(4px)  scale(1.0)" },
+          "100%": { opacity: "1",   transform: "translateY(0)    scale(1)" }
+        },
+        "onboarding-pop-in": {
+          "0%":   { opacity: "0", transform: "scale(0.55)" },
+          "60%":  { opacity: "1", transform: "scale(1.08)" },
+          "100%": { opacity: "1", transform: "scale(1)" }
+        },
+        "onboarding-ring-expand": {
+          "0%":   { opacity: "0.5", transform: "scale(0.8)" },
+          "100%": { opacity: "0",   transform: "scale(1.6)" }
         }
       },
       animation: {
@@ -104,7 +127,12 @@ const config = {
         "mesh-gradient": "mesh-gradient 15s ease infinite",
         "volunteers-toolbar-reveal": "volunteers-toolbar-reveal 0.55s cubic-bezier(0.22, 1, 0.36, 1) both",
         "volunteers-strip-reveal": "volunteers-strip-reveal 0.45s cubic-bezier(0.22, 1, 0.36, 1) both",
-        "volunteers-service-time-reveal": "volunteers-service-time-reveal 0.45s ease-out 0.1s both"
+        "volunteers-service-time-reveal": "volunteers-service-time-reveal 0.45s ease-out 0.1s both",
+        "strip-slide-left":  "strip-slide-left  0.2s cubic-bezier(0.25,1,0.5,1) both",
+        "strip-slide-right": "strip-slide-right 0.2s cubic-bezier(0.25,1,0.5,1) both",
+        "strip-wheel":       "strip-wheel 0.72s cubic-bezier(0.16,1,0.3,1) both",
+        "onboarding-pop-in": "onboarding-pop-in 0.5s cubic-bezier(0.16,1,0.3,1) both",
+        "onboarding-ring-expand": "onboarding-ring-expand 1.6s ease-out infinite"
       },
     },
   },

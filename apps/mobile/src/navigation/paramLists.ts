@@ -4,7 +4,9 @@ export type AuthStackParamList = {
   SignIn: undefined;
   SignUp: undefined;
   AccountDisabled: undefined;
-  ChurchSelect: { userId?: string; fullName?: string; email?: string };
+  ProfilePhoto: undefined;
+  ProfileVerse: undefined;
+  ChurchSelect: { userId?: string; showOnboardingProgress?: boolean };
 };
 
 export type AppStackParamList = {
@@ -15,6 +17,7 @@ export type AppStackParamList = {
       title: string;
       body: string;
       publish_at?: string | null;
+      image_url?: string | null;
     };
   };
   EventDetail: { eventId: string };
@@ -23,4 +26,6 @@ export type AppStackParamList = {
   Notifications: undefined;
   Members: undefined;
   FeaturePlaceholder: { title: string; subtitle?: string };
+  GuidedTour: undefined;
+  RequestToServe: undefined;
 };

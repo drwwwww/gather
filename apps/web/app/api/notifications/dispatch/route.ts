@@ -38,6 +38,7 @@ type DispatchRow = {
 export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
   const lookaheadHours = body?.lookaheadHours ?? Number(process.env.NOTIFICATION_LOOKAHEAD_HOURS ?? 24);
+  const targetUserId: string | undefined = typeof body?.userId === "string" ? body.userId : undefined;
   const now = new Date();
   const cutoff = new Date(now.getTime() + lookaheadHours * 60 * 60 * 1000);
   const todayStr = now.toISOString().slice(0, 10);
@@ -100,11 +101,33 @@ export async function POST(request: Request) {
     roleNameById = new Map(((roleRows ?? []) as VolunteerRoleRow[]).map((r) => [r.id, r.name]));
   }
 
+  // Don't re-notify someone about the same assignment if we already reminded them
+  // recently — otherwise every click of "Send Reminders" (or a future daily cron)
+  // re-inserts and re-emails a duplicate for every still-pending assignment.
+  const churchIds = [...new Set(planList.map((p) => p.church_id))];
+  const dedupeSince = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+  const alreadyNotified = new Set<string>();
+  if (churchIds.length > 0) {
+    const { data: recent, error: recentError } = await supabase
+      .from("notification_log")
+      .select("user_id, payload")
+      .eq("type", "ASSIGNMENT_REMINDER")
+      .in("church_id", churchIds)
+      .gte("sent_at", dedupeSince);
+    if (recentError) {
+      return NextResponse.json({ error: recentError.message }, { status: 500 });
+    }
+    for (const r of (recent ?? []) as { user_id: string | null; payload: { id?: string } | null }[]) {
+      if (r.user_id && r.payload?.id) alreadyNotified.add(`${r.user_id}::${r.payload.id}`);
+    }
+  }
+
   const rows: DispatchRow[] = [];
 
   for (const item of planItems) {
     const plan = planById.get(item.plan_id);
     if (!plan) continue;
+    if (alreadyNotified.has(`${item.assigned_user_id}::${item.id}`)) continue;
     const title = item.title?.trim() || "Service part";
     rows.push({
       church_id: plan.church_id,
@@ -132,6 +155,7 @@ export async function POST(request: Request) {
   for (const slot of roleSlots) {
     const plan = planById.get(slot.plan_id);
     if (!plan) continue;
+    if (alreadyNotified.has(`${slot.assigned_user_id}::${slot.id}`)) continue;
     const roleName = roleNameById.get(slot.role_id) ?? "Serving role";
     rows.push({
       church_id: plan.church_id,
@@ -156,7 +180,8 @@ export async function POST(request: Request) {
     });
   }
 
-  const userIds = [...new Set(rows.map((r) => r.user_id).filter(Boolean))];
+  const filteredRows = targetUserId ? rows.filter((r) => r.user_id === targetUserId) : rows;
+  const userIds = [...new Set(filteredRows.map((r) => r.user_id).filter(Boolean))];
 
   let profileByUserId = new Map<string, ProfileRow>();
   if (userIds.length > 0) {
@@ -178,7 +203,7 @@ export async function POST(request: Request) {
 
   const sentAt = new Date().toISOString();
 
-  for (const row of rows) {
+  for (const row of filteredRows) {
     await supabase.from("notification_log").insert({
       church_id: row.church_id,
       user_id: row.user_id,

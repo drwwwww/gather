@@ -1,12 +1,13 @@
 "use client";
 
-import type { ReactNode, ReactNode as ReactNodeType } from "react";
+import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Search } from "lucide-react";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faHouse, faPeopleGroup, faClipboardUser, faClipboardList, faHammer, faBullhorn, faCalendar, faBell, faGear } from "@fortawesome/free-solid-svg-icons";
+import {
+  Search, LayoutDashboard, Users, CalendarCheck, ClipboardList,
+  Layers, Megaphone, Calendar, Bell, Settings, LogOut,
+} from "lucide-react";
 import { supabase } from "../../lib/supabaseClient";
 
 function avatarFromUserMetadata(meta: unknown): string | null {
@@ -20,30 +21,52 @@ function adminInitials(fullName: string, email: string) {
   const n = fullName.trim();
   if (n) {
     const parts = n.split(/\s+/).filter(Boolean);
-    if (parts.length >= 2) {
-      const a = parts[0][0];
-      const b = parts[parts.length - 1][0];
-      if (a && b) return `${a}${b}`.toUpperCase();
-    }
+    if (parts.length >= 2) return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
     return n.slice(0, 2).toUpperCase();
   }
-  const local = (email.split("@")[0] ?? "?").trim();
-  return local.slice(0, 2).toUpperCase() || "?";
+  return (email.split("@")[0] ?? "?").slice(0, 2).toUpperCase() || "?";
 }
 
-const navItems = [
-  { href: "/admin", label: "Dashboard", icon: () => <FontAwesomeIcon icon={faHouse} className="w-5 h-5" /> },
-  { href: "/people", label: "People", icon: () => <FontAwesomeIcon icon={faPeopleGroup} className="w-5 h-5" /> },
-  { href: "/volunteers", label: "Volunteers", icon: () => <FontAwesomeIcon icon={faClipboardUser} className="w-5 h-5" /> },
-  { href: "/admin/service-plans", label: "Service Plans", icon: () => <FontAwesomeIcon icon={faClipboardList} className="w-5 h-5" /> },
-  { href: "/admin/service-presets", label: "Service Presets", icon: () => <FontAwesomeIcon icon={faHammer} className="w-5 h-5" /> },
-  { href: "/announcements", label: "Announcements", icon: () => <FontAwesomeIcon icon={faBullhorn} className="w-5 h-5" /> },
-  { href: "/events", label: "Events", icon: () => <FontAwesomeIcon icon={faCalendar} className="w-5 h-5" /> }
+const NAV_MAIN = [
+  { href: "/admin",                  label: "Dashboard",       icon: LayoutDashboard },
+  { href: "/people",                 label: "People",          icon: Users           },
+  { href: "/volunteers",             label: "Volunteers",      icon: CalendarCheck   },
+  { href: "/admin/service-plans",    label: "Service Plans",   icon: ClipboardList   },
+  { href: "/admin/service-presets",  label: "Service Presets", icon: Layers          },
+  { href: "/announcements",          label: "Announcements",   icon: Megaphone       },
+  { href: "/events",                 label: "Events",          icon: Calendar        },
 ];
+
+function NavItem({
+  href, label, icon: Icon, isActive, badge,
+}: {
+  href: string; label: string; icon: React.ElementType; isActive: boolean; badge?: number;
+}) {
+  return (
+    <Link
+      href={href}
+      className={`group relative flex h-9 items-center gap-3 rounded-xl px-3 text-sm font-medium no-underline transition-colors duration-150 ${
+        isActive
+          ? "bg-amber-50 text-amber-800"
+          : "text-[var(--text-secondary)] hover:bg-[var(--surface-2)] hover:text-[var(--text-primary)]"
+      }`}
+    >
+      {isActive && (
+        <span className="pointer-events-none absolute bottom-1.5 left-0 top-1.5 w-[3px] rounded-full bg-amber-500" aria-hidden />
+      )}
+      <Icon className={`h-4 w-4 shrink-0 ${isActive ? "text-amber-600" : "text-[var(--text-muted)] group-hover:text-[var(--text-secondary)]"}`} aria-hidden />
+      <span className="min-w-0 flex-1 truncate">{label}</span>
+      {badge != null && badge > 0 && (
+        <span className="flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
+          {badge > 99 ? "99+" : badge}
+        </span>
+      )}
+    </Link>
+  );
+}
 
 export default function AdminShell({ children }: { children: ReactNode }) {
   const [displayName, setDisplayName] = useState("Admin");
-  const [displayRole, setDisplayRole] = useState("Administrator");
   const [churchName, setChurchName] = useState("Gather");
   const [searchTerm, setSearchTerm] = useState("");
   const [notificationCount, setNotificationCount] = useState(0);
@@ -56,10 +79,8 @@ export default function AdminShell({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const query = searchParams.get("q")?.trim();
-    if (query && query !== searchTerm) {
-      setSearchTerm(query);
-    }
-  }, [searchParams, searchTerm]);
+    if (query && query !== searchTerm) setSearchTerm(query);
+  }, [searchParams]);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -78,36 +99,23 @@ export default function AdminShell({ children }: { children: ReactNode }) {
 
       if (!profile) return;
       if (profile.role !== "ADMIN") {
-        if (pathname === "/account" || pathname?.startsWith("/account/")) {
-          router.replace("/member/account");
-        } else {
-          router.replace("/member");
-        }
+        router.replace(pathname === "/account" ? "/member/account" : "/member");
         return;
       }
-      const name = profile.full_name?.trim() || profile.email?.trim() || "Admin";
-      setDisplayName(name);
+      setDisplayName(profile.full_name?.trim() || profile.email?.trim() || "Admin");
       setUserEmail(profile.email?.trim() ?? "");
-      setDisplayRole(profile.role === "ADMIN" ? "Administrator" : profile.role.toLowerCase());
 
       if (profile.church_id) {
-        const { data: church } = await supabase
-          .from("churches")
-          .select("name")
-          .eq("id", profile.church_id)
-          .maybeSingle();
-        if (church?.name) {
-          setChurchName(church.name);
-        }
+        const { data: church } = await supabase.from("churches").select("name").eq("id", profile.church_id).maybeSingle();
+        if (church?.name) setChurchName(church.name);
         setNotificationScope({ userId, churchId: profile.church_id });
       }
     };
-
     loadProfile();
   }, []);
 
   useEffect(() => {
-    const refreshNotificationCount = async () => {
+    const refresh = async () => {
       if (!supabase || !notificationScope) return;
       const { count } = await supabase
         .from("notification_log")
@@ -117,262 +125,152 @@ export default function AdminShell({ children }: { children: ReactNode }) {
         .or(`user_id.eq.${notificationScope.userId},user_id.is.null`);
       setNotificationCount(count ?? 0);
     };
-
-    refreshNotificationCount();
-
+    refresh();
     if (typeof window !== "undefined") {
-      const handler = () => refreshNotificationCount();
-      window.addEventListener("gather-notifications-updated", handler);
-      return () => window.removeEventListener("gather-notifications-updated", handler);
+      window.addEventListener("gather-notifications-updated", refresh);
+      return () => window.removeEventListener("gather-notifications-updated", refresh);
     }
   }, [notificationScope]);
 
   const initials = adminInitials(displayName, userEmail);
 
+  const isActive = (href: string) =>
+    href === "/admin" ? pathname === href : pathname?.startsWith(href) ?? false;
+
   return (
-    <div className="min-h-screen bg-[var(--app-canvas)] text-[#1b1c1a]">
+    <div className="min-h-screen bg-[var(--app-canvas)]">
       <div className="flex">
-        {/* Sidebar — pre-Stitch: bg surface, rounded rows, primary left rail */}
+        {/* ── Sidebar ──────────────────────────────────────────── */}
         <aside
-          className="fixed left-0 top-0 z-40 flex min-w-0 flex-col overflow-hidden border-r border-[var(--border)] bg-[var(--bg)]"
-          style={{
-            width: "var(--sidebar-w)",
-            height: "100vh",
-            boxSizing: "border-box",
-            paddingTop: "var(--sidebar-pad-y)",
-            paddingRight: "var(--sidebar-row-pad-x)",
-            paddingBottom: "var(--sidebar-pad-y)",
-            paddingLeft: "var(--sidebar-row-pad-x)",
-            gap: "12px",
-          }}
+          className="fixed left-0 top-0 z-[55] flex flex-col border-r border-[var(--border)] bg-[var(--bg)]"
+          style={{ width: "var(--sidebar-w)", height: "100vh" }}
         >
-          <div className="flex shrink-0 flex-col">
-            <span className="text-sm font-semibold tracking-tight text-[var(--text-primary)]">Gather</span>
-            <span className="text-xs text-[var(--text-muted)]">Admin</span>
+          {/* Brand */}
+          <div className="flex items-center gap-2.5 px-4 py-3 border-b border-[var(--border)]">
+            <img
+              src="/logo.png"
+              alt="Gather"
+              className="h-8 w-8 shrink-0 rounded-xl object-cover select-none"
+            />
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-[var(--text-primary)]">Gather</p>
+              {churchName && (
+                <p className="truncate text-[10px] text-[var(--text-muted)]">{churchName}</p>
+              )}
+            </div>
           </div>
 
-          <div className="h-px shrink-0 bg-[var(--divider)]" />
-
-          <nav aria-label="Main navigation" className="min-h-0 min-w-0 flex-1 overflow-y-auto">
-            <ul
-              className="m-0 flex list-none flex-col p-0"
-              style={{
-                gap: "var(--sidebar-gap)",
-                listStyle: "none",
-              }}
-            >
-              {navItems.map(({ href, icon: Icon, label }) => {
-                const isActive =
-                  href === "/admin" ? pathname === href : pathname?.startsWith(href);
-                return (
-                  <li key={href} className="list-none" style={{ margin: 0, padding: 0 }}>
-                    <Link
-                      href={href}
-                      className={`relative grid w-full grid-cols-[18px_1fr] items-center rounded-[14px] no-underline transition-colors duration-200 ease-out hover:no-underline hover:bg-[var(--surface-2)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-0 ${isActive ? "rounded-l-none bg-[var(--primary-soft)]" : "bg-transparent"}`}
-                      style={{
-                        height: "var(--sidebar-row-h)",
-                        padding: "0 10px",
-                        margin: 0,
-                        columnGap: "0.75rem",
-                        color: isActive ? "var(--primary-hover)" : "var(--text-secondary)",
-                        textDecoration: "none",
-                        boxSizing: "border-box",
-                      }}
-                    >
-                      {isActive && (
-                        <span
-                          className="pointer-events-none absolute bottom-px left-0 top-px w-1 rounded-full"
-                          style={{ background: "var(--primary)" }}
-                          aria-hidden
-                        />
-                      )}
-                      <span
-                        className="flex shrink-0 items-center justify-center overflow-hidden [&_svg]:size-full"
-                        style={{
-                          width: "18px",
-                          height: "18px",
-                          minWidth: "18px",
-                          minHeight: "18px",
-                          color: "inherit",
-                        }}
-                        aria-hidden
-                      >
-                        <Icon />
-                      </span>
-                      <span className="min-w-0 truncate text-sm font-medium leading-none">{label}</span>
-                    </Link>
-                  </li>
-                );
-              })}
+          {/* Main nav */}
+          <nav aria-label="Main navigation" className="flex-1 overflow-y-auto px-2 py-3">
+            <ul className="space-y-0.5 list-none p-0 m-0">
+              {NAV_MAIN.map(({ href, label, icon }) => (
+                <li key={href} className="list-none">
+                  <NavItem href={href} label={label} icon={icon} isActive={isActive(href)} />
+                </li>
+              ))}
             </ul>
           </nav>
 
-          <div className="flex shrink-0 flex-col" style={{ paddingBottom: 0 }}>
-            <div className="h-px shrink-0 bg-[var(--divider)]" />
-            <nav aria-label="Account navigation" className="min-w-0 shrink-0">
-              <ul
-                className="m-0 flex list-none flex-col p-0"
-                style={{
-                  gap: "var(--sidebar-gap)",
-                  listStyle: "none",
-                }}
+          {/* Bottom nav: notifications + settings */}
+          <div className="border-t border-[var(--border)] px-2 py-2">
+            <ul className="space-y-0.5 list-none p-0 m-0">
+              <li className="list-none">
+                <NavItem href="/notifications" label="Notifications" icon={Bell} isActive={isActive("/notifications")} badge={notificationCount} />
+              </li>
+              <li className="list-none">
+                <NavItem href="/account" label="Settings" icon={Settings} isActive={isActive("/account")} />
+              </li>
+            </ul>
+          </div>
+
+          {/* User profile */}
+          <div className="border-t border-[var(--border)] px-3 py-3">
+            <div className="flex items-center gap-2.5">
+              {avatarUrl ? (
+                <img src={avatarUrl} alt={displayName} className="h-8 w-8 shrink-0 rounded-full object-cover ring-2 ring-[var(--border)]" />
+              ) : (
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-100 text-[10px] font-bold text-amber-700">
+                  {initials}
+                </span>
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-xs font-semibold text-[var(--text-primary)]">{displayName}</p>
+                <p className="truncate text-[10px] text-[var(--text-muted)]">Administrator</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => router.push("/logout")}
+                title="Sign out"
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-2)] hover:text-red-500"
               >
-                {[
-                  {
-                    href: "/notifications",
-                    label: "Notifications",
-                    icon: () => <FontAwesomeIcon icon={faBell} className="w-5 h-5" />,
-                    isActive: pathname === "/notifications",
-                    endAdornment:
-                      notificationCount > 0 ? (
-                        <span className="inline-flex h-5 min-w-[18px] shrink-0 items-center justify-center rounded-full bg-red-500 px-2 text-[10px] font-semibold text-white">
-                          {notificationCount > 99 ? "99+" : notificationCount}
-                        </span>
-                      ) : null,
-                  },
-                  {
-                    href: "/account",
-                    label: "Account",
-                    icon: () => <FontAwesomeIcon icon={faGear} className="w-5 h-5" />,
-                    isActive: pathname === "/account",
-                    endAdornment: null as ReactNodeType | null,
-                  },
-                ].map(({ href, label, icon: Icon, isActive, endAdornment }) => (
-                  <li key={href} className="list-none" style={{ margin: 0, padding: 0 }}>
-                    <Link
-                      href={href}
-                      className={`relative grid w-full grid-cols-[18px_1fr] items-center rounded-[14px] no-underline transition-colors duration-200 ease-out hover:no-underline hover:bg-[var(--surface-2)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-0 ${isActive ? "rounded-l-none bg-[var(--primary-soft)]" : "bg-transparent"}`}
-                      style={{
-                        height: "var(--sidebar-row-h)",
-                        padding: "0 10px",
-                        margin: 0,
-                        columnGap: "0.75rem",
-                        color: isActive ? "var(--primary-hover)" : "var(--text-secondary)",
-                        textDecoration: "none",
-                        boxSizing: "border-box",
-                      }}
-                    >
-                      {isActive && (
-                        <span
-                          className="pointer-events-none absolute bottom-px left-0 top-px w-1 rounded-full"
-                          style={{ background: "var(--primary)" }}
-                          aria-hidden
-                        />
-                      )}
-                      <span
-                        className="flex shrink-0 items-center justify-center overflow-hidden [&_svg]:size-full"
-                        style={{
-                          width: "18px",
-                          height: "18px",
-                          minWidth: "18px",
-                          minHeight: "18px",
-                          color: "inherit",
-                        }}
-                        aria-hidden
-                      >
-                        <Icon />
-                      </span>
-                      <div className="flex min-w-0 items-center gap-2">
-                        <span className="min-w-0 truncate text-sm font-medium leading-none">{label}</span>
-                        {endAdornment}
-                      </div>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </nav>
+                <LogOut className="h-3.5 w-3.5" />
+              </button>
+            </div>
           </div>
         </aside>
-        {/* Main content */}
+
+        {/* ── Main content ─────────────────────────────────────── */}
         <main
           className="flex min-h-screen min-w-0 flex-1 flex-col bg-[var(--app-canvas)] font-['Rubik',sans-serif]"
           style={{ marginLeft: "var(--sidebar-w)" }}
         >
-          <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center justify-between gap-6 border-b border-stone-200 bg-[#fdfcf8] px-6 sm:px-10 lg:px-12">
+          {/* Header */}
+          <header className="sticky top-0 z-[60] flex h-14 shrink-0 items-center justify-between gap-4 border-b border-[var(--border)] bg-[var(--bg)] px-6 sm:px-8">
+            {/* Search */}
             <form
               className="min-w-0 flex-1"
-              onSubmit={(event) => {
-                event.preventDefault();
+              onSubmit={(e) => {
+                e.preventDefault();
                 const trimmed = searchTerm.trim();
-                if (!trimmed) return;
-                router.push(`/admin/search?q=${encodeURIComponent(trimmed)}`);
+                if (trimmed) router.push(`/admin/search?q=${encodeURIComponent(trimmed)}`);
               }}
               role="search"
-              aria-label="Admin search"
             >
-              <div className="w-full max-w-md">
-                <label className="sr-only" htmlFor="admin-search">
-                  Search
-                </label>
-                <div className="relative flex h-11 max-w-sm items-center rounded-full bg-[var(--surface-container-low)] px-4 py-2 lg:max-w-md">
-                  <Search className="pointer-events-none mr-2 h-5 w-5 shrink-0 text-stone-400" aria-hidden="true" />
-                  <input
-                    id="admin-search"
-                    type="search"
-                    className="h-full min-w-0 flex-1 border-0 bg-transparent p-0 text-sm text-[#1b1c1a] outline-none ring-0 placeholder:text-stone-400 focus:ring-0"
-                    placeholder="Search members, events, or plans..."
-                    value={searchTerm}
-                    onChange={(event) => setSearchTerm(event.target.value)}
-                    aria-label="Search members, events, or plans"
-                  />
-                </div>
+              <div className="relative flex h-9 max-w-sm items-center overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 focus-within:border-amber-300 focus-within:ring-2 focus-within:ring-amber-100 transition-all">
+                <Search className="mr-2 h-4 w-4 shrink-0 text-[var(--text-muted)]" aria-hidden />
+                <input
+                  type="search"
+                  className="h-full min-w-0 flex-1 border-0 bg-transparent p-0 text-sm text-[var(--text-primary)] outline-none ring-0 placeholder:text-[var(--text-muted)] focus:ring-0"
+                  placeholder="Search members, events, or plans…"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  aria-label="Search"
+                />
               </div>
             </form>
-            <div className="flex shrink-0 items-center gap-4 sm:gap-6">
+
+            {/* Right: notification bell + avatar */}
+            <div className="flex shrink-0 items-center gap-2">
               <Link
                 href="/notifications"
-                className="relative flex h-10 w-10 items-center justify-center rounded-full text-stone-500 transition-colors duration-150 hover:text-[#d97706] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#f59e0b]/30 active:opacity-80"
-                aria-label="Notifications"
+                className="relative flex h-9 w-9 items-center justify-center rounded-xl text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-2)] hover:text-[var(--text-primary)]"
+                aria-label={`Notifications${notificationCount > 0 ? ` — ${notificationCount} unread` : ""}`}
               >
-                <FontAwesomeIcon icon={faBell} className="h-5 w-5" />
+                <Bell className="h-4.5 w-4.5" />
                 {notificationCount > 0 && (
-                  <span className="absolute right-1 top-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold text-white">
-                    {notificationCount > 99 ? "99+" : notificationCount}
+                  <span className="absolute right-1.5 top-1.5 flex h-[7px] w-[7px] items-center justify-center rounded-full bg-red-500" />
+                )}
+              </Link>
+              <Link href="/account" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl overflow-hidden transition-colors hover:ring-2 hover:ring-amber-300">
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt={displayName} className="h-9 w-9 rounded-xl object-cover" />
+                ) : (
+                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-100 text-[11px] font-bold text-amber-700">
+                    {initials}
                   </span>
                 )}
               </Link>
-              <div className="flex min-w-0 items-center gap-3 border-l border-stone-200 pl-4 sm:pl-6">
-                <div className="hidden min-w-0 text-right sm:block">
-                  <p className="max-w-[200px] truncate text-sm font-bold text-[#1b1c1a]">{displayName}</p>
-                  <p className="truncate text-xs text-stone-500">{displayRole}</p>
-                </div>
-                {avatarUrl ? (
-                  <img
-                    src={avatarUrl}
-                    alt={displayName}
-                    className="h-10 w-10 shrink-0 rounded-full object-cover ring-2 ring-[var(--border)]"
-                  />
-                ) : (
-                  <div
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--surface-container-low)] text-xs font-bold text-[var(--nav-active-foreground)] ring-2 ring-[var(--border)]"
-                    aria-hidden
-                  >
-                    {initials}
-                  </div>
-                )}
-                <button
-                  type="button"
-                  className="hidden shrink-0 text-sm font-semibold text-stone-500 underline-offset-4 hover:text-[#d97706] hover:underline sm:inline"
-                  onClick={() => router.push("/logout")}
-                >
-                  Log out
-                </button>
-              </div>
             </div>
           </header>
+
           <div className="flex min-h-0 flex-1 flex-col">{children}</div>
-          <footer className="mt-auto flex flex-col gap-4 border-t border-stone-100 px-6 py-10 text-sm text-stone-400 sm:flex-row sm:items-center sm:justify-between sm:px-10 lg:px-12">
-            <p className="m-0">
-              © {new Date().getFullYear()} {churchName}. All rights reserved.
-            </p>
-            <div className="flex flex-wrap gap-6">
-              <Link href="/join" className="transition-colors hover:text-[#f59e0b]">
-                Support
-              </Link>
-              <Link href="/account" className="transition-colors hover:text-[#f59e0b]">
-                Privacy
-              </Link>
-              <span className="text-stone-300">Documentation</span>
+
+          <footer className="mt-auto flex flex-col gap-4 border-t border-[var(--border)] px-6 py-8 text-xs text-[var(--text-muted)] sm:flex-row sm:items-center sm:justify-between sm:px-8">
+            <p>© {new Date().getFullYear()} {churchName}. Powered by Gather.</p>
+            <div className="flex gap-5">
+              <a href="mailto:support@gatherministry.online" className="transition-colors hover:text-amber-600">Support</a>
+              <Link href="/privacy" className="transition-colors hover:text-amber-600">Privacy</Link>
+              <Link href="/account" className="transition-colors hover:text-amber-600">Settings</Link>
             </div>
           </footer>
         </main>

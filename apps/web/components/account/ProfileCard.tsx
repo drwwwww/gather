@@ -1,60 +1,50 @@
-
 export default function ProfileCard({
-  name,
-  email,
-  roleLabel,
-  onNameChange,
-  onSave,
-  saveDisabled
+  name, email, roleLabel, onNameChange, onSave, saveDisabled,
 }: {
-  name: string;
-  email: string;
-  roleLabel: string;
-  onNameChange: (value: string) => void;
-  onSave: () => void;
-  saveDisabled: boolean;
+  name: string; email: string; roleLabel: string;
+  onNameChange: (v: string) => void; onSave: () => void; saveDisabled: boolean;
 }) {
   return (
-    <div className="card shadow-sm p-4">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="card-title font-bold">My Profile</h2>
-          <p className="text-sm text-[var(--text-muted)]">Update your name and view your role.</p>
-        </div>
-        <button
-          type="button"
-          className="btn btn-sm btn-primary-gradient"
-          onClick={onSave}
-          disabled={saveDisabled}
-        >
-          Save
-        </button>
+    <div className="space-y-5 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6">
+      <div>
+        <h2 className="text-base font-semibold text-[var(--text-primary)]">My Profile</h2>
+        <p className="mt-0.5 text-sm text-[var(--text-muted)]">Update your name and view your role.</p>
       </div>
-      <div className="mt-4 grid gap-3">
-        <div className="grid gap-1">
-          <p className="text-xs uppercase tracking-[0.2em] text-[var(--text-muted)]">Name</p>
+
+      <div className="space-y-4">
+        <div className="space-y-1.5">
+          <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Display name</label>
           <input
             type="text"
             placeholder="Full name"
-            className="input input-bordered w-full"
             value={name}
-            onChange={(event) => onNameChange(event.target.value)}
+            onChange={(e) => onNameChange(e.target.value)}
+            className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-100"
           />
         </div>
-        <div className="grid gap-1">
-          <p className="text-xs uppercase tracking-[0.2em] text-[var(--text-muted)]">Email</p>
+        <div className="space-y-1.5">
+          <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Email address</label>
           <input
             type="email"
-            placeholder="Email"
-            className="input input-bordered w-full bg-[var(--surface-2)]/60 text-[var(--text-muted)]"
             value={email}
             readOnly
+            className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-container-low)] px-4 py-2.5 text-sm text-[var(--text-muted)] cursor-not-allowed"
           />
+          <p className="text-xs text-[var(--text-muted)]">Email cannot be changed here.</p>
         </div>
-      </div>
-      <div className="mt-4 grid gap-2 text-sm text-[var(--text-muted)]">
-        <span className="badge w-fit">Role: {roleLabel}</span>
-        <p>Your role determines what you can manage in this church.</p>
+        <div className="flex items-center justify-between border-t border-[var(--border)] pt-4">
+          <span className="inline-flex items-center rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700 ring-1 ring-amber-200">
+            {roleLabel}
+          </span>
+          <button
+            type="button"
+            onClick={onSave}
+            disabled={saveDisabled}
+            className="btn btn-primary-gradient btn-sm"
+          >
+            Save changes
+          </button>
+        </div>
       </div>
     </div>
   );
