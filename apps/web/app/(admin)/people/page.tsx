@@ -347,7 +347,7 @@ export default function PeoplePage() {
               <div key={label} className="stitch-section-card space-y-2">
                 <span className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)]">{label}</span>
                 <div className="flex items-baseline gap-1.5">
-                  <span className="text-3xl font-bold text-[var(--text-primary)]">{value}</span>
+                  <span className="text-2xl font-bold text-[var(--text-primary)]">{value}</span>
                   <span className="text-xs text-[var(--text-muted)]">{sub}</span>
                 </div>
               </div>

@@ -9,7 +9,7 @@ function cx(...parts: (string | undefined)[]) {
  * Use Full for full-width bands; Row* helpers match common dashboard rows.
  */
 export function PageGrid({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cx("grid w-full grid-cols-12 gap-x-6 gap-y-8", className)}>{children}</div>;
+  return <div className={cx("grid w-full grid-cols-12 gap-x-4 gap-y-5", className)}>{children}</div>;
 }
 
 export function PageGridFull({ children, className }: { children: ReactNode; className?: string }) {
@@ -20,7 +20,7 @@ export function PageGridFull({ children, className }: { children: ReactNode; cla
 export function PageGridRowFour({ children, className }: { children: ReactNode; className?: string }) {
   return (
     <div
-      className={cx("col-span-12 grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4", className)}
+      className={cx("col-span-12 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4", className)}
     >
       {children}
     </div>
@@ -44,13 +44,13 @@ export function PageGridRowTwoOne({
   return (
     <div
       className={cx(
-        "col-span-12 grid grid-cols-1 gap-6 lg:items-start",
+        "col-span-12 grid grid-cols-1 gap-4 lg:items-start",
         isWide ? "lg:grid-cols-12" : "lg:grid-cols-3",
         className
       )}
     >
-      <div className={cx("min-w-0 space-y-6", isWide ? "lg:col-span-9" : "lg:col-span-2")}>{main}</div>
-      <div className={cx("min-w-0 space-y-6", isWide ? "lg:col-span-3" : "lg:col-span-1")}>{side}</div>
+      <div className={cx("min-w-0 space-y-4", isWide ? "lg:col-span-9" : "lg:col-span-2")}>{main}</div>
+      <div className={cx("min-w-0 space-y-4", isWide ? "lg:col-span-3" : "lg:col-span-1")}>{side}</div>
     </div>
   );
 }
@@ -58,7 +58,7 @@ export function PageGridRowTwoOne({
 /** Row 3: three equal medium widgets */
 export function PageGridRowThirds({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <div className={cx("col-span-12 grid grid-cols-1 gap-6 md:grid-cols-3 lg:items-start", className)}>
+    <div className={cx("col-span-12 grid grid-cols-1 gap-4 md:grid-cols-3 lg:items-start", className)}>
       {children}
     </div>
   );

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { ServicePlanStatus } from "@gather/lib";
 import { Button } from "../ui/button";
+import SelectMenu, { type SelectOption } from "../ui/SelectMenu";
 
 export type PlanItemDraft = {
   id: string;
@@ -13,7 +14,11 @@ export type PlanItemDraft = {
   status: ServicePlanStatus;
 };
 
-const statusOptions: ServicePlanStatus[] = ["PLANNED", "DONE", "SKIPPED"];
+const statusOptions: SelectOption[] = [
+  { value: "PLANNED", label: "Planned", tone: "default" },
+  { value: "DONE", label: "Done", tone: "success" },
+  { value: "SKIPPED", label: "Skipped", tone: "warning" },
+];
 
 export default function ServicePlanStepRow({
   item,
@@ -115,22 +120,13 @@ export default function ServicePlanStepRow({
           >
             Status
           </label>
-          <select
-            className="select select-bordered w-full"
-            style={{
-              background: 'var(--surface)',
-              borderColor: 'var(--border)',
-              color: 'var(--text-primary)'
-            }}
+          <SelectMenu
+            className="mt-1"
+            ariaLabel="Step status"
             value={item.status}
-            onChange={(event) => onChange({ status: event.target.value as ServicePlanStatus })}
-          >
-            {statusOptions.map((status) => (
-              <option key={status} value={status}>
-                {status}
-              </option>
-            ))}
-          </select>
+            options={statusOptions}
+            onChange={(v) => onChange({ status: v as ServicePlanStatus })}
+          />
         </div>
         <div className="flex items-end">
           <Button size="sm" variant="secondary" onClick={() => setNotesOpen((prev) => !prev)}>

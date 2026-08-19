@@ -9,3 +9,4 @@ dist
 .env.sentry-build-plugin
 .claude/settings.local.json
 .DS_Store
+.seed-tmp/

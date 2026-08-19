@@ -67,18 +67,11 @@ export default function ServicePlanStepsEditor({
   };
 
   return (
-    <div
-      className="card shadow-sm p-3 rounded-2xl"
-      style={{
-        background: 'var(--surface)',
-        borderColor: 'var(--border)',
-        color: 'var(--text-primary)'
-      }}
-    >
-      <div className="space-y-4">
+    <div className="stitch-section-card">
+      <div className="space-y-3">
         {/* Header — always visible, click to collapse */}
         <div
-          className="flex flex-wrap items-center justify-between gap-3 cursor-pointer select-none"
+          className="flex flex-wrap items-center justify-between gap-2 cursor-pointer select-none"
           onClick={() => setCollapsed((c) => !c)}
         >
           <div className="flex items-center gap-2">

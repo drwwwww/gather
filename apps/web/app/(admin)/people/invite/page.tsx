@@ -143,7 +143,7 @@ export default function PeopleInviteHubPage() {
                 {/* Church code */}
                 <div>
                   <p className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Join code</p>
-                  <p className="mt-1.5 text-3xl font-bold tracking-[0.2em] text-[var(--text-primary)]">
+                  <p className="mt-1 text-2xl font-bold tracking-[0.2em] text-[var(--text-primary)]">
                     {churchSlug.toUpperCase()}
                   </p>
                 </div>

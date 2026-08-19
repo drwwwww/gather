@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabaseClient";
+import { coverForAuthTransition } from "../../lib/authTransition";
 
 export default function LogoutPage() {
   const router = useRouter();
@@ -10,6 +11,7 @@ export default function LogoutPage() {
   useEffect(() => {
     const signOut = async () => {
       await supabase?.auth.signOut();
+      await coverForAuthTransition();
       router.replace("/login");
     };
     signOut();

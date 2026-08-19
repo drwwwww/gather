@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "../../lib/supabaseClient";
 import { destinationAfterSignIn, isJoinNextPath, sanitizeNextPath } from "../../lib/postLoginDestination";
+import { coverForAuthTransition } from "../../lib/authTransition";
 
 type Tab = "signin" | "signup";
 
@@ -39,6 +40,15 @@ export default function AuthPage() {
     const t = searchParams.get("tab");
     if (t === "signup") setTab("signup");
   }, [searchParams]);
+
+  // Raise the Dawn overlay, then navigate behind it once it covers the screen.
+  const enterApp = useCallback(
+    async (dest: string) => {
+      await coverForAuthTransition();
+      router.push(dest);
+    },
+    [router]
+  );
 
   const clearMessages = () => {
     setError(null);
@@ -83,12 +93,12 @@ export default function AuthPage() {
         .maybeSingle();
 
       if (!profile) {
-        router.push("/onboarding/create-church");
+        await enterApp("/onboarding/create-church");
       } else if (!profile.church_id) {
-        router.push("/onboarding/rejoin-church");
+        await enterApp("/onboarding/rejoin-church");
       } else {
         const dest = destinationAfterSignIn({ role: profile.role, nextPath: nextUrl });
-        router.push(dest);
+        await enterApp(dest);
       }
     }
     setLoading(false);
@@ -116,9 +126,9 @@ export default function AuthPage() {
     } else if (data.user) {
       if (isJoinNextPath(rawNext)) {
         const dest = sanitizeNextPath(rawNext) ?? "/join";
-        router.push(dest);
+        await enterApp(dest);
       } else {
-        router.push("/onboarding/create-church");
+        await enterApp("/onboarding/create-church");
       }
     } else {
       setError("Check your email to confirm your account, then sign in.");
@@ -160,6 +170,7 @@ export default function AuthPage() {
   };
 
   const switchTo = (next: Tab) => { setTab(next); clearMessages(); };
+
 
   return (
     <div className="flex h-dvh overflow-hidden font-['Rubik',sans-serif]">

@@ -50,7 +50,7 @@ export default function MemberShell({
           </nav>
         </div>
       </header>
-      <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">{children}</div>
+      <div className="mx-auto max-w-3xl px-4 py-6 sm:px-6">{children}</div>
     </div>
   );
 }

@@ -265,7 +265,7 @@ export default function AdminShell({ children }: { children: ReactNode }) {
 
           <div className="flex min-h-0 flex-1 flex-col">{children}</div>
 
-          <footer className="mt-auto flex flex-col gap-4 border-t border-[var(--border)] px-6 py-8 text-xs text-[var(--text-muted)] sm:flex-row sm:items-center sm:justify-between sm:px-8">
+          <footer className="mt-auto flex flex-col gap-3 border-t border-[var(--border)] px-6 py-5 text-xs text-[var(--text-muted)] sm:flex-row sm:items-center sm:justify-between sm:px-8">
             <p>© {new Date().getFullYear()} {churchName}. Powered by Gather.</p>
             <div className="flex gap-5">
               <a href="mailto:support@gatherministry.online" className="transition-colors hover:text-amber-600">Support</a>

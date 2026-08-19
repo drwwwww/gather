@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import AdminHeader from "../../../components/admin/AdminHeader";
 import { getCurrentContext, listProfilesByChurch } from "../../../lib/supabaseData";
 import { supabase } from "../../../lib/supabaseClient";
+import { coverForAuthTransition } from "../../../lib/authTransition";
 import ProfileCard from "../../../components/account/ProfileCard";
 import SecurityCard from "../../../components/account/SecurityCard";
 import ChurchSettingsCard from "../../../components/account/ChurchSettingsCard";
@@ -172,6 +173,7 @@ export default function AccountPage() {
 
   const handleSignOut = async () => {
     await supabase?.auth.signOut();
+    await coverForAuthTransition();
     router.push("/login");
   };
 
@@ -228,7 +230,7 @@ export default function AccountPage() {
     <PageGrid>
       <PageGridFull className="animate-fade-in-up">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-[var(--text-primary)]">Account</h1>
+          <h1 className="text-xl font-bold tracking-tight text-[var(--text-primary)]">Account</h1>
           <p className="mt-1 text-sm text-[var(--text-muted)]">Manage your profile, church settings, and service schedule.</p>
         </div>
       </PageGridFull>

@@ -352,21 +352,21 @@ export default function AnnouncementsPage() {
           <div className="stitch-section-card space-y-3">
             <span className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Published</span>
             <div className="flex items-baseline gap-2">
-              <span className="text-4xl font-bold text-[var(--text-primary)]">{published.length}</span>
+              <span className="text-2xl font-bold text-[var(--text-primary)]">{published.length}</span>
               <span className="text-sm text-[var(--text-muted)]">total</span>
             </div>
           </div>
           <div className="stitch-section-card space-y-3">
             <span className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Scheduled</span>
             <div className="flex items-baseline gap-2">
-              <span className="text-4xl font-bold text-[var(--text-primary)]">{scheduled.length}</span>
+              <span className="text-2xl font-bold text-[var(--text-primary)]">{scheduled.length}</span>
               <span className="text-sm text-[var(--text-muted)]">this week</span>
             </div>
           </div>
           <div className="stitch-section-card space-y-3">
             <span className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Drafts</span>
             <div className="flex items-baseline gap-2">
-              <span className="text-4xl font-bold text-[var(--text-primary)]">{drafts.length}</span>
+              <span className="text-2xl font-bold text-[var(--text-primary)]">{drafts.length}</span>
               <span className="text-sm text-[var(--text-muted)]">in progress</span>
             </div>
           </div>

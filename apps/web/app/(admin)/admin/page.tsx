@@ -257,7 +257,7 @@ export default function AdminEntryPage() {
   const isAllEmpty = pendingRows.length === 0 && eventPreviews.length === 0 && announcementPreviews.length === 0 && totalRoster === 0;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-5">
 
       {/* ── Greeting ─────────────────────────────────────────────── */}
       <section className="flex items-start justify-between gap-4">
@@ -273,10 +273,10 @@ export default function AdminEntryPage() {
               </span>
             )}
           </div>
-          <h1 className="text-4xl font-bold tracking-tight text-[var(--text-primary)] sm:text-5xl">
+          <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)] sm:text-3xl">
             {greeting(hour)}, <span className="text-amber-500">{greet}</span>.
           </h1>
-          <p className="mt-1.5 text-base text-[var(--text-muted)]">
+          <p className="mt-1 text-sm text-[var(--text-muted)]">
             {hour < 12 ? "Here's what needs your attention today." : hour < 17 ? "Here's where things stand this afternoon." : "Here's a summary of your community."}
           </p>
         </div>
@@ -284,16 +284,16 @@ export default function AdminEntryPage() {
 
       {/* ── Next service hero ─────────────────────────────────────── */}
       <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 border border-amber-200">
-        <div className="flex flex-col gap-6 px-6 py-6 sm:flex-row sm:items-center sm:px-8 sm:py-7">
+        <div className="flex flex-col gap-4 px-5 py-4 sm:flex-row sm:items-center sm:px-6 sm:py-5">
 
           {/* Date block */}
           {heroDisplayDate ? (
             <div className="flex flex-row items-center gap-5 sm:flex-col sm:items-center sm:gap-1 sm:min-w-[80px] sm:text-center">
-              <div className="flex flex-col items-center justify-center rounded-2xl bg-amber-500 px-4 py-3 shadow-md sm:px-5 sm:py-4">
+              <div className="flex flex-col items-center justify-center rounded-2xl bg-amber-500 px-3.5 py-2.5 shadow-md sm:px-4 sm:py-3">
                 <span className="text-[10px] font-black uppercase tracking-widest text-amber-100">
                   {format(heroDisplayDate ?? new Date(), "MMM")}
                 </span>
-                <span className="text-4xl font-black leading-none text-white sm:text-5xl">
+                <span className="text-3xl font-black leading-none text-white sm:text-4xl">
                   {format(heroDisplayDate ?? new Date(), "d")}
                 </span>
                 <span className="text-[10px] font-bold uppercase text-amber-100">
@@ -323,7 +323,7 @@ export default function AdminEntryPage() {
                 <span className="text-xs text-amber-800/60">{heroBlurb}</span>
               )}
             </div>
-            <h2 className="mb-1 text-2xl font-bold tracking-tight text-amber-950 sm:text-3xl">{heroTitle}</h2>
+            <h2 className="mb-1 text-xl font-bold tracking-tight text-amber-950 sm:text-2xl">{heroTitle}</h2>
             <p className="mb-4 text-sm font-medium text-amber-800/70">{serviceWhen}</p>
 
             {/* Readiness bar */}
@@ -418,8 +418,8 @@ export default function AdminEntryPage() {
               <Icon className="h-5 w-5 text-[var(--text-muted)]" />
             </div>
             <div className="mt-4">
-              <p className="text-4xl font-black tabular-nums text-[var(--text-primary)]">{value.toLocaleString()}</p>
-              <span className={`mt-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${positive ? "bg-green-50 text-green-700" : "bg-[var(--surface-2)] text-[var(--text-muted)]"}`}>
+              <p className="text-2xl font-black tabular-nums text-[var(--text-primary)]">{value.toLocaleString()}</p>
+              <span className={`mt-1.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${positive ? "bg-green-50 text-green-700" : "bg-[var(--surface-2)] text-[var(--text-muted)]"}`}>
                 {positive && <TrendingUp className="h-3 w-3" />}
                 {trend}
               </span>

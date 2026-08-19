@@ -2,6 +2,7 @@ import "./globals.css";
 import type { ReactNode } from "react";
 import * as Sentry from "@sentry/nextjs";
 import type { Metadata } from "next";
+import AuthTransition from "../components/auth/AuthTransition";
 
 /** Cookie/session auth + Supabase browser client require request-time rendering; avoids prerender errors. */
 export const dynamic = "force-dynamic";
@@ -34,6 +35,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <main className="min-h-dvh w-full min-h-0">
           {children}
         </main>
+        {/* Lives above the router so it survives the sign-in navigation. */}
+        <AuthTransition />
       </body>
     </html>
   );

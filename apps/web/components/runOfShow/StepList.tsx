@@ -31,26 +31,44 @@ export default function StepList({
     onReorder(updated);
   };
 
+  // Running start time for each step, so the list reads as a timeline
+  // rather than a pile of independent rows.
+  let elapsed = 0;
+  const offsets = items.map((item) => {
+    const at = elapsed;
+    elapsed += item.duration_minutes ?? 0;
+    return at;
+  });
+
   return (
-    <div className="relative pl-6">
-      <div className="absolute left-3 top-2 bottom-2 w-px bg-[var(--divider)]" />
-      <div className="space-y-3">
-        {items.map((item, index) => (
-          <StepRow
-            key={item.id}
-            step={item}
-            index={index}
-            members={members}
-            selected={selectedId === item.id}
-            autoFocus={focusId === item.id}
-            showStatus={showStatus}
-            onSelect={() => onSelect(item.id)}
-            onUpdate={(patch) => onUpdate(item.id, patch)}
-            onRemove={() => onRemove(item.id)}
-            onMove={(direction) => moveItem(item.id, direction)}
-          />
-        ))}
-      </div>
+    <div className="space-y-1">
+      {items.map((item, index) => (
+        <StepRow
+          key={item.id}
+          step={item}
+          index={index}
+          members={members}
+          selected={selectedId === item.id}
+          autoFocus={focusId === item.id}
+          showStatus={showStatus}
+          offsetMinutes={offsets[index]}
+          isFirst={index === 0}
+          isLast={index === items.length - 1}
+          onSelect={() => onSelect(item.id)}
+          onUpdate={(patch) => onUpdate(item.id, patch)}
+          onRemove={() => onRemove(item.id)}
+          onMove={(direction) => moveItem(item.id, direction)}
+        />
+      ))}
+      {items.length > 0 && (
+        <div className="flex items-center justify-end gap-1.5 pt-1 pr-1 text-[11px] text-[var(--text-muted)]">
+          <span>Total runtime</span>
+          <span className="font-semibold tabular-nums text-[var(--text-primary)]">
+            {Math.floor(elapsed / 60) > 0 ? `${Math.floor(elapsed / 60)}h ` : ""}
+            {elapsed % 60}m
+          </span>
+        </div>
+      )}
     </div>
   );
 }
