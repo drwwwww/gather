@@ -7,7 +7,22 @@
     },
     "build": {
       "dependsOn": ["^build"],
-      "outputs": [".next/**", "dist/**"]
+      "outputs": [".next/**", "dist/**"],
+      "env": [
+        "NEXT_PUBLIC_SUPABASE_URL",
+        "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+        "NEXT_PUBLIC_GATHER_IOS_APP_URL",
+        "NEXT_PUBLIC_GATHER_ANDROID_APP_URL",
+        "SUPABASE_URL",
+        "SUPABASE_ANON_KEY",
+        "SUPABASE_SERVICE_ROLE_KEY",
+        "BREVO_API_KEY",
+        "BREVO_FROM_EMAIL",
+        "NOTIFICATION_LOOKAHEAD_HOURS",
+        "STRIPE_SECRET_KEY",
+        "STRIPE_WEBHOOK_SECRET"
+      ],
+      "passThroughEnv": ["SENTRY_AUTH_TOKEN", "VERCEL", "VERCEL_ENV", "CI"]
     },
     "lint": {
       "outputs": []
