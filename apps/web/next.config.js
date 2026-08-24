@@ -2,7 +2,11 @@ import { withSentryConfig } from "@sentry/nextjs";
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true
+  reactStrictMode: true,
+  // Allow a build or a second dev server to target its own output directory.
+  // `next build` and `next dev` both write to `.next`, so running a build
+  // while a dev server is up corrupts the running server's manifests.
+  distDir: process.env.NEXT_DIST_DIR || ".next"
 };
 
 export default withSentryConfig(nextConfig, {

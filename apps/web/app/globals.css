@@ -911,3 +911,288 @@
   }
   .auth-intro { display: none !important; }
 }
+
+/* ════════════════════════════════════════════════════════════════════
+   MARKETING / LANDING
+   Light, respectful type: everything large is weight 300 with tight
+   negative tracking, on a warm off-white ground. Colour comes from the
+   amber brand and a soft espresso text tone rather than pure black.
+   ══════════════════════════════════════════════════════════════════ */
+
+.mk {
+  --mk-ground: #fffdfa;
+  --mk-ink: #1f1408;
+  --mk-ink-soft: #6b5b4a;
+  --mk-ink-faint: #9c8b78;
+  --mk-line: #ece5db;
+  --mk-amber: #f59e0b;
+  --mk-amber-deep: #b45309;
+  background: var(--mk-ground);
+  color: var(--mk-ink);
+}
+
+/* Display type — the "light and respectful" signature */
+.mk-display {
+  font-weight: 300;
+  letter-spacing: -0.03em;
+  line-height: 1.04;
+  font-size: clamp(2.75rem, 6.4vw, 4.5rem);
+  text-wrap: balance;
+}
+
+.mk-h2 {
+  font-weight: 300;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+  font-size: clamp(2rem, 4vw, 3.25rem);
+  text-wrap: balance;
+}
+
+.mk-h3 {
+  font-weight: 300;
+  letter-spacing: -0.015em;
+  line-height: 1.18;
+  font-size: clamp(1.5rem, 2.4vw, 2.25rem);
+  text-wrap: balance;
+}
+
+.mk-lead {
+  font-size: clamp(1.0625rem, 1.35vw, 1.25rem);
+  line-height: 1.6;
+  color: var(--mk-ink-soft);
+  text-wrap: pretty;
+}
+
+.mk-eyebrow {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--mk-amber-deep);
+}
+
+/* Benefit chips: plain text with a hairline rule, no pills */
+.mk-chip {
+  font-size: 0.875rem;
+  color: var(--mk-ink-soft);
+  padding-top: 0.625rem;
+  border-top: 1px solid var(--mk-line);
+}
+
+.mk-rule {
+  border-top: 1px solid var(--mk-line);
+}
+
+/* Scroll reveal — opacity + transform only, both compositor-friendly */
+.mk-reveal {
+  opacity: 0;
+  transform: translateY(22px);
+  transition:
+    opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.mk-reveal.is-in {
+  opacity: 1;
+  transform: none;
+}
+
+/* Full-bleed media panel (Daylight-style): media behind, scrim, content above */
+.mk-media {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+/* Backdrop wrapper sits at the bottom of the section's stacking context;
+   section content just needs `relative z-10` to sit above it. */
+.mk-media__wrap {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.mk-media__layer {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+}
+
+.mk-media__scrim {
+  position: absolute;
+  inset: 0;
+}
+
+/* Slow drift for the poster image when no video is present, so a still
+   frame still feels alive rather than flat. */
+/* Zoom and vertical shift are per-instance so a section can pull its subject
+   up out of the bottom edge. `object-fit: cover` alone only has as much play
+   as the crop overflow, which on a wide hero is barely any. */
+@keyframes mk-kenburns {
+  0% {
+    transform: scale(var(--mk-zoom, 1.06))
+      translate3d(0, var(--mk-shift-y, 0%), 0);
+  }
+  100% {
+    transform: scale(calc(var(--mk-zoom, 1.06) + 0.1))
+      translate3d(0, calc(var(--mk-shift-y, 0%) - 1.5%), 0);
+  }
+}
+
+.mk-kenburns {
+  animation: mk-kenburns 26s ease-in-out infinite alternate;
+}
+
+/* Static equivalent, for when reduced motion disables the drift. */
+@media (prefers-reduced-motion: reduce) {
+  .mk-kenburns {
+    transform: scale(var(--mk-zoom, 1.06))
+      translate3d(0, var(--mk-shift-y, 0%), 0);
+  }
+}
+
+/* Marquee for the logo/trust strip */
+@keyframes mk-marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+.mk-marquee-track {
+  display: flex;
+  width: max-content;
+  animation: mk-marquee 38s linear infinite;
+}
+
+.mk-marquee:hover .mk-marquee-track {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mk-reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+  .mk-kenburns,
+  .mk-marquee-track {
+    animation: none !important;
+  }
+}
+
+/* ── Marketing atmosphere ─────────────────────────────────────────── */
+
+/* Warm sunrise aurora — slow, very low contrast. Sits under content. */
+.mk-aurora {
+  position: absolute;
+  inset: -20% -10% auto -10%;
+  height: 120%;
+  pointer-events: none;
+  filter: blur(60px);
+  opacity: 0.55;
+}
+
+.mk-aurora span {
+  position: absolute;
+  display: block;
+  border-radius: 9999px;
+  mix-blend-mode: multiply;
+}
+
+.mk-aurora span:nth-child(1) {
+  left: 4%;
+  top: 8%;
+  width: 42vw;
+  height: 42vw;
+  background: radial-gradient(circle, rgba(253, 224, 71, 0.5), transparent 68%);
+  animation: mk-drift-a 26s ease-in-out infinite alternate;
+}
+
+.mk-aurora span:nth-child(2) {
+  right: 2%;
+  top: 0%;
+  width: 38vw;
+  height: 38vw;
+  background: radial-gradient(circle, rgba(251, 146, 60, 0.42), transparent 68%);
+  animation: mk-drift-b 32s ease-in-out infinite alternate;
+}
+
+.mk-aurora span:nth-child(3) {
+  left: 38%;
+  bottom: -6%;
+  width: 34vw;
+  height: 34vw;
+  background: radial-gradient(circle, rgba(244, 114, 182, 0.22), transparent 70%);
+  animation: mk-drift-c 38s ease-in-out infinite alternate;
+}
+
+@keyframes mk-drift-a {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to   { transform: translate3d(6%, 5%, 0) scale(1.12); }
+}
+@keyframes mk-drift-b {
+  from { transform: translate3d(0, 0, 0) scale(1.08); }
+  to   { transform: translate3d(-7%, 8%, 0) scale(1); }
+}
+@keyframes mk-drift-c {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to   { transform: translate3d(5%, -6%, 0) scale(1.15); }
+}
+
+/* Light shafts, as through a clerestory window */
+.mk-rays {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  opacity: 0.4;
+}
+
+.mk-rays span {
+  position: absolute;
+  top: -40%;
+  height: 180%;
+  width: 12vw;
+  background: linear-gradient(180deg, rgba(255, 244, 214, 0.55), transparent 72%);
+  transform-origin: top center;
+  filter: blur(14px);
+}
+
+.mk-rays span:nth-child(1) { left: 12%; transform: rotate(14deg); animation: mk-ray 11s ease-in-out infinite alternate; }
+.mk-rays span:nth-child(2) { left: 34%; transform: rotate(9deg);  animation: mk-ray 14s ease-in-out infinite alternate 1.4s; }
+.mk-rays span:nth-child(3) { left: 61%; transform: rotate(17deg); animation: mk-ray 12.5s ease-in-out infinite alternate 0.7s; }
+
+@keyframes mk-ray {
+  from { opacity: 0.25; transform: translateX(0) rotate(13deg); }
+  to   { opacity: 0.6;  transform: translateX(2vw) rotate(16deg); }
+}
+
+/* Soft warm wash for light-image heroes: keeps dark text readable over sky */
+.mk-scrim-dawn {
+  background:
+    linear-gradient(180deg, rgba(255, 253, 250, 0.9) 0%, rgba(255, 253, 250, 0.35) 38%, rgba(255, 251, 244, 0.82) 82%, var(--mk-ground) 100%),
+    linear-gradient(100deg, rgba(255, 253, 250, 0.95) 0%, rgba(255, 253, 250, 0.35) 46%, transparent 72%);
+}
+
+/* Hairline grid used behind light sections */
+.mk-grid-lines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, rgba(124, 45, 8, 0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(124, 45, 8, 0.045) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, #000 20%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, #000 20%, transparent 75%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mk-aurora span,
+  .mk-rays span {
+    animation: none !important;
+  }
+}
