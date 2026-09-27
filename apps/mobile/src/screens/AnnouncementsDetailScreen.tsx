@@ -1,6 +1,7 @@
 import React from "react";
 import { Text, Image, View, ScrollView, StyleSheet } from "react-native";
 import { Screen, AppBar, Txt, Eyebrow, Card, palette, font, type, space } from "../components/ds";
+import { newsFallback } from "../lib/churchImagery";
 
 type AnnouncementParams = {
   id?: string; title?: string; body?: string; message?: string; publish_at?: string | null; date?: string; image_url?: string | null;
@@ -22,10 +23,12 @@ export default function AnnouncementsDetailScreen({ navigation, route }: any) {
     <Screen>
       <AppBar onBack={() => navigation.goBack()} />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 60 }}>
-        {a?.image_url ? (
-          <Image source={{ uri: a.image_url }} style={styles.hero} resizeMode="cover" />
-        ) : null}
-        <View style={{ paddingHorizontal: space.gutter, paddingTop: a?.image_url ? 18 : 20 }}>
+        <Image
+          source={a?.image_url ? { uri: a.image_url } : newsFallback(a?.id ?? a?.title ?? "announcement")}
+          style={styles.hero}
+          resizeMode="cover"
+        />
+        <View style={{ paddingHorizontal: space.gutter, paddingTop: 18 }}>
           {whenLabel ? <Eyebrow>{whenLabel}</Eyebrow> : null}
           <Text style={styles.title}>{title}</Text>
           <Card elevation="md" style={{ padding: 20 }}>

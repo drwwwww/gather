@@ -25,6 +25,7 @@ export type AppStackParamList = {
   ChurchInfo: undefined;
   Notifications: undefined;
   Members: undefined;
+  Search: undefined;
   FeaturePlaceholder: { title: string; subtitle?: string };
   GuidedTour: undefined;
   RequestToServe: undefined;

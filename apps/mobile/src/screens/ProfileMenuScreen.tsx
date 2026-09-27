@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, ScrollView, ActivityIndicator, Pressable, StyleSheet } from "react-native";
+import { View, Text, ScrollView, ActivityIndicator, Pressable, StyleSheet, Linking } from "react-native";
 import Constants from "expo-constants";
 import { Icon } from "../components/ui/Icon";
 import {
@@ -88,6 +88,8 @@ export default function ProfileMenuScreen({ navigation }: any) {
           <MenuRow icon="church" label="Church info" onPress={() => navigation.navigate("ChurchInfo")} />
           <Divider inset={58} />
           <MenuRow icon="notifications" label="Notifications" onPress={() => navigation.navigate("Notifications")} />
+          <Divider inset={58} />
+          <MenuRow icon="info" label="Privacy policy" onPress={() => Linking.openURL("https://gatherministry.online/privacy")} />
         </View>
 
         <Button label="Sign out" variant="ghost" icon="logout" onPress={handleSignOut} style={{ marginTop: 24 }} />

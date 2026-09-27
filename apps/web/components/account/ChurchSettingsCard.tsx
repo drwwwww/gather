@@ -105,8 +105,12 @@ export default function ChurchSettingsCard({
   joinCode,
   timezone,
   timezoneOptions,
+  address,
+  discoverable,
   onChurchNameChange,
   onTimezoneChange,
+  onAddressChange,
+  onDiscoverableChange,
   onSave,
   saveDisabled,
 }: {
@@ -114,8 +118,12 @@ export default function ChurchSettingsCard({
   joinCode: string;
   timezone: string;
   timezoneOptions: TimezoneOption[];
+  address: string;
+  discoverable: boolean;
   onChurchNameChange: (v: string) => void;
   onTimezoneChange: (v: string) => void;
+  onAddressChange: (v: string) => void;
+  onDiscoverableChange: (v: boolean) => void;
   onSave: () => void;
   saveDisabled: boolean;
 }) {
@@ -183,6 +191,42 @@ export default function ChurchSettingsCard({
             Timezone
           </label>
           <TimezoneCombobox value={timezone} options={timezoneOptions} onChange={onTimezoneChange} />
+        </div>
+
+        {/* Address — used to place the church for "nearby churches" event search on mobile */}
+        <div className="space-y-1.5">
+          <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
+            Address
+          </label>
+          <input
+            type="text"
+            placeholder="123 Main St, Springfield, IL"
+            value={address}
+            onChange={(e) => onAddressChange(e.target.value)}
+            className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-100"
+          />
+          <p className="text-xs text-[var(--text-muted)]">
+            Used to place your church on the map so nearby members can find your events.
+          </p>
+        </div>
+
+        {/* Discoverable toggle */}
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3">
+          <div>
+            <p className="text-sm font-medium text-[var(--text-primary)]">Discoverable nearby</p>
+            <p className="text-xs text-[var(--text-muted)]">Let members of other churches find your public events in "Nearby churches" search.</p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={discoverable}
+            onClick={() => onDiscoverableChange(!discoverable)}
+            className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${discoverable ? "bg-amber-500" : "bg-[var(--border)]"}`}
+          >
+            <span
+              className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${discoverable ? "translate-x-5" : "translate-x-0.5"}`}
+            />
+          </button>
         </div>
 
         <div className="flex justify-end border-t border-[var(--border)] pt-4">

@@ -6,6 +6,7 @@ import {
   Screen, PressCard, Eyebrow, EmptyState, Loader, Pill,
   palette, font, radius, shadow, space, type,
 } from "../components/ds";
+import { newsFallback } from "../lib/churchImagery";
 import { supabase } from "../supabase";
 import { useAuth } from "../context/AuthContext";
 
@@ -86,9 +87,13 @@ export default function AnnouncementsScreen({ navigation }: any) {
           <View style={{ gap: 12 }}>
             {featured ? (
               <PressCard onPress={() => openDetail(featured)} style={styles.featured}>
-                {featured.image_url ? (
-                  <Image source={{ uri: featured.image_url }} style={styles.featuredImage} resizeMode="cover" />
-                ) : null}
+                <View style={styles.featuredMedia}>
+                  <Image
+                    source={featured.image_url ? { uri: featured.image_url } : newsFallback(featured.id)}
+                    style={[StyleSheet.absoluteFill as any, styles.fillImg]}
+                    resizeMode="cover"
+                  />
+                </View>
                 <View style={{ padding: 22 }}>
                   <View style={styles.featuredTop}>
                     <Pill label="Latest" tone="amber" />
@@ -107,7 +112,11 @@ export default function AnnouncementsScreen({ navigation }: any) {
             {rest.map((a) => (
               <PressCard key={a.id} onPress={() => openDetail(a)} style={styles.restCard}>
                 <View style={styles.restAccent} />
-                {a.image_url ? <Image source={{ uri: a.image_url }} style={styles.restThumb} /> : null}
+                <Image
+                  source={a.image_url ? { uri: a.image_url } : newsFallback(a.id)}
+                  style={styles.restThumb}
+                  resizeMode="cover"
+                />
                 <View style={{ flex: 1 }}>
                   <View style={styles.restTop}>
                     <Text style={styles.restTitle} numberOfLines={2}>{a.title}</Text>
@@ -125,11 +134,14 @@ export default function AnnouncementsScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
+  // See HomeScreen.tsx's fillImg comment — required alongside
+  // StyleSheet.absoluteFill for react-native-web to scale-crop correctly.
+  fillImg: { width: "100%", height: "100%" },
   header: { paddingHorizontal: space.gutter, paddingTop: 8, paddingBottom: 12 },
   pageTitle: { ...type.h1, color: palette.ink, marginTop: 6 },
 
   featured: { backgroundColor: palette.surface, borderRadius: radius.xl, overflow: "hidden", ...shadow.md },
-  featuredImage: { width: "100%", height: 160, backgroundColor: palette.sunken },
+  featuredMedia: { width: "100%", height: 160, backgroundColor: palette.sunken, overflow: "hidden" },
   featuredTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
   featuredDate: { fontFamily: font.regular, fontSize: 12, color: palette.inkMuted },
   featuredTitle: { fontFamily: font.bold, fontSize: 22, color: palette.ink, lineHeight: 28, letterSpacing: -0.3, marginBottom: 10 },

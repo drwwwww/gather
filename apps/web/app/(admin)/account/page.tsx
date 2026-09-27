@@ -33,6 +33,10 @@ export default function AccountPage() {
   const [churchSlug, setChurchSlug] = useState("");
   const [timezone, setTimezone] = useState("");
   const [initialTimezone, setInitialTimezone] = useState("");
+  const [address, setAddress] = useState("");
+  const [initialAddress, setInitialAddress] = useState("");
+  const [discoverable, setDiscoverable] = useState(true);
+  const [initialDiscoverable, setInitialDiscoverable] = useState(true);
   const [teamCounts, setTeamCounts] = useState<TeamCounts>({ members: 0, service: 0, admins: 0 });
   const [profile, setProfile] = useState<Profile | null>(null);
   const [church, setChurch] = useState<Church | null>(null);
@@ -66,6 +70,12 @@ export default function AccountPage() {
       const resolvedTimezone = context.church.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
       setTimezone(resolvedTimezone);
       setInitialTimezone(resolvedTimezone);
+      const resolvedAddress = (context.church as any).address ?? "";
+      setAddress(resolvedAddress);
+      setInitialAddress(resolvedAddress);
+      const resolvedDiscoverable = (context.church as any).discoverable ?? true;
+      setDiscoverable(resolvedDiscoverable);
+      setInitialDiscoverable(resolvedDiscoverable);
 
       const members: Profile[] = await listProfilesByChurch(context.profile.church_id);
       setTeamCounts({
@@ -117,8 +127,10 @@ export default function AccountPage() {
     if (!church) return true;
     const nameUnchanged = churchName.trim() === (church.name ?? "").trim();
     const timezoneUnchanged = timezone === initialTimezone;
-    return nameUnchanged && timezoneUnchanged;
-  }, [church, churchName, timezone, initialTimezone]);
+    const addressUnchanged = address.trim() === initialAddress.trim();
+    const discoverableUnchanged = discoverable === initialDiscoverable;
+    return nameUnchanged && timezoneUnchanged && addressUnchanged && discoverableUnchanged;
+  }, [church, churchName, timezone, initialTimezone, address, initialAddress, discoverable, initialDiscoverable]);
 
   const handleSaveProfile = async () => {
     if (!supabase || !profile) return;
@@ -140,10 +152,39 @@ export default function AccountPage() {
   const handleSaveChurch = async () => {
     if (!supabase || !profile || !church) return;
     const trimmedName = churchName.trim();
+    const trimmedAddress = address.trim();
     const nextTimezone = timezone.trim() || initialTimezone;
+
+    const update: Record<string, unknown> = {
+      name: trimmedName,
+      timezone: nextTimezone,
+      address: trimmedAddress || null,
+      discoverable,
+    };
+
+    // Re-geocode only when the address actually changed, so an unchanged
+    // address doesn't spend a Nominatim lookup on every unrelated save.
+    if (trimmedAddress && trimmedAddress !== initialAddress.trim()) {
+      try {
+        const res = await fetch("/api/geocode", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ address: trimmedAddress }),
+        });
+        const { latitude, longitude } = await res.json();
+        update.latitude = latitude;
+        update.longitude = longitude;
+      } catch {
+        // Best-effort — save still proceeds without updated coordinates.
+      }
+    } else if (!trimmedAddress) {
+      update.latitude = null;
+      update.longitude = null;
+    }
+
     const { error: updateError } = await supabase
       .from("churches")
-      .update({ name: trimmedName, timezone: nextTimezone })
+      .update(update as any)
       .eq("id", profile.church_id);
 
     if (updateError) {
@@ -273,8 +314,12 @@ export default function AccountPage() {
                 joinCode={churchSlug}
                 timezone={timezone}
                 timezoneOptions={timezoneOptions}
+                address={address}
+                discoverable={discoverable}
                 onChurchNameChange={setChurchName}
                 onTimezoneChange={setTimezone}
+                onAddressChange={setAddress}
+                onDiscoverableChange={setDiscoverable}
                 onSave={handleSaveChurch}
                 saveDisabled={churchSaveDisabled}
               />

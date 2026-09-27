@@ -1,228 +1,554 @@
-import { useCallback, useRef, useState } from "react";
-import { View, Text, Image, ScrollView, Pressable, RefreshControl, StyleSheet, FlatList } from "react-native";
-import { useFocusEffect } from "@react-navigation/native";
-import { Icon } from "../components/ui/Icon";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Screen, EmptyState, Loader, Eyebrow, LinearGradient,
-  palette, font, gradient, radius, shadow, space,
-} from "../components/ds";
+  View,
+  Text,
+  Image,
+  Pressable,
+  ScrollView,
+  TextInput,
+  StyleSheet,
+  RefreshControl,
+  Animated,
+  Share,
+} from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
+import * as Location from "expo-location";
+import { Icon } from "../components/ui/Icon";
+import { Screen, LinearGradient, palette, font, gradient, radius, shadow, space } from "../components/ds";
+import { RiseIn, Shimmer, usePressScale } from "../components/ds/motion";
+import { eventFallback } from "../lib/churchImagery";
+import { distanceMiles, formatDistance } from "../lib/geo";
 import { supabase } from "../supabase";
 import { useAuth } from "../context/AuthContext";
 
-type EventRow = { id: string; title: string; location: string | null; start_at: string; end_at: string | null; image_url: string | null };
+type EventRow = {
+  id: string;
+  title: string;
+  location: string | null;
+  start_at: string;
+  end_at: string | null;
+  image_url: string | null;
+  churchName?: string;
+  distanceMi?: number | null;
+};
 
-const DAY_LETTERS = ["S", "M", "T", "W", "T", "F", "S"];
-const FULL_DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+type FilterKey = "upcoming" | "week" | "month" | "past";
+type Tab = "mine" | "nearby";
 
-function localDateStr(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-function formatTime(iso: string): string {
-  try { return new Date(iso).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }); } catch { return ""; }
-}
-function sameDay(iso: string, dateStr: string): boolean {
-  return iso.startsWith(dateStr);
-}
+const FILTERS: { key: FilterKey; label: string }[] = [
+  { key: "upcoming", label: "All upcoming" },
+  { key: "week", label: "This week" },
+  { key: "month", label: "This month" },
+  { key: "past", label: "Past" },
+];
 
-const ITEM_W = 52;
-const PAST_DAYS = 30;
-const FUTURE_DAYS = 60;
+
+
+function dayLine(iso: string): string {
+  try {
+    const d = new Date(iso);
+    const day = d.toLocaleString(undefined, { weekday: "short", day: "numeric", month: "short" });
+    const time = d.toLocaleString(undefined, { hour: "numeric", minute: "2-digit" });
+    return `${day} • ${time}`;
+  } catch {
+    return iso;
+  }
+}
+function isSoon(iso: string): boolean {
+  const h = (new Date(iso).getTime() - Date.now()) / 3600000;
+  return h >= 0 && h < 72;
+}
 
 export default function EventsScreen({ navigation }: any) {
   const { user, profile } = useAuth();
-  const stripRef = useRef<FlatList>(null);
-
-  const today = new Date();
-  const todayStr = localDateStr(today);
-  const todayIndex = PAST_DAYS;
-
-  const [selectedDate, setSelectedDate] = useState(todayStr);
   const [events, setEvents] = useState<EventRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [filter, setFilter] = useState<FilterKey>("upcoming");
+  const [saved, setSaved] = useState<Record<string, boolean>>({});
+  const [search, setSearch] = useState("");
+  const [tab, setTab] = useState<Tab>("mine");
 
-  const days = Array.from({ length: PAST_DAYS + FUTURE_DAYS + 1 }, (_, i) => {
-    const d = new Date(today);
-    d.setDate(d.getDate() + (i - PAST_DAYS));
-    return d;
-  });
-
-  const selectedD = new Date(selectedDate + "T00:00:00");
-  const eventsForDay = events.filter((e) => sameDay(e.start_at, selectedDate));
+  const [nearbyEvents, setNearbyEvents] = useState<EventRow[]>([]);
+  const [nearbyLoading, setNearbyLoading] = useState(false);
+  const [nearbyLoaded, setNearbyLoaded] = useState(false);
+  const [locationDenied, setLocationDenied] = useState(false);
 
   const load = useCallback(async () => {
     if (!supabase || !user?.id || !profile?.church_id) {
-      setEvents([]); setLoading(false); setRefreshing(false);
+      setEvents([]);
+      setLoading(false);
+      setRefreshing(false);
       return;
     }
-    const windowStart = new Date(today);
-    windowStart.setDate(windowStart.getDate() - PAST_DAYS);
-    const windowEnd = new Date(today);
-    windowEnd.setDate(windowEnd.getDate() + FUTURE_DAYS + 1);
+    const from = new Date();
+    from.setDate(from.getDate() - 120);
+    const to = new Date();
+    to.setDate(to.getDate() + 365);
+
     const { data, error } = await supabase
       .from("events")
       .select("id, title, location, start_at, end_at, image_url")
       .eq("church_id", profile.church_id)
       .eq("is_cancelled", false)
-      .gte("start_at", windowStart.toISOString())
-      .lt("start_at", windowEnd.toISOString())
+      .gte("start_at", from.toISOString())
+      .lt("start_at", to.toISOString())
       .order("start_at", { ascending: true })
       .limit(400);
+
     if (!error) setEvents((data ?? []) as EventRow[]);
-    setLoading(false); setRefreshing(false);
+    setLoading(false);
+    setRefreshing(false);
   }, [user?.id, profile?.church_id]);
 
-  useFocusEffect(useCallback(() => { setLoading(true); void load(); }, [load]));
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true);
+      void load();
+    }, [load])
+  );
 
-  const selectDay = (dateStr: string, index: number) => {
-    setSelectedDate(dateStr);
-    stripRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0.5 });
-  };
-  const goToday = () => {
-    setSelectedDate(todayStr);
-    stripRef.current?.scrollToIndex({ index: todayIndex, animated: true, viewPosition: 0.5 });
+  const loadNearby = useCallback(async () => {
+    if (!supabase || !profile?.church_id) return;
+    setNearbyLoading(true);
+    setLocationDenied(false);
+
+    let origin: { latitude: number; longitude: number } | null = null;
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === "granted") {
+        const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low });
+        origin = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
+      } else {
+        setLocationDenied(true);
+      }
+    } catch {
+      setLocationDenied(true);
+    }
+
+    const { data: churchesData } = await supabase
+      .from("churches")
+      .select("id, name, latitude, longitude")
+      .eq("discoverable", true)
+      .neq("id", profile.church_id);
+
+    const churches = (churchesData ?? []) as { id: string; name: string; latitude: number | null; longitude: number | null }[];
+    if (!churches.length) {
+      setNearbyEvents([]);
+      setNearbyLoading(false);
+      setNearbyLoaded(true);
+      return;
+    }
+
+    const churchDistance = new Map<string, number | null>();
+    for (const c of churches) {
+      churchDistance.set(
+        c.id,
+        origin && c.latitude != null && c.longitude != null
+          ? distanceMiles(origin, { latitude: c.latitude, longitude: c.longitude })
+          : null
+      );
+    }
+    const churchName = new Map(churches.map((c) => [c.id, c.name]));
+
+    const nowIso = new Date().toISOString();
+    const { data: eventsData } = await supabase
+      .from("events")
+      .select("id, title, location, start_at, end_at, image_url, church_id")
+      .in("church_id", churches.map((c) => c.id))
+      .eq("is_cancelled", false)
+      .eq("audience", "ALL")
+      .gte("start_at", nowIso)
+      .order("start_at", { ascending: true })
+      .limit(200);
+
+    const rows = ((eventsData ?? []) as (EventRow & { church_id: string })[]).map((e) => ({
+      ...e,
+      churchName: churchName.get(e.church_id),
+      distanceMi: churchDistance.get(e.church_id) ?? null,
+    }));
+
+    // Nearest church first when we have a location; otherwise soonest first.
+    rows.sort((a, b) => {
+      if (a.distanceMi != null && b.distanceMi != null) return a.distanceMi - b.distanceMi;
+      if (a.distanceMi != null) return -1;
+      if (b.distanceMi != null) return 1;
+      return new Date(a.start_at).getTime() - new Date(b.start_at).getTime();
+    });
+
+    setNearbyEvents(rows);
+    setNearbyLoading(false);
+    setNearbyLoaded(true);
+  }, [profile?.church_id]);
+
+  useEffect(() => {
+    if (tab === "nearby" && !nearbyLoaded) void loadNearby();
+  }, [tab, nearbyLoaded, loadNearby]);
+
+  const visible = useMemo(() => {
+    const source = tab === "mine" ? events : nearbyEvents;
+    const now = Date.now();
+    const upcoming = source.filter((e) => new Date(e.start_at).getTime() >= now);
+    let base: EventRow[];
+    if (filter === "upcoming") base = upcoming;
+    else if (filter === "past") base = source.filter((e) => new Date(e.start_at).getTime() < now).reverse();
+    else {
+      const horizon = new Date();
+      horizon.setDate(horizon.getDate() + (filter === "week" ? 7 : 31));
+      base = upcoming.filter((e) => new Date(e.start_at).getTime() <= horizon.getTime());
+    }
+    const q = search.trim().toLowerCase();
+    if (!q) return base;
+    return base.filter(
+      (e) =>
+        e.title.toLowerCase().includes(q) ||
+        (e.location ?? "").toLowerCase().includes(q) ||
+        (e.churchName ?? "").toLowerCase().includes(q)
+    );
+  }, [events, nearbyEvents, tab, filter, search]);
+
+  const onShare = async (e: EventRow) => {
+    try {
+      await Share.share({
+        message: `${e.title}\n${dayLine(e.start_at)}${e.location ? `\n${e.location}` : ""}`,
+      });
+    } catch {
+      /* user dismissed the sheet — nothing to recover from */
+    }
   };
 
   return (
     <Screen>
+      {/* Search bar (Eventbrite) — filters whichever tab is active */}
       <View style={styles.header}>
-        <View style={styles.headerTop}>
-          <View>
-            <Eyebrow color="muted">Events</Eyebrow>
-            <Text style={styles.dayName}>{FULL_DAYS[selectedD.getDay()]}</Text>
-          </View>
-          {selectedDate !== todayStr ? (
-            <Pressable onPress={goToday} style={styles.todayBtn} hitSlop={6}>
-              <Text style={styles.todayTxt}>Today</Text>
-            </Pressable>
-          ) : null}
+        <View style={styles.searchBar}>
+          <Icon name="search" size={19} color={palette.ink} />
+          <TextInput
+            value={search}
+            onChangeText={setSearch}
+            placeholder="Find something to go to"
+            placeholderTextColor={palette.inkMuted}
+            style={styles.searchInput}
+            autoCapitalize="none"
+            clearButtonMode="while-editing"
+          />
         </View>
-
-        <FlatList
-          ref={stripRef}
-          data={days}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          keyExtractor={(d) => localDateStr(d)}
-          contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 12 }}
-          initialScrollIndex={todayIndex}
-          getItemLayout={(_, index) => ({ length: ITEM_W, offset: ITEM_W * index, index })}
-          renderItem={({ item: d, index }) => {
-            const ds = localDateStr(d);
-            const isSelected = ds === selectedDate;
-            const isToday = ds === todayStr;
-            const hasEvent = events.some((e) => sameDay(e.start_at, ds));
-            return (
-              <Pressable onPress={() => selectDay(ds, index)} style={styles.dayItem}>
-                <Text style={[styles.dayLetter, isSelected && { color: palette.amberDeep }]}>{DAY_LETTERS[d.getDay()]}</Text>
-                {isSelected ? (
-                  <LinearGradient colors={gradient.amber} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.dayCircle, shadow.amber]}>
-                    <Text style={[styles.dayNum, { color: palette.onDark, fontFamily: font.bold }]}>{d.getDate()}</Text>
-                  </LinearGradient>
-                ) : (
-                  <View style={[styles.dayCircle, styles.dayCircleIdle, isToday && styles.dayCircleToday]}>
-                    <Text style={[styles.dayNum, isToday && { color: palette.amberDeep }]}>{d.getDate()}</Text>
-                  </View>
-                )}
-                <View style={styles.dotWrap}>
-                  {hasEvent ? <View style={[styles.dot, isSelected && { backgroundColor: palette.amber }]} /> : null}
-                </View>
-              </Pressable>
-            );
-          }}
-        />
       </View>
+
+      {/* Your church / Nearby churches tabs */}
+      <View style={styles.tabRow}>
+        <Pressable style={[styles.tab, tab === "mine" && styles.tabActive]} onPress={() => setTab("mine")}>
+          <Text style={[styles.tabTxt, tab === "mine" && styles.tabTxtActive]}>Your church</Text>
+        </Pressable>
+        <Pressable style={[styles.tab, tab === "nearby" && styles.tabActive]} onPress={() => setTab("nearby")}>
+          <Text style={[styles.tabTxt, tab === "nearby" && styles.tabTxtActive]}>Nearby churches</Text>
+        </Pressable>
+      </View>
+
+      {tab === "nearby" && locationDenied ? (
+        <View style={styles.noticeRow}>
+          <Icon name="mapPin" size={14} color={palette.inkMuted} />
+          <Text style={styles.noticeTxt}>Enable location to sort by distance — showing soonest first.</Text>
+        </View>
+      ) : null}
+
+      {/* Filter chips */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.chipRow}
+        style={{ flexGrow: 0 }}
+      >
+        {FILTERS.map((f) => {
+          const active = f.key === filter;
+          return (
+            <Pressable
+              key={f.key}
+              onPress={() => setFilter(f.key)}
+              style={[styles.chip, active && styles.chipActive]}
+            >
+              <Text style={[styles.chipTxt, active && styles.chipTxtActive]}>{f.label}</Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
 
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: 130, paddingTop: 12 }}
+        contentContainerStyle={{ paddingBottom: 132, paddingTop: 4 }}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); void load(); }} tintColor={palette.amber} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => {
+              if (tab === "mine") {
+                setRefreshing(true);
+                void load();
+              } else {
+                setNearbyLoaded(false);
+              }
+            }}
+            tintColor={palette.amber}
+          />
+        }
       >
-        {loading ? (
-          <Loader />
-        ) : eventsForDay.length === 0 ? (
-          <EmptyState icon="events" title="Nothing scheduled" body="No events on this day." />
-        ) : (
-          <View style={{ paddingHorizontal: 16 }}>
-            {eventsForDay.map((event, idx) => {
-              const isActive = idx === 0 && selectedDate === todayStr;
-              const isLast = idx === eventsForDay.length - 1;
-              return (
-                <Pressable key={event.id} onPress={() => navigation.navigate("EventDetail", { eventId: event.id })} style={styles.row}>
-                  <View style={styles.timeCol}>
-                    <Text style={[styles.timeStart, isActive && { color: palette.amberDeep, fontFamily: font.bold }]}>{formatTime(event.start_at)}</Text>
-                    {event.end_at ? <Text style={styles.timeEnd}>{formatTime(event.end_at)}</Text> : null}
-                  </View>
-                  <View style={styles.track}>
-                    <View style={[styles.trackDot, isActive && { backgroundColor: palette.amber }]} />
-                    {!isLast ? <View style={styles.trackLine} /> : null}
-                  </View>
-                  {isActive ? (
-                    <LinearGradient colors={gradient.amber} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.eventCard, styles.eventCardActive, styles.eventCardRow]}>
-                      {event.image_url ? <Image source={{ uri: event.image_url }} style={styles.thumb} /> : null}
-                      <View style={{ flex: 1, minWidth: 0 }}>
-                        <Text style={[styles.eventTitle, { color: palette.onDark }]} numberOfLines={1}>{event.title}</Text>
-                        {event.location ? (
-                          <View style={styles.metaRow}>
-                            <Icon name="mapPin" size={13} color={palette.onDarkSoft} />
-                            <Text style={[styles.metaTxt, { color: palette.onDarkSoft }]} numberOfLines={1}>{event.location}</Text>
-                          </View>
-                        ) : null}
-                      </View>
-                    </LinearGradient>
-                  ) : (
-                    <View style={[styles.eventCard, styles.eventCardRow]}>
-                      {event.image_url ? <Image source={{ uri: event.image_url }} style={styles.thumb} /> : null}
-                      <View style={{ flex: 1, minWidth: 0 }}>
-                        <Text style={styles.eventTitle} numberOfLines={1}>{event.title}</Text>
-                        {event.location ? (
-                          <View style={styles.metaRow}>
-                            <Icon name="mapPin" size={13} color={palette.inkMuted} />
-                            <Text style={styles.metaTxt} numberOfLines={1}>{event.location}</Text>
-                          </View>
-                        ) : null}
-                      </View>
-                    </View>
-                  )}
-                </Pressable>
-              );
-            })}
+        {(tab === "mine" ? loading : nearbyLoading) ? (
+          <View style={{ paddingHorizontal: space.gutter, gap: 22 }}>
+            {[0, 1].map((i) => (
+              <View key={i} style={{ gap: 10 }}>
+                <Shimmer style={{ height: 186, borderRadius: radius.lg }} />
+                <Shimmer style={{ height: 16, width: "70%" }} />
+                <Shimmer style={{ height: 13, width: "45%" }} />
+              </View>
+            ))}
           </View>
+        ) : visible.length === 0 ? (
+          <View style={styles.empty}>
+            <View style={styles.emptyGlyph}>
+              <Icon name="events" size={26} color={palette.amberDeep} />
+            </View>
+            <Text style={styles.emptyTitle}>
+              {search.trim()
+                ? "No matches"
+                : tab === "nearby"
+                ? "No nearby events yet"
+                : filter === "past"
+                ? "No past events"
+                : "Nothing on the calendar"}
+            </Text>
+            <Text style={styles.emptyBody}>
+              {search.trim()
+                ? `Nothing matches "${search.trim()}".`
+                : tab === "nearby"
+                ? "No other churches nearby have public events posted right now."
+                : filter === "past"
+                ? "Events your church has already held will appear here."
+                : "When your church schedules something, you'll find it here first."}
+            </Text>
+          </View>
+        ) : (
+          visible.map((e, i) => (
+            <RiseIn key={e.id} index={Math.min(i, 6)}>
+              <EventCard
+                event={e}
+                saved={!!saved[e.id]}
+                onToggleSave={() => setSaved((s) => ({ ...s, [e.id]: !s[e.id] }))}
+                onShare={() => void onShare(e)}
+                onPress={() => navigation.navigate("EventDetail", { eventId: e.id })}
+              />
+            </RiseIn>
+          ))
         )}
       </ScrollView>
     </Screen>
   );
 }
 
+function EventCard({
+  event,
+  saved,
+  onToggleSave,
+  onShare,
+  onPress,
+}: {
+  event: EventRow;
+  saved: boolean;
+  onToggleSave: () => void;
+  onShare: () => void;
+  onPress: () => void;
+}) {
+  const press = usePressScale(0.985);
+  const soon = isSoon(event.start_at);
+
+  return (
+    <View style={styles.cardWrap}>
+      <Animated.View style={press.style}>
+        <Pressable onPress={onPress} onPressIn={press.onPressIn} onPressOut={press.onPressOut}>
+          <View style={styles.media}>
+            <Image
+              source={event.image_url ? { uri: event.image_url } : eventFallback(event.id)}
+              style={[StyleSheet.absoluteFill as any, styles.fillImg]}
+              resizeMode="cover"
+            />
+            <LinearGradient
+              colors={["rgba(24,12,2,0.30)", "rgba(24,12,2,0.05)"]}
+              style={StyleSheet.absoluteFill}
+            />
+            {soon ? (
+              <View style={styles.soonBadge}>
+                <Icon name="clock" size={11} color={palette.ink} />
+                <Text style={styles.soonTxt}>Starting soon</Text>
+              </View>
+            ) : null}
+            {event.churchName ? (
+              <View style={styles.churchBadge}>
+                <Icon name="church" size={11} color={palette.ink} />
+                <Text style={styles.churchBadgeTxt} numberOfLines={1}>
+                  {event.churchName}{event.distanceMi != null ? ` · ${formatDistance(event.distanceMi)}` : ""}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        </Pressable>
+      </Animated.View>
+
+      <View style={styles.metaRow}>
+        <Pressable style={{ flex: 1, minWidth: 0 }} onPress={onPress}>
+          <Text style={styles.title} numberOfLines={2}>
+            {event.title}
+          </Text>
+          <Text style={styles.when} numberOfLines={1}>
+            {dayLine(event.start_at)}
+          </Text>
+          <Text style={styles.where} numberOfLines={1}>
+            {event.location?.trim() || "Location to be confirmed"}
+          </Text>
+          <View style={styles.freeRow}>
+            <Text style={styles.free}>Free</Text>
+            <Text style={styles.freeSub}>· All welcome</Text>
+          </View>
+        </Pressable>
+
+        <View style={styles.iconCol}>
+          <Pressable onPress={onShare} hitSlop={8} style={styles.iconBtn} accessibilityLabel="Share event">
+            <Icon name="link" size={19} color={palette.inkSoft} />
+          </Pressable>
+          <Pressable
+            onPress={onToggleSave}
+            hitSlop={8}
+            style={styles.iconBtn}
+            accessibilityLabel={saved ? "Remove from saved" : "Save event"}
+          >
+            <Icon
+              name={saved ? "checkCircle" : "add"}
+              size={20}
+              color={saved ? palette.amberDeep : palette.inkSoft}
+            />
+          </Pressable>
+        </View>
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
-  header: {},
-  headerTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: space.gutter, paddingTop: 8 },
-  dayName: { ...({ fontFamily: font.bold, fontSize: 22 } as any), color: palette.ink, letterSpacing: -0.3, marginTop: 2 },
-  todayBtn: { backgroundColor: palette.glassStrong, borderRadius: radius.pill, paddingHorizontal: 16, paddingVertical: 9, borderWidth: StyleSheet.hairlineWidth, borderColor: palette.glassBorder },
-  todayTxt: { fontFamily: font.bold, fontSize: 13, color: palette.amberDeep },
+  // See HomeScreen.tsx's fillImg comment — required alongside
+  // StyleSheet.absoluteFill for react-native-web to scale-crop correctly.
+  fillImg: { width: "100%", height: "100%" },
+  header: { paddingHorizontal: space.gutter, paddingTop: 6, paddingBottom: 12 },
+  searchBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: palette.surface,
+    borderRadius: radius.pill,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    ...shadow.sm,
+  },
+  searchInput: { flex: 1, fontFamily: font.semibold, fontSize: 14.5, color: palette.ink, padding: 0 },
 
-  dayItem: { width: 44, alignItems: "center", marginRight: 8 },
-  dayLetter: { fontFamily: font.semibold, fontSize: 11, color: palette.inkMuted, marginBottom: 6, textTransform: "uppercase" },
-  dayCircle: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
-  dayCircleIdle: { backgroundColor: palette.glassStrong, borderWidth: StyleSheet.hairlineWidth, borderColor: palette.glassBorder },
-  dayCircleToday: { borderWidth: 1.5, borderColor: palette.amber },
-  dayNum: { fontFamily: font.semibold, fontSize: 15, color: palette.inkSoft },
-  dotWrap: { height: 10, justifyContent: "center", marginTop: 4 },
-  dot: { width: 5, height: 5, borderRadius: 3, backgroundColor: palette.amber },
+  tabRow: {
+    flexDirection: "row",
+    marginHorizontal: space.gutter,
+    marginBottom: 12,
+    backgroundColor: palette.surface,
+    borderRadius: radius.pill,
+    padding: 3,
+    ...shadow.sm,
+  },
+  tab: { flex: 1, alignItems: "center", paddingVertical: 9, borderRadius: radius.pill },
+  tabActive: { backgroundColor: palette.ink },
+  tabTxt: { fontFamily: font.semibold, fontSize: 13, color: palette.inkSoft },
+  tabTxtActive: { color: palette.onDark },
 
-  row: { flexDirection: "row", alignItems: "flex-start", marginBottom: 4 },
-  timeCol: { width: 66, paddingTop: 12, alignItems: "flex-end", paddingRight: 12 },
-  timeStart: { fontFamily: font.semibold, fontSize: 12, color: palette.inkSoft },
-  timeEnd: { fontFamily: font.regular, fontSize: 11, color: palette.inkMuted, marginTop: 2 },
-  track: { width: 20, alignItems: "center", paddingTop: 16 },
-  trackDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: palette.line, zIndex: 1 },
-  trackLine: { width: 2, flex: 1, minHeight: 44, backgroundColor: palette.line, marginTop: 2 },
-  eventCard: { flex: 1, marginLeft: 10, marginBottom: 12, borderRadius: radius.lg, padding: 16, backgroundColor: palette.surface, ...shadow.sm },
-  eventCardRow: { flexDirection: "row", alignItems: "center", gap: 12 },
-  eventCardActive: { ...shadow.amber },
-  thumb: { width: 48, height: 48, borderRadius: radius.sm, backgroundColor: palette.sunken },
-  eventTitle: { fontFamily: font.bold, fontSize: 15, color: palette.ink },
-  metaRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 5 },
-  metaTxt: { fontFamily: font.regular, fontSize: 12, color: palette.inkMuted, flex: 1 },
+  noticeRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginHorizontal: space.gutter,
+    marginBottom: 10,
+  },
+  noticeTxt: { fontFamily: font.regular, fontSize: 12, color: palette.inkMuted, flex: 1 },
+
+  churchBadge: {
+    position: "absolute",
+    bottom: 12,
+    left: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    maxWidth: "70%",
+    backgroundColor: "rgba(255,255,255,0.92)",
+    borderRadius: radius.chip,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+  },
+  churchBadgeTxt: { fontFamily: font.bold, fontSize: 11, color: palette.ink, flexShrink: 1 },
+
+  chipRow: { paddingHorizontal: space.gutter, gap: 8, paddingBottom: 14 },
+  chip: {
+    paddingHorizontal: 15,
+    paddingVertical: 9,
+    borderRadius: radius.pill,
+    backgroundColor: palette.surface,
+    borderWidth: 1,
+    borderColor: palette.line,
+  },
+  chipActive: { backgroundColor: palette.ink, borderColor: palette.ink },
+  chipTxt: { fontFamily: font.semibold, fontSize: 13, color: palette.inkSoft },
+  chipTxtActive: { color: palette.onDark },
+
+  cardWrap: { paddingHorizontal: space.gutter, marginBottom: 26 },
+  media: {
+    height: 186,
+    borderRadius: radius.lg,
+    overflow: "hidden",
+    backgroundColor: palette.sunken,
+    ...shadow.sm,
+  },
+  soonBadge: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: palette.amberBright,
+    borderRadius: radius.chip,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+  },
+  soonTxt: { fontFamily: font.bold, fontSize: 11, color: palette.ink },
+
+  metaRow: { flexDirection: "row", alignItems: "flex-start", gap: 12, marginTop: 12 },
+  title: { fontFamily: font.bold, fontSize: 17.5, lineHeight: 23, color: palette.ink, letterSpacing: -0.3 },
+  when: { fontFamily: font.semibold, fontSize: 13.5, color: palette.inkSoft, marginTop: 5 },
+  where: { fontFamily: font.regular, fontSize: 13, color: palette.inkMuted, marginTop: 2 },
+  freeRow: { flexDirection: "row", alignItems: "baseline", gap: 5, marginTop: 7 },
+  free: { fontFamily: font.bold, fontSize: 14, color: palette.ink },
+  freeSub: { fontFamily: font.regular, fontSize: 12.5, color: palette.inkMuted },
+
+  iconCol: { gap: 10, paddingTop: 2 },
+  iconBtn: { width: 34, height: 34, alignItems: "center", justifyContent: "center" },
+
+  empty: { alignItems: "center", paddingHorizontal: 40, paddingTop: 60 },
+  emptyGlyph: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: palette.amberSofter,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 18,
+  },
+  emptyTitle: { fontFamily: font.bold, fontSize: 17, color: palette.ink, textAlign: "center" },
+  emptyBody: {
+    fontFamily: font.regular,
+    fontSize: 14,
+    lineHeight: 20,
+    color: palette.inkSoft,
+    textAlign: "center",
+    marginTop: 7,
+  },
 });

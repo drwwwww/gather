@@ -152,7 +152,7 @@ export function AppBar({
   return (
     <View style={styles.appBar}>
       <View style={styles.appBarSide}>
-        {onBack ? <GlassIconButton icon="chevronLeft" onPress={onBack} size={40} iconSize={22} /> : null}
+        {onBack ? <GlassIconButton icon="chevronLeft" onPress={onBack} size={40} iconSize={22} accessibilityLabel="Back" /> : null}
       </View>
       {title ? <Text style={styles.appBarTitle} numberOfLines={1}>{title}</Text> : <View />}
       <View style={[styles.appBarSide, { alignItems: "flex-end" }]}>{right}</View>
@@ -775,7 +775,7 @@ function ToastHost({ toast, onDismiss }: { toast: QueuedToast | null; onDismiss:
           <Text style={styles.toastTitle} numberOfLines={1}>{rendered.title}</Text>
           {rendered.subtitle ? <Text style={styles.toastSubtitle} numberOfLines={1}>{rendered.subtitle}</Text> : null}
         </View>
-        <Pressable onPress={() => hideRef.current()} hitSlop={10}>
+        <Pressable onPress={() => hideRef.current()} hitSlop={10} accessibilityLabel="Dismiss">
           <Icon name="close" size={18} color={palette.inkMuted} />
         </Pressable>
       </Pressable>
@@ -838,7 +838,7 @@ export function CenterCardModal({
           </View>
         ) : null}
 
-        <Pressable onPress={onClose} style={styles.centerCardClose} hitSlop={8}>
+        <Pressable onPress={onClose} style={styles.centerCardClose} hitSlop={8} accessibilityLabel="Close">
           <Icon name="close" size={16} color={palette.onDark} />
         </Pressable>
 

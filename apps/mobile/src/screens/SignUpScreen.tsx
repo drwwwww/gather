@@ -9,6 +9,9 @@ import {
   palette, font, radius,
 } from "../components/ds";
 import { supabase } from "../supabase";
+import { toE164 } from "../lib/phone";
+
+type IdentifierMode = "email" | "phone";
 
 function Field({
   label, placeholder, value, onChangeText, secureTextEntry = false,
@@ -46,8 +49,10 @@ function Field({
 }
 
 export default function SignUpScreen({ navigation }: any) {
+  const [mode, setMode] = useState<IdentifierMode>("email");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -55,18 +60,24 @@ export default function SignUpScreen({ navigation }: any) {
   const [success, setSuccess] = useState(false);
 
   const handleSignUp = async () => {
-    setLoading(true);
     setError(null);
     if (!supabase) {
       setError("Something went wrong. Please try again.");
-      setLoading(false);
       return;
     }
+    const identifier = mode === "email"
+      ? { email: email.trim() }
+      : { phone: toE164(phone) ?? "" };
+    if (mode === "phone" && !identifier.phone) {
+      setError("Enter a valid phone number, like (555) 123-4567.");
+      return;
+    }
+    setLoading(true);
     const { error: signUpError } = await supabase.auth.signUp({
-      email,
+      ...identifier,
       password,
       options: { data: { full_name: fullName } },
-    });
+    } as any);
     if (signUpError) {
       setError(signUpError.message);
       setLoading(false);
@@ -90,13 +101,15 @@ export default function SignUpScreen({ navigation }: any) {
           {success ? (
             <View style={{ alignItems: "center" }}>
               <View style={styles.successBadge}>
-                <Icon name="mail" size={34} color={palette.amber} />
+                <Icon name="checkCircle" size={34} color={palette.amber} />
               </View>
-              <Txt variant="h2" center style={{ marginBottom: 10 }}>Check your inbox</Txt>
+              <Txt variant="h2" center style={{ marginBottom: 10 }}>Account created</Txt>
               <Txt variant="body" color="inkSoft" center style={{ marginBottom: 28 }}>
-                We sent a confirmation link to{"\n"}
-                <Text style={{ fontFamily: font.bold, color: palette.ink }}>{email}</Text>
-                {"\n\n"}Open it to activate your account, then sign in.
+                Your account is ready.{"\n"}Sign in with{" "}
+                <Text style={{ fontFamily: font.bold, color: palette.ink }}>
+                  {mode === "email" ? email.trim() : phone.trim()}
+                </Text>{" "}
+                to get started.
               </Txt>
               <Button label="Go to sign in" onPress={() => navigation.replace("SignIn")} full={false} style={{ paddingHorizontal: 40 }} />
             </View>
@@ -121,13 +134,40 @@ export default function SignUpScreen({ navigation }: any) {
                 autoCapitalize="words"
                 autoComplete="name"
               />
-              <Field
-                label="EMAIL ADDRESS"
-                placeholder="you@example.com"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-              />
+
+              <View style={styles.modeToggle}>
+                <Pressable
+                  style={[styles.modeBtn, mode === "email" && styles.modeBtnActive]}
+                  onPress={() => setMode("email")}
+                >
+                  <Text style={[styles.modeBtnTxt, mode === "email" && styles.modeBtnTxtActive]}>Email</Text>
+                </Pressable>
+                <Pressable
+                  style={[styles.modeBtn, mode === "phone" && styles.modeBtnActive]}
+                  onPress={() => setMode("phone")}
+                >
+                  <Text style={[styles.modeBtnTxt, mode === "phone" && styles.modeBtnTxtActive]}>Phone</Text>
+                </Pressable>
+              </View>
+
+              {mode === "email" ? (
+                <Field
+                  label="EMAIL ADDRESS"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                />
+              ) : (
+                <Field
+                  label="PHONE NUMBER"
+                  placeholder="(555) 123-4567"
+                  value={phone}
+                  onChangeText={setPhone}
+                  keyboardType="phone-pad"
+                  autoComplete="tel"
+                />
+              )}
               <Field
                 label="PASSWORD"
                 placeholder="Choose a password"
@@ -165,6 +205,17 @@ export default function SignUpScreen({ navigation }: any) {
 
 const styles = StyleSheet.create({
   brand: { alignItems: "center", marginBottom: 28 },
+  modeToggle: {
+    flexDirection: "row",
+    backgroundColor: palette.sunken,
+    borderRadius: radius.md,
+    padding: 3,
+    marginBottom: 16,
+  },
+  modeBtn: { flex: 1, alignItems: "center", paddingVertical: 9, borderRadius: radius.sm },
+  modeBtnActive: { backgroundColor: palette.surface },
+  modeBtnTxt: { fontFamily: font.semibold, fontSize: 13, color: palette.inkMuted },
+  modeBtnTxtActive: { color: palette.ink },
   fieldLabel: { fontFamily: font.bold, fontSize: 11, color: palette.inkMuted, letterSpacing: 0.8, marginBottom: 8, paddingLeft: 2 },
   input: {
     fontFamily: font.regular,

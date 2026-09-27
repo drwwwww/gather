@@ -6,6 +6,7 @@ type ProfileRow = {
   id: string;
   email: string | null;
   disabled: boolean;
+  expo_push_token: string | null;
 };
 
 type ServicePlanRow = { id: string; church_id: string; service_date: string };
@@ -33,7 +34,30 @@ type DispatchRow = {
   payload: Record<string, unknown>;
   subject: string;
   html: string;
+  pushBody: string;
 };
+
+async function sendExpoPushNotifications(
+  messages: { to: string; title: string; body: string; data?: Record<string, unknown> }[]
+): Promise<number> {
+  if (messages.length === 0) return 0;
+  let sent = 0;
+  // Expo's push API accepts up to 100 messages per request.
+  for (let i = 0; i < messages.length; i += 100) {
+    const chunk = messages.slice(i, i + 100);
+    try {
+      const res = await fetch("https://exp.host/--/api/v2/push/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify(chunk),
+      });
+      if (res.ok) sent += chunk.length;
+    } catch (err) {
+      console.error("[notifications/dispatch] push send failed", err);
+    }
+  }
+  return sent;
+}
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
@@ -148,7 +172,8 @@ export async function POST(request: Request) {
       <p><strong>Part:</strong> ${escapeHtml(title)}</p>
       <p><strong>Date:</strong> ${plan.service_date}</p>
       <p>Thank you for serving.</p>
-    `
+    `,
+      pushBody: `You're scheduled for "${title}" on ${plan.service_date}.`
     });
   }
 
@@ -176,7 +201,8 @@ export async function POST(request: Request) {
       <p><strong>Role:</strong> ${escapeHtml(roleName)}</p>
       <p><strong>Date:</strong> ${plan.service_date}</p>
       <p>Thank you for serving.</p>
-    `
+    `,
+      pushBody: `You're scheduled as ${roleName} on ${plan.service_date}.`
     });
   }
 
@@ -187,7 +213,7 @@ export async function POST(request: Request) {
   if (userIds.length > 0) {
     const { data: profiles, error: profilesError } = await supabase
       .from("profiles")
-      .select("id, email, disabled")
+      .select("id, email, disabled, expo_push_token")
       .in("id", userIds);
 
     if (profilesError) {
@@ -202,6 +228,7 @@ export async function POST(request: Request) {
   let emailFailures = 0;
 
   const sentAt = new Date().toISOString();
+  const pushMessages: { to: string; title: string; body: string; data?: Record<string, unknown> }[] = [];
 
   for (const row of filteredRows) {
     await supabase.from("notification_log").insert({
@@ -214,10 +241,19 @@ export async function POST(request: Request) {
     dispatched += 1;
 
     const profile = profileByUserId.get(row.user_id);
-    const to = profile?.email?.trim();
-    if (!to || profile?.disabled) {
-      continue;
+    if (profile?.disabled) continue;
+
+    if (profile?.expo_push_token) {
+      pushMessages.push({
+        to: profile.expo_push_token,
+        title: row.subject,
+        body: row.pushBody,
+        data: row.payload
+      });
     }
+
+    const to = profile?.email?.trim();
+    if (!to) continue;
 
     const result = await sendEmail(to, row.subject, row.html);
     if (result.ok) {
@@ -228,7 +264,9 @@ export async function POST(request: Request) {
     }
   }
 
-  return NextResponse.json({ dispatched, emailsSent, emailFailures });
+  const pushSent = await sendExpoPushNotifications(pushMessages);
+
+  return NextResponse.json({ dispatched, emailsSent, emailFailures, pushSent });
 }
 
 function escapeHtml(s: string): string {

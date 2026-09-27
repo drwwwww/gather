@@ -6,6 +6,7 @@ import {
   Screen, AppBar, Txt, Card, Pill, Eyebrow, Loader, StatGrid,
   palette, font, radius, shadow, space, type,
 } from "../components/ds";
+import { eventFallback } from "../lib/churchImagery";
 import { supabase } from "../supabase";
 import { useAuth } from "../context/AuthContext";
 
@@ -13,6 +14,7 @@ type RsvpStatus = "GOING" | "MAYBE" | "NO";
 type EventRow = {
   id: string; title: string; description: string | null; location: string | null;
   start_at: string; end_at: string | null; is_cancelled: boolean; image_url: string | null;
+  church_id: string;
 };
 
 const RSVP_OPTIONS: { key: RsvpStatus; label: string; icon: any }[] = [
@@ -23,8 +25,9 @@ const RSVP_OPTIONS: { key: RsvpStatus; label: string; icon: any }[] = [
 
 export default function EventDetailScreen({ navigation, route }: any) {
   const eventId = route.params?.eventId as string | undefined;
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [event, setEvent] = useState<EventRow | null>(null);
+  const [hostChurchName, setHostChurchName] = useState<string | null>(null);
   const [status, setStatus] = useState<RsvpStatus | null>(null);
   const [rsvpCounts, setRsvpCounts] = useState<{ going: number; maybe: number } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -37,11 +40,25 @@ export default function EventDetailScreen({ navigation, route }: any) {
     setLoading(true); setError(null);
     const { data: ev, error: evErr } = await client
       .from("events")
-      .select("id, title, description, location, start_at, end_at, is_cancelled, image_url")
+      .select("id, title, description, location, start_at, end_at, is_cancelled, image_url, church_id")
       .eq("id", eventId)
       .maybeSingle();
     if (evErr || !ev) { setEvent(null); setLoading(false); return; }
-    setEvent(ev as EventRow);
+    const row = ev as EventRow;
+    setEvent(row);
+
+    const isOwnChurch = row.church_id === profile?.church_id;
+    if (!isOwnChurch) {
+      const { data: churchRow } = await client.from("churches").select("name").eq("id", row.church_id).maybeSingle();
+      setHostChurchName((churchRow as { name: string } | null)?.name ?? null);
+      // RSVPs are scoped to your own church's events (see rsvps_self_insert
+      // RLS policy) — a nearby church's event is view-only.
+      setRsvpCounts(null);
+      setLoading(false);
+      return;
+    }
+    setHostChurchName(null);
+
     const [rsvpRes, goingRes, maybeRes] = await Promise.all([
       client.from("event_rsvps").select("status").eq("event_id", eventId).eq("user_id", user.id).maybeSingle(),
       (client.from("event_rsvps") as any).select("*", { count: "exact", head: true }).eq("event_id", eventId).eq("status", "GOING"),
@@ -50,7 +67,7 @@ export default function EventDetailScreen({ navigation, route }: any) {
     setStatus(((rsvpRes.data as any)?.status as RsvpStatus) ?? null);
     setRsvpCounts({ going: goingRes.count ?? 0, maybe: maybeRes.count ?? 0 });
     setLoading(false);
-  }, [eventId, user?.id]);
+  }, [eventId, user?.id, profile?.church_id]);
 
   useFocusEffect(useCallback(() => { void load(); }, [load]));
 
@@ -103,12 +120,14 @@ export default function EventDetailScreen({ navigation, route }: any) {
     <Screen>
       <AppBar onBack={() => navigation.goBack()} />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 60 }}>
-        {event.image_url ? (
-          <Image source={{ uri: event.image_url }} style={styles.hero} resizeMode="cover" />
-        ) : null}
-        <View style={{ paddingHorizontal: space.gutter, paddingTop: event.image_url ? 18 : 8 }}>
+        <Image
+          source={event.image_url ? { uri: event.image_url } : eventFallback(event.id)}
+          style={styles.hero}
+          resizeMode="cover"
+        />
+        <View style={{ paddingHorizontal: space.gutter, paddingTop: 18 }}>
           {event.is_cancelled ? <View style={{ marginBottom: 12 }}><Pill label="Cancelled" tone="danger" /></View> : null}
-          <Eyebrow>Event</Eyebrow>
+          <Eyebrow>{hostChurchName ? `Event · ${hostChurchName}` : "Event"}</Eyebrow>
           <Text style={styles.title}>{event.title}</Text>
         {event.location?.trim() ? (
           <View style={styles.locRow}>
@@ -129,32 +148,47 @@ export default function EventDetailScreen({ navigation, route }: any) {
           </Card>
         ) : null}
 
-        {/* RSVP */}
-        <View style={{ marginTop: 22, marginBottom: 8 }}><Eyebrow>Your RSVP</Eyebrow></View>
-        {error ? <Text style={styles.errorTxt}>{error}</Text> : null}
-        <Card elevation="sm" padded={false} style={{ overflow: "hidden" }}>
-          {RSVP_OPTIONS.map((opt, i) => {
-            const selected = status === opt.key;
-            const tint = opt.key === "NO" ? palette.danger : palette.amberDeep;
-            return (
-              <Pressable
-                key={opt.key}
-                onPress={() => void handleRsvp(opt.key)}
-                disabled={saving || event.is_cancelled}
-                style={[
-                  styles.rsvpRow,
-                  i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: palette.line },
-                  selected && { backgroundColor: opt.key === "NO" ? palette.dangerSoft : palette.amberSofter },
-                  (saving || event.is_cancelled) && { opacity: 0.55 },
-                ]}
-              >
-                <Icon name={opt.icon} size={20} color={selected ? tint : palette.inkMuted} />
-                <Text style={[styles.rsvpLabel, selected && { color: tint }]}>{opt.label}</Text>
-                {selected ? <Icon name="check" size={18} color={tint} /> : null}
-              </Pressable>
-            );
-          })}
-        </Card>
+        {/* RSVP — only for events at your own church; a nearby church's
+            event is discovery-only, since RSVPs write into that church's
+            own attendance data. */}
+        {hostChurchName ? (
+          <View style={{ marginTop: 22 }}>
+            <Card elevation="sm" style={{ padding: 16, flexDirection: "row", alignItems: "center", gap: 12 }}>
+              <Icon name="church" size={20} color={palette.amberDeep} />
+              <Txt variant="body" color="inkSoft" style={{ flex: 1 }}>
+                Hosted by {hostChurchName}. Visit their site or contact them to attend.
+              </Txt>
+            </Card>
+          </View>
+        ) : (
+          <View style={{ marginTop: 22, marginBottom: 8 }}>
+            <View style={{ marginBottom: 8 }}><Eyebrow>Your RSVP</Eyebrow></View>
+            {error ? <Text style={styles.errorTxt}>{error}</Text> : null}
+            <Card elevation="sm" padded={false} style={{ overflow: "hidden" }}>
+              {RSVP_OPTIONS.map((opt, i) => {
+                const selected = status === opt.key;
+                const tint = opt.key === "NO" ? palette.danger : palette.amberDeep;
+                return (
+                  <Pressable
+                    key={opt.key}
+                    onPress={() => void handleRsvp(opt.key)}
+                    disabled={saving || event.is_cancelled}
+                    style={[
+                      styles.rsvpRow,
+                      i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: palette.line },
+                      selected && { backgroundColor: opt.key === "NO" ? palette.dangerSoft : palette.amberSofter },
+                      (saving || event.is_cancelled) && { opacity: 0.55 },
+                    ]}
+                  >
+                    <Icon name={opt.icon} size={20} color={selected ? tint : palette.inkMuted} />
+                    <Text style={[styles.rsvpLabel, selected && { color: tint }]}>{opt.label}</Text>
+                    {selected ? <Icon name="check" size={18} color={tint} /> : null}
+                  </Pressable>
+                );
+              })}
+            </Card>
+          </View>
+        )}
         </View>
       </ScrollView>
     </Screen>

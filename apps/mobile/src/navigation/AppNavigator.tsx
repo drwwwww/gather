@@ -7,10 +7,12 @@ import ProfileMenuScreen from "../screens/ProfileMenuScreen";
 import ChurchInfoScreen from "../screens/ChurchInfoScreen";
 import NotificationsScreen from "../screens/NotificationsScreen";
 import MembersScreen from "../screens/MembersScreen";
+import SearchScreen from "../screens/SearchScreen";
 import FeaturePlaceholderScreen from "../screens/FeaturePlaceholderScreen";
 import GuidedTourScreen from "../screens/GuidedTourScreen";
 import RequestToServeScreen from "../screens/RequestToServeScreen";
 import AppOverlays from "../components/app/AppOverlays";
+import OfflineBanner from "../components/app/OfflineBanner";
 import { ToastProvider } from "../components/ds";
 import { navigationRef } from "./navigationRef";
 import type { AppStackParamList } from "./paramLists";
@@ -40,11 +42,13 @@ export default function AppNavigator({ showServe = false }: AppNavigatorProps) {
           <Stack.Screen name="ChurchInfo" component={ChurchInfoScreen} />
           <Stack.Screen name="Notifications" component={NotificationsScreen} />
           <Stack.Screen name="Members" component={MembersScreen} />
+          <Stack.Screen name="Search" component={SearchScreen} />
           <Stack.Screen name="FeaturePlaceholder" component={FeaturePlaceholderScreen} />
           <Stack.Screen name="GuidedTour" component={GuidedTourScreen} presentation="modal" />
           <Stack.Screen name="RequestToServe" component={RequestToServeScreen} />
         </Stack.Navigator>
         <AppOverlays />
+        <OfflineBanner />
       </ToastProvider>
     </NavigationContainer>
   );

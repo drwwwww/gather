@@ -1,76 +1,162 @@
 import { useState } from "react";
 import {
   View, Text, TextInput, Pressable,
-  KeyboardAvoidingView, Platform, StyleSheet,
+  KeyboardAvoidingView, Platform, StyleSheet, Animated,
 } from "react-native";
 import { Icon } from "../components/ui/Icon";
 import {
-  Screen, Txt, Button, BrandMark,
-  palette, font, radius,
+  Screen, GlassIconButton, LinearGradient,
+  palette, font, gradient, radius, shadow, space,
 } from "../components/ds";
+import { RiseIn, usePressScale } from "../components/ds/motion";
 import { supabase } from "../supabase";
+import { toE164 } from "../lib/phone";
 
-function Field({
-  label, placeholder, value, onChangeText, secureTextEntry = false,
-  keyboardType = "default", autoCapitalize = "none", rightSlot, onRightPress, rightLabel,
+type Step = "identifier" | "password" | "forgot";
+type IdentifierMode = "email" | "phone";
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/** Large filled field — no label row, matches the reference's single big
+    tappable input rather than our usual labelled-field pattern. */
+function BigField({
+  value,
+  onChangeText,
+  placeholder,
+  secureTextEntry,
+  keyboardType,
+  autoFocus,
+  rightSlot,
 }: {
-  label: string;
-  placeholder: string;
   value: string;
   onChangeText: (v: string) => void;
+  placeholder: string;
   secureTextEntry?: boolean;
-  keyboardType?: any;
-  autoCapitalize?: any;
+  keyboardType?: "default" | "email-address" | "phone-pad";
+  autoFocus?: boolean;
   rightSlot?: React.ReactNode;
-  onRightPress?: () => void;
-  rightLabel?: string;
 }) {
   return (
-    <View style={{ marginBottom: 16 }}>
-      <View style={styles.labelRow}>
-        <Text style={styles.fieldLabel}>{label}</Text>
-        {rightLabel && onRightPress ? (
-          <Pressable onPress={onRightPress} hitSlop={8}>
-            <Text style={styles.forgot}>{rightLabel}</Text>
-          </Pressable>
-        ) : null}
-      </View>
-      <View style={{ position: "relative" }}>
-        <TextInput
-          placeholder={placeholder}
-          placeholderTextColor={palette.inkMuted}
-          value={value}
-          onChangeText={onChangeText}
-          secureTextEntry={secureTextEntry}
-          keyboardType={keyboardType}
-          autoCapitalize={autoCapitalize}
-          style={[styles.input, rightSlot ? { paddingRight: 60 } : null]}
-        />
-        {rightSlot ? <View style={styles.rightSlot}>{rightSlot}</View> : null}
-      </View>
+    <View style={{ position: "relative" }}>
+      <TextInput
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        placeholderTextColor={palette.inkMuted}
+        secureTextEntry={secureTextEntry}
+        autoCapitalize="none"
+        autoCorrect={false}
+        keyboardType={keyboardType ?? (secureTextEntry ? "default" : "email-address")}
+        autoFocus={autoFocus}
+        style={[styles.bigInput, rightSlot ? { paddingRight: 64 } : null]}
+      />
+      {rightSlot ? <View style={styles.rightSlot}>{rightSlot}</View> : null}
     </View>
   );
 }
 
+/** Small pill toggle between email and phone as the sign-in identifier. */
+function ModeToggle({ mode, onChange }: { mode: IdentifierMode; onChange: (m: IdentifierMode) => void }) {
+  return (
+    <View style={styles.modeToggle}>
+      <Pressable style={[styles.modeBtn, mode === "email" && styles.modeBtnActive]} onPress={() => onChange("email")}>
+        <Text style={[styles.modeBtnTxt, mode === "email" && styles.modeBtnTxtActive]}>Email</Text>
+      </Pressable>
+      <Pressable style={[styles.modeBtn, mode === "phone" && styles.modeBtnActive]} onPress={() => onChange("phone")}>
+        <Text style={[styles.modeBtnTxt, mode === "phone" && styles.modeBtnTxtActive]}>Phone</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+/** Full-width pill CTA — amber gradient when enabled, flat and muted when
+    not. The fully-rounded shape is deliberately different from the app's
+    usual radius.lg buttons, kept local to this screen to match the
+    reference rather than changing the shared Button everywhere. */
+function PillButton({
+  label,
+  onPress,
+  disabled,
+  loading,
+}: {
+  label: string;
+  onPress: () => void;
+  disabled?: boolean;
+  loading?: boolean;
+}) {
+  const press = usePressScale(0.98);
+  const isDisabled = disabled || loading;
+  return (
+    <Animated.View style={press.style}>
+      <Pressable
+        onPress={onPress}
+        onPressIn={isDisabled ? undefined : press.onPressIn}
+        onPressOut={isDisabled ? undefined : press.onPressOut}
+        disabled={isDisabled}
+      >
+        {isDisabled ? (
+          <View style={[styles.pillBtn, styles.pillBtnFlat]}>
+            <Text style={styles.pillBtnTxtFlat}>{loading ? "Please wait…" : label}</Text>
+          </View>
+        ) : (
+          <LinearGradient
+            colors={gradient.sunset}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={[styles.pillBtn, shadow.amber]}
+          >
+            <Text style={styles.pillBtnTxt}>{label}</Text>
+          </LinearGradient>
+        )}
+      </Pressable>
+    </Animated.View>
+  );
+}
+
 export default function SignInScreen({ navigation }: any) {
+  const [step, setStep] = useState<Step>("identifier");
+  const [mode, setMode] = useState<IdentifierMode>("email");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [forgotMode, setForgotMode] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotSent, setForgotSent] = useState(false);
   const [forgotLoading, setForgotLoading] = useState(false);
 
+  const emailValid = EMAIL_RE.test(email.trim());
+  const phoneValid = toE164(phone) !== null;
+  const identifierValid = mode === "email" ? emailValid : phoneValid;
+  const identifierDisplay = mode === "email" ? email.trim() : phone.trim();
+
+  const goToPassword = () => {
+    if (!identifierValid) return;
+    setError(null);
+    setStep("password");
+  };
+
   const handleSignIn = async () => {
-    if (!supabase) return;
+    if (!supabase || !password) return;
     setError(null);
     setLoading(true);
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+    const credential = mode === "email"
+      ? { email: email.trim() }
+      : { phone: toE164(phone) ?? "" };
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      ...credential,
+      password,
+    } as any);
     if (signInError) setError(signInError.message);
     setLoading(false);
+  };
+
+  const openForgot = () => {
+    setForgotEmail(email.trim());
+    setForgotSent(false);
+    setStep("forgot");
   };
 
   const handleForgotPassword = async () => {
@@ -81,96 +167,93 @@ export default function SignInScreen({ navigation }: any) {
     setForgotLoading(false);
   };
 
+  const back = () => {
+    setError(null);
+    if (step === "forgot") setStep("password");
+    else if (step === "password") setStep("identifier");
+  };
+
   return (
     <Screen edges={["top", "bottom"]}>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
-        <View style={styles.inner}>
-          {/* Brand */}
-          <View style={styles.brand}>
-            <BrandMark size={72} rounding={22} glow style={{ marginBottom: 18 }} />
-            <Text style={styles.wordmark}>Gather</Text>
-            <Txt variant="bodyLg" color="inkMuted" center>
-              Your church community,{"\n"}all in one place.
-            </Txt>
-          </View>
-
-          {forgotMode ? (
-            <View>
-              <Pressable
-                onPress={() => { setForgotMode(false); setForgotSent(false); setForgotEmail(""); }}
-                style={styles.backRow}
-                hitSlop={8}
-              >
-                <Icon name="chevronLeft" size={18} color={palette.amber} />
-                <Text style={styles.backTxt}>Back to sign in</Text>
-              </Pressable>
-
-              <Txt variant="h2" style={{ marginBottom: 6 }}>Reset password</Txt>
-              <Txt variant="body" color="inkSoft" style={{ marginBottom: 24 }}>
-                {forgotSent
-                  ? `A reset link was sent to ${forgotEmail}. Check your inbox.`
-                  : "Enter your email and we'll send you a reset link."}
-              </Txt>
-
-              {!forgotSent ? (
-                <>
-                  <Field
-                    label="EMAIL ADDRESS"
-                    placeholder="you@example.com"
-                    value={forgotEmail}
-                    onChangeText={setForgotEmail}
-                    keyboardType="email-address"
-                  />
-                  <Button
-                    label="Send reset link"
-                    onPress={handleForgotPassword}
-                    loading={forgotLoading}
-                    disabled={!forgotEmail.trim()}
-                    style={{ marginTop: 8 }}
-                  />
-                </>
-              ) : (
-                <View style={styles.successCard}>
-                  <View style={styles.successIcon}>
-                    <Icon name="check" size={22} color={palette.amber} />
-                  </View>
-                  <Txt variant="body" color="inkSoft" style={{ flex: 1 }}>
-                    Check your inbox for the reset link.
-                  </Txt>
-                </View>
-              )}
-            </View>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+        <View style={styles.topRow}>
+          {step !== "identifier" ? (
+            <GlassIconButton icon="chevronLeft" onPress={back} accessibilityLabel="Back" />
           ) : (
-            <View>
-              <Txt variant="h1" style={{ marginBottom: 6 }}>Welcome back</Txt>
-              <Txt variant="body" color="inkSoft" style={{ marginBottom: 24 }}>
-                Sign in to your church account.
-              </Txt>
+            <View style={{ width: 44 }} />
+          )}
+        </View>
 
-              <Field
-                label="EMAIL ADDRESS"
-                placeholder="you@example.com"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-              />
-              <Field
-                label="PASSWORD"
-                placeholder="••••••••"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPassword}
-                rightLabel="Forgot?"
-                onRightPress={() => setForgotMode(true)}
-                rightSlot={
-                  <Pressable onPress={() => setShowPassword((v) => !v)} hitSlop={8}>
-                    <Text style={styles.showHide}>{showPassword ? "Hide" : "Show"}</Text>
+        <View style={styles.inner}>
+          {step === "identifier" && (
+            <RiseIn key="identifier">
+              <Text style={styles.headline}>
+                {mode === "email"
+                  ? "Enter your email to sign in or create an account"
+                  : "Enter your phone to sign in or create an account"}
+              </Text>
+
+              <View style={{ marginTop: 20 }}>
+                <ModeToggle mode={mode} onChange={setMode} />
+              </View>
+
+              <View style={styles.fieldBlock}>
+                {mode === "email" ? (
+                  <BigField
+                    value={email}
+                    onChangeText={setEmail}
+                    placeholder="Email address"
+                    keyboardType="email-address"
+                    autoFocus
+                  />
+                ) : (
+                  <BigField
+                    value={phone}
+                    onChangeText={setPhone}
+                    placeholder="(555) 123-4567"
+                    keyboardType="phone-pad"
+                    autoFocus
+                  />
+                )}
+                <Text style={styles.caption}>We'll check if you already have an account.</Text>
+              </View>
+
+              <View style={styles.ctaBlock}>
+                <PillButton label="Continue" onPress={goToPassword} disabled={!identifierValid} />
+              </View>
+            </RiseIn>
+          )}
+
+          {step === "password" && (
+            <RiseIn key="password">
+              <Text style={styles.headline}>Enter your password</Text>
+              <Text style={styles.subHeadline} numberOfLines={1}>
+                {identifierDisplay}
+              </Text>
+
+              <View style={styles.fieldBlock}>
+                <BigField
+                  value={password}
+                  onChangeText={setPassword}
+                  placeholder="Password"
+                  secureTextEntry={!showPassword}
+                  autoFocus
+                  rightSlot={
+                    <Pressable onPress={() => setShowPassword((v) => !v)} hitSlop={8}>
+                      <Text style={styles.showHide}>{showPassword ? "Hide" : "Show"}</Text>
+                    </Pressable>
+                  }
+                />
+                {mode === "email" ? (
+                  <Pressable onPress={openForgot} hitSlop={8} style={styles.forgotRow}>
+                    <Text style={styles.forgotTxt}>Forgot your password?</Text>
                   </Pressable>
-                }
-              />
+                ) : (
+                  <Text style={[styles.caption, { textAlign: "right", marginTop: 14 }]}>
+                    Forgot your password? Ask your church admin to reset it.
+                  </Text>
+                )}
+              </View>
 
               {error ? (
                 <View style={styles.errorCard}>
@@ -178,15 +261,55 @@ export default function SignInScreen({ navigation }: any) {
                 </View>
               ) : null}
 
-              <Button label="Sign In" onPress={handleSignIn} loading={loading} style={{ marginTop: 8 }} />
+              <View style={styles.ctaBlock}>
+                <PillButton label="Sign In" onPress={handleSignIn} disabled={!password} loading={loading} />
+              </View>
 
               <View style={styles.footer}>
-                <Txt variant="body" color="inkSoft">Don't have an account? </Txt>
+                <Text style={styles.footerTxt}>Don't have an account? </Text>
                 <Pressable onPress={() => navigation.replace("SignUp")} hitSlop={8}>
                   <Text style={styles.footerLink}>Sign up</Text>
                 </Pressable>
               </View>
-            </View>
+            </RiseIn>
+          )}
+
+          {step === "forgot" && (
+            <RiseIn key="forgot">
+              <Text style={styles.headline}>Reset your password</Text>
+              <Text style={styles.subHeadline} numberOfLines={2}>
+                {forgotSent
+                  ? `A reset link was sent to ${forgotEmail}.`
+                  : "We'll email you a link to set a new one."}
+              </Text>
+
+              {!forgotSent ? (
+                <>
+                  <View style={styles.fieldBlock}>
+                    <BigField
+                      value={forgotEmail}
+                      onChangeText={setForgotEmail}
+                      placeholder="Email address"
+                    />
+                  </View>
+                  <View style={styles.ctaBlock}>
+                    <PillButton
+                      label="Send reset link"
+                      onPress={handleForgotPassword}
+                      disabled={!forgotEmail.trim()}
+                      loading={forgotLoading}
+                    />
+                  </View>
+                </>
+              ) : (
+                <View style={styles.successCard}>
+                  <View style={styles.successIcon}>
+                    <Icon name="check" size={20} color={palette.amberDeep} />
+                  </View>
+                  <Text style={styles.successTxt}>Check your inbox for the link.</Text>
+                </View>
+              )}
+            </RiseIn>
           )}
         </View>
       </KeyboardAvoidingView>
@@ -195,43 +318,84 @@ export default function SignInScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  inner: { flex: 1, paddingHorizontal: 28, justifyContent: "center" },
-  brand: { alignItems: "center", marginBottom: 36 },
-  wordmark: { fontFamily: font.bold, fontSize: 40, color: palette.ink, letterSpacing: -1, marginBottom: 10 },
-  labelRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8, paddingHorizontal: 2 },
-  fieldLabel: { fontFamily: font.bold, fontSize: 11, color: palette.inkMuted, letterSpacing: 0.8 },
-  forgot: { fontFamily: font.semibold, fontSize: 12, color: palette.amber },
-  input: {
+  topRow: { paddingHorizontal: space.gutter, paddingTop: 8, height: 56, justifyContent: "center" },
+  inner: { flex: 1, paddingHorizontal: 28, paddingTop: 24 },
+
+  headline: {
+    fontFamily: font.semibold,
+    fontSize: 34,
+    lineHeight: 40,
+    letterSpacing: -0.6,
+    color: palette.ink,
+  },
+  subHeadline: {
     fontFamily: font.regular,
     fontSize: 15,
-    color: palette.ink,
-    backgroundColor: palette.surface,
-    borderWidth: 1.5,
-    borderColor: palette.line,
-    borderRadius: radius.md,
-    paddingHorizontal: 16,
-    paddingVertical: 15,
+    color: palette.inkSoft,
+    marginTop: 8,
   },
-  rightSlot: { position: "absolute", right: 0, top: 0, bottom: 0, justifyContent: "center", paddingRight: 16 },
-  showHide: { fontFamily: font.semibold, fontSize: 12, color: palette.inkSoft },
-  backRow: { flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 20, alignSelf: "flex-start" },
-  backTxt: { fontFamily: font.semibold, fontSize: 14, color: palette.amber },
+
+  modeToggle: {
+    flexDirection: "row",
+    backgroundColor: palette.sunken,
+    borderRadius: radius.md,
+    padding: 3,
+  },
+  modeBtn: { flex: 1, alignItems: "center", paddingVertical: 9, borderRadius: radius.sm },
+  modeBtnActive: { backgroundColor: palette.surface, ...shadow.sm },
+  modeBtnTxt: { fontFamily: font.semibold, fontSize: 13, color: palette.inkMuted },
+  modeBtnTxtActive: { color: palette.ink },
+
+  fieldBlock: { marginTop: 32 },
+  bigInput: {
+    fontFamily: font.regular,
+    fontSize: 17,
+    color: palette.ink,
+    backgroundColor: palette.sunken,
+    borderRadius: radius.lg,
+    paddingHorizontal: 20,
+    paddingVertical: 19,
+  },
+  rightSlot: { position: "absolute", right: 0, top: 0, bottom: 0, justifyContent: "center", paddingRight: 20 },
+  showHide: { fontFamily: font.semibold, fontSize: 13, color: palette.inkSoft },
+
+  caption: {
+    fontFamily: font.regular,
+    fontSize: 13,
+    color: palette.inkMuted,
+    textAlign: "center",
+    marginTop: 16,
+  },
+  forgotRow: { alignSelf: "flex-end", marginTop: 14 },
+  forgotTxt: { fontFamily: font.semibold, fontSize: 13, color: palette.amberDeep },
+
+  ctaBlock: { marginTop: 28 },
+  pillBtn: {
+    minHeight: 58,
+    borderRadius: radius.pill,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pillBtnTxt: { fontFamily: font.bold, fontSize: 16, color: palette.onDark, letterSpacing: 0.2 },
+  pillBtnFlat: { backgroundColor: palette.sunken },
+  pillBtnTxtFlat: { fontFamily: font.bold, fontSize: 16, color: palette.inkMuted, letterSpacing: 0.2 },
+
   errorCard: {
     backgroundColor: palette.dangerSoft,
-    borderRadius: radius.sm,
-    padding: 12,
-    marginTop: 4,
-    marginBottom: 8,
+    borderRadius: radius.md,
+    padding: 14,
+    marginTop: 20,
   },
   errorTxt: { fontFamily: font.regular, fontSize: 13, color: palette.dangerInk, lineHeight: 18 },
+
   successCard: {
     backgroundColor: palette.amberSofter,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
     padding: 18,
     flexDirection: "row",
     alignItems: "center",
     gap: 14,
-    marginTop: 8,
+    marginTop: 32,
   },
   successIcon: {
     width: 40,
@@ -241,6 +405,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  successTxt: { fontFamily: font.regular, fontSize: 14, color: palette.ink, flex: 1, lineHeight: 20 },
+
   footer: { flexDirection: "row", justifyContent: "center", alignItems: "center", marginTop: 28 },
-  footerLink: { fontFamily: font.bold, fontSize: 15, color: palette.amber },
+  footerTxt: { fontFamily: font.regular, fontSize: 14, color: palette.inkSoft },
+  footerLink: { fontFamily: font.bold, fontSize: 14, color: palette.amberDeep },
 });

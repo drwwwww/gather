@@ -4,13 +4,16 @@
   "packageManager": "pnpm@9.0.0",
   "pnpm": {
     "overrides": {
-      "mobile>react": "19.1.0",
-      "mobile>react-dom": "19.1.0",
+      "mobile>react": "19.2.3",
+      "mobile>react-dom": "19.2.3",
       "@react-navigation/elements": "2.9.14"
     }
   },
   "scripts": {
     "install:all": "pnpm install --config.confirmModulesPurge=false",
+    "mobile": "pnpm --filter mobile exec expo start",
+    "mobile:clear": "pnpm --filter mobile exec expo start --clear",
+    "mobile:tunnel": "pnpm --filter mobile exec expo start --tunnel",
     "dev": "turbo dev",
     "build": "turbo build",
     "lint": "turbo lint",

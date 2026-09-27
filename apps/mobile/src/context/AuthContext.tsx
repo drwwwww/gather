@@ -1,12 +1,14 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "../supabase";
+import { registerForPushNotificationsAsync } from "../lib/pushNotifications";
 
 type Profile = {
   id: string;
   church_id: string | null;
   full_name: string | null;
   email: string | null;
+  phone: string | null;
   role: string;
   disabled: boolean;
   avatar_url: string | null;
@@ -15,7 +17,7 @@ type Profile = {
   profile_completed_at: string | null;
 };
 
-const PROFILE_COLUMNS = "id, church_id, full_name, email, role, disabled, avatar_url, favorite_verse, ministry_interests, profile_completed_at";
+const PROFILE_COLUMNS = "id, church_id, full_name, email, phone, role, disabled, avatar_url, favorite_verse, ministry_interests, profile_completed_at";
 
 type AuthState = {
   loading: boolean;
@@ -66,6 +68,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .insert({
           id: authUser.id,
           email: authUser.email ?? null,
+          phone: authUser.phone ? (authUser.phone.startsWith("+") ? authUser.phone : `+${authUser.phone}`) : null,
           full_name: (authUser.user_metadata?.full_name as string | undefined) ?? null,
           role: "MEMBER",
           disabled: false,
@@ -110,6 +113,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Register for push once the member has a church — a token registered
+  // before church selection would just get overwritten anyway.
+  useEffect(() => {
+    const client = supabase;
+    if (!client || !profile?.id || !profile.church_id) return;
+    let cancelled = false;
+    (async () => {
+      const token = await registerForPushNotificationsAsync();
+      if (!cancelled && token) {
+        await client.from("profiles").update({ expo_push_token: token } as any).eq("id", profile.id);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [profile?.id, profile?.church_id]);
 
   const showServe =
     !profile?.disabled && (profile?.role === "SERVICE" || profile?.role === "ADMIN");

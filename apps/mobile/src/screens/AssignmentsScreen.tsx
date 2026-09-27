@@ -6,6 +6,7 @@ import {
   Screen, Pill, EmptyState, Loader, IconChip, LinearGradient,
   palette, font, gradient, radius, shadow, space,
 } from "../components/ds";
+import ConfirmCelebration, { type CelebrationStat } from "../components/app/ConfirmCelebration";
 import { supabase } from "../supabase";
 import { useAuth } from "../context/AuthContext";
 
@@ -36,6 +37,14 @@ function formatServiceTime(dateStr: string, startTime: string): string {
   const ampm = h >= 12 ? "PM" : "AM";
   return `${day} ${hour}:${String(m).padStart(2, "0")} ${ampm}`;
 }
+function serviceLabelFor(
+  dateStr: string,
+  startTime: string | null,
+  serviceName: string | undefined
+): string {
+  const time = formatServiceTime(dateStr, startTime ?? "09:00");
+  return serviceName ? `${serviceName} · ${time}` : time;
+}
 function subtitleFor(a: AssignmentRow): string {
   if (a.source === "bulletin_part") return a.isBackup ? "Run of show · backup" : "Run of show";
   return a.isBackup ? "Role · backup" : "Role";
@@ -48,6 +57,10 @@ export default function AssignmentsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const [rowError, setRowError] = useState<{ key: string; message: string } | null>(null);
+  const [celebration, setCelebration] = useState<{
+    roleLine: string;
+    stats: CelebrationStat[];
+  } | null>(null);
 
   const load = useCallback(async () => {
     if (!supabase || !user?.id || !profile?.church_id) {
@@ -57,16 +70,25 @@ export default function AssignmentsScreen() {
     const today = localTodayString();
     const { data: plansData, error: plansErr } = await supabase
       .from("service_plans")
-      .select("id, service_date, start_time")
+      .select("id, service_date, start_time, service_time_id")
       .eq("church_id", profile.church_id)
       .gte("service_date", today)
       .order("service_date", { ascending: true })
       .limit(40);
     if (plansErr) console.error("[Serve] service_plans error:", plansErr.message);
 
-    const plans = (plansData ?? []) as { id: string; service_date: string; start_time: string | null }[];
+    const plans = (plansData ?? []) as { id: string; service_date: string; start_time: string | null; service_time_id: string | null }[];
     const planIds = plans.map((p) => p.id);
     const planById = new Map(plans.map((p) => [p.id, p]));
+
+    // A church can hold more than one service on the same date (e.g. a 9:00
+    // and an 11:00 Sunday) — the date alone doesn't say which one an
+    // assignment belongs to, so the service's own name has to come along too.
+    const serviceTimeIds = [...new Set(plans.map((p) => p.service_time_id).filter((id): id is string => !!id))];
+    const serviceTimesRes = serviceTimeIds.length
+      ? await supabase.from("service_times").select("id, name").in("id", serviceTimeIds)
+      : { data: [] as { id: string; name: string }[] };
+    const serviceNameById = new Map((serviceTimesRes.data ?? []).map((s) => [s.id, s.name]));
 
     type ItemRow = { id: string; title: string; plan_id: string; assignment_status: string | null; assigned_user_id: string | null; backup_user_id: string | null };
     type SlotRow = { id: string; role_id: string; plan_id: string; status: string; assigned_user_id: string | null; backup_user_id: string | null };
@@ -115,7 +137,8 @@ export default function AssignmentsScreen() {
         key: `i-${item.id}${isBackup ? "-b" : ""}`, source: "bulletin_part", bulletinItemId: item.id,
         scheduled_date: plan.service_date,
         status: item.assignment_status ?? "ASSIGNED", titleLine: item.title?.trim() || "Service part",
-        service_label: formatServiceTime(plan.service_date, plan.start_time ?? "09:00"), isBackup,
+        service_label: serviceLabelFor(plan.service_date, plan.start_time, plan.service_time_id ? serviceNameById.get(plan.service_time_id) : undefined),
+        isBackup,
       });
     }
     for (const slot of planSlots) {
@@ -126,7 +149,8 @@ export default function AssignmentsScreen() {
         key: `r-${slot.id}${isBackup ? "-b" : ""}`, source: "bulletin_role", bulletinSlotId: slot.id,
         scheduled_date: plan.service_date, status: slot.status,
         titleLine: rolesMap.get(slot.role_id) ?? "Role",
-        service_label: formatServiceTime(plan.service_date, plan.start_time ?? "09:00"), isBackup,
+        service_label: serviceLabelFor(plan.service_date, plan.start_time, plan.service_time_id ? serviceNameById.get(plan.service_time_id) : undefined),
+        isBackup,
       });
     }
     merged.sort((a, b) => {
@@ -141,6 +165,28 @@ export default function AssignmentsScreen() {
   }, [user?.id, profile?.church_id]);
 
   useFocusEffect(useCallback(() => { setLoading(true); void load(); }, [load]));
+
+  /** Only celebrate a confirmation — declining should stay quiet and neutral. */
+  const celebrateConfirm = (a: AssignmentRow) => {
+    const confirmedAfter = assignments.filter(
+      (r) => r.status === "CONFIRMED" || r.key === a.key
+    ).length;
+    const remaining = assignments.filter(
+      (r) => r.key !== a.key && (r.status === "ASSIGNED" || r.status === "OPEN")
+    ).length;
+    const upcomingServices = new Set(
+      assignments.filter((r) => r.status === "CONFIRMED" || r.key === a.key).map((r) => r.scheduled_date)
+    ).size;
+
+    setCelebration({
+      roleLine: `${a.titleLine} · ${a.service_label}`,
+      stats: [
+        { label: "Confirmed", value: confirmedAfter, icon: "checkCircle", tone: "success" },
+        { label: "Services", value: upcomingServices, icon: "calendar", tone: "amber" },
+        { label: "Still pending", value: remaining, icon: "clock", tone: "info" },
+      ],
+    });
+  };
 
   const respondToAssignment = async (a: AssignmentRow, response: "CONFIRMED" | "DECLINED") => {
     if (!supabase || !user?.id || savingKey) return;
@@ -165,6 +211,7 @@ export default function AssignmentsScreen() {
       }
       if (errMsg) { console.error("[Serve] respond error:", errMsg); setRowError({ key: a.key, message: errMsg }); setSavingKey(null); return; }
       setAssignments((prev) => prev.map((row) => (row.key === a.key ? { ...row, status: response } : row)));
+      if (response === "CONFIRMED") celebrateConfirm(a);
       setSavingKey(null);
       return;
     }
@@ -179,6 +226,7 @@ export default function AssignmentsScreen() {
     const promoted = rpcData?.promoted === true;
     if (promoted && response === "DECLINED") setAssignments((prev) => prev.filter((row) => row.key !== a.key));
     else setAssignments((prev) => prev.map((row) => (row.key === a.key ? { ...row, status: response } : row)));
+    if (response === "CONFIRMED") celebrateConfirm(a);
     setSavingKey(null);
   };
 
@@ -273,6 +321,14 @@ export default function AssignmentsScreen() {
           </>
         )}
       </ScrollView>
+      <ConfirmCelebration
+        visible={celebration !== null}
+        title="Thank you for serving"
+        subtitle="Your team can see you're in. We'll send a reminder before the service."
+        roleLine={celebration?.roleLine}
+        stats={celebration?.stats ?? []}
+        onDismiss={() => setCelebration(null)}
+      />
     </Screen>
   );
 }
