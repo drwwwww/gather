@@ -10,7 +10,7 @@ import {
 } from "../components/ds";
 import { RiseIn, usePressScale } from "../components/ds/motion";
 import { supabase } from "../supabase";
-import { toE164 } from "../lib/phone";
+import { toE164, PHONE_AUTH_ENABLED } from "../lib/phone";
 
 type Step = "identifier" | "password" | "forgot";
 type IdentifierMode = "email" | "phone";
@@ -194,7 +194,7 @@ export default function SignInScreen({ navigation }: any) {
               </Text>
 
               <View style={{ marginTop: 20 }}>
-                <ModeToggle mode={mode} onChange={setMode} />
+                {PHONE_AUTH_ENABLED ? <ModeToggle mode={mode} onChange={setMode} /> : null}
               </View>
 
               <View style={styles.fieldBlock}>

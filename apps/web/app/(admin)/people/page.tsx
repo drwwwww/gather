@@ -11,6 +11,7 @@ import { getCurrentContext, listProfilesByChurch } from "../../../lib/supabaseDa
 import MemberFilters, { type MemberTab } from "../../../components/people/MemberFilters";
 import MembersTable from "../../../components/people/MembersTable";
 import MemberDetailsDrawer from "../../../components/people/MemberDetailsDrawer";
+import ReportsCard from "../../../components/people/ReportsCard";
 import { PageGrid, PageGridFull } from "../../../components/layout/PageGrid";
 import {
   buildMemberEntries,
@@ -353,6 +354,16 @@ export default function PeoplePage() {
               </div>
             ))}
           </div>
+        </PageGridFull>
+      )}
+
+      {!loading && (
+        <PageGridFull>
+          <ReportsCard
+            churchId={church?.id ?? null}
+            nameById={new Map(members.map((m) => [m.id, m.full_name?.trim() || m.email || "Member"]))}
+            onDisable={(userId) => handleStatusToggle(userId, true)}
+          />
         </PageGridFull>
       )}
 

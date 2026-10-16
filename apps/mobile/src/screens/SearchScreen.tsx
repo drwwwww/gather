@@ -5,6 +5,7 @@ import {
   Screen, AppBar, Avatar, Pill, EmptyState, Loader,
   palette, font, radius, shadow, space,
 } from "../components/ds";
+import { loadBlockedIds } from "../lib/blocks";
 import { supabase } from "../supabase";
 import { useAuth } from "../context/AuthContext";
 
@@ -48,7 +49,7 @@ export default function SearchScreen({ navigation }: any) {
       return;
     }
     const like = `%${q}%`;
-    const [eventsRes, announcementsRes, membersRes] = await Promise.all([
+    const [eventsRes, announcementsRes, membersRes, blocked] = await Promise.all([
       client
         .from("events")
         .select("id, title, location, start_at")
@@ -71,10 +72,11 @@ export default function SearchScreen({ navigation }: any) {
         .or(`full_name.ilike.${like},email.ilike.${like}`)
         .order("full_name", { ascending: true })
         .limit(8),
+      loadBlockedIds(),
     ]);
     setEvents((eventsRes.data as EventResult[]) ?? []);
     setAnnouncements((announcementsRes.data as AnnouncementResult[]) ?? []);
-    setMembers((membersRes.data as MemberResult[]) ?? []);
+    setMembers(((membersRes.data as MemberResult[]) ?? []).filter((m) => !blocked.has(m.id)));
     setLoading(false);
   }, [profile?.church_id]);
 

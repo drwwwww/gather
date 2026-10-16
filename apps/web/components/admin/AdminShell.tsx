@@ -270,6 +270,7 @@ export default function AdminShell({ children }: { children: ReactNode }) {
             <div className="flex gap-5">
               <a href="mailto:support@gatherministry.online" className="transition-colors hover:text-amber-600">Support</a>
               <Link href="/privacy" className="transition-colors hover:text-amber-600">Privacy</Link>
+              <Link href="/terms" className="transition-colors hover:text-amber-600">Terms</Link>
               <Link href="/account" className="transition-colors hover:text-amber-600">Settings</Link>
             </div>
           </footer>

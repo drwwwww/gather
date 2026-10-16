@@ -1,4 +1,5 @@
 import React, { useCallback } from "react";
+import { Platform } from "react-native";
 import { useRoute } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import HomeScreen from "../screens/HomeScreen";
@@ -11,6 +12,11 @@ import TabBar from "../components/app/TabBar";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 
 const Tab = createBottomTabNavigator();
+
+// Native keeps inactive tabs attached (Fabric / SceneView-safe). On web nothing
+// hides them in that mode, so every tab renders stacked down one long page —
+// detach there so only the focused tab shows.
+const DETACH_INACTIVE = Platform.OS === "web";
 
 /** Separate navigators so route count always matches visible tabs (Fabric / SceneView-safe). */
 export default function MainTabs() {
@@ -41,7 +47,7 @@ export default function MainTabs() {
       <Tab.Navigator
         tabBar={tabBar}
         screenOptions={screenOptions}
-        detachInactiveScreens={false}
+        detachInactiveScreens={DETACH_INACTIVE}
       >
         <Tab.Screen name="Home" component={HomeScreen} />
         <Tab.Screen name="Announcements" component={AnnouncementsScreen} />
@@ -56,7 +62,7 @@ export default function MainTabs() {
     <Tab.Navigator
       tabBar={tabBar}
       screenOptions={screenOptions}
-      detachInactiveScreens={false}
+      detachInactiveScreens={DETACH_INACTIVE}
     >
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Announcements" component={AnnouncementsScreen} />

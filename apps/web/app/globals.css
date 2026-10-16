@@ -983,6 +983,43 @@
   border-top: 1px solid var(--mk-line);
 }
 
+/* Long-form legal text: ~68ch measure, relaxed leading, quiet hierarchy. */
+.legal-prose {
+  font-size: 0.9375rem;
+  line-height: 1.75;
+  color: var(--mk-ink-soft);
+}
+.legal-prose > * + * {
+  margin-top: 1rem;
+}
+.legal-prose h3 {
+  margin-top: 1.75rem;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--mk-ink);
+}
+.legal-prose strong {
+  font-weight: 500;
+  color: var(--mk-ink);
+}
+.legal-prose ul {
+  list-style: disc;
+  padding-left: 1.25rem;
+}
+.legal-prose ul > li + li {
+  margin-top: 0.4rem;
+}
+.legal-prose a {
+  color: var(--mk-amber-deep);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+  transition: color 0.15s;
+}
+.legal-prose a:hover {
+  color: var(--mk-ink);
+}
+
 /* Scroll reveal — opacity + transform only, both compositor-friendly */
 .mk-reveal {
   opacity: 0;

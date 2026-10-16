@@ -8,6 +8,7 @@ import {
 } from "../components/ds";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../supabase";
+import { LEGAL } from "../lib/webApi";
 
 function roleTone(role: string): "amber" | "success" | "neutral" {
   if (role === "ADMIN") return "amber";
@@ -22,7 +23,7 @@ function roleLabel(role: string): string {
 
 function MenuRow({ icon, label, onPress }: { icon: any; label: string; onPress: () => void }) {
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.menuRow, pressed && { backgroundColor: palette.sunken }]}>
+    <Pressable onPress={onPress} style={({ pressed }: { pressed: boolean }) => [styles.menuRow, pressed && { backgroundColor: palette.sunken }]}>
       <View style={styles.menuIcon}><Icon name={icon} size={19} color={palette.amber} /></View>
       <Text style={styles.menuLabel}>{label}</Text>
       <Icon name="chevronRight" size={18} color={palette.inkMuted} />
@@ -88,11 +89,25 @@ export default function ProfileMenuScreen({ navigation }: any) {
           <MenuRow icon="church" label="Church info" onPress={() => navigation.navigate("ChurchInfo")} />
           <Divider inset={58} />
           <MenuRow icon="notifications" label="Notifications" onPress={() => navigation.navigate("Notifications")} />
+        </View>
+
+        <Text style={styles.groupLabel}>Help & legal</Text>
+        <View style={styles.card}>
+          <MenuRow icon="mail" label="Contact support" onPress={() => Linking.openURL(`mailto:${LEGAL.supportEmail}`)} />
           <Divider inset={58} />
-          <MenuRow icon="info" label="Privacy policy" onPress={() => Linking.openURL("https://gatherministry.online/privacy")} />
+          <MenuRow icon="shield" label="Privacy policy" onPress={() => Linking.openURL(LEGAL.privacy)} />
+          <Divider inset={58} />
+          <MenuRow icon="fileText" label="Terms of service" onPress={() => Linking.openURL(LEGAL.terms)} />
         </View>
 
         <Button label="Sign out" variant="ghost" icon="logout" onPress={handleSignOut} style={{ marginTop: 24 }} />
+        <Pressable
+          onPress={() => navigation.navigate("DeleteAccount")}
+          style={({ pressed }: { pressed: boolean }) => [styles.deleteLink, pressed && { opacity: 0.6 }]}
+          accessibilityRole="button"
+        >
+          <Text style={styles.deleteLinkTxt}>Delete account</Text>
+        </Pressable>
       </ScrollView>
     </Screen>
   );
@@ -109,4 +124,10 @@ const styles = StyleSheet.create({
   menuRow: { flexDirection: "row", alignItems: "center", gap: 14, padding: 16 },
   menuIcon: { width: 36, height: 36, borderRadius: 12, backgroundColor: palette.amberSofter, alignItems: "center", justifyContent: "center" },
   menuLabel: { fontFamily: font.semibold, fontSize: 15, color: palette.ink, flex: 1 },
+  groupLabel: {
+    fontFamily: font.semibold, fontSize: 12, letterSpacing: 0.6, textTransform: "uppercase",
+    color: palette.inkMuted, marginTop: 24, marginBottom: 8, marginLeft: 4,
+  },
+  deleteLink: { alignSelf: "center", marginTop: 18, paddingVertical: 10, paddingHorizontal: 16, minHeight: 44, justifyContent: "center" },
+  deleteLinkTxt: { fontFamily: font.semibold, fontSize: 14, color: palette.danger },
 });

@@ -15,6 +15,7 @@ const schema = z.object({
   size: z.string().trim().max(40),
   when: z.string().trim().max(40),
   message: z.string().trim().max(2000).optional().or(z.literal("")),
+  website: z.string().optional(),
 });
 
 const SIZE_LABELS: Record<string, string> = {
@@ -59,6 +60,9 @@ export async function POST(request: Request) {
   }
 
   const d = parsed.data;
+  // Honeypot tripped: pretend success so the bot moves on, but send nothing —
+  // otherwise this route mails a "confirmation" to any address a bot supplies.
+  if (d.website) return NextResponse.json({ ok: true });
   const sizeLabel = SIZE_LABELS[d.size] ?? d.size;
   const timeLabel = TIME_LABELS[d.when] ?? d.when;
 

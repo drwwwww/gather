@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { sendEmail } from "@gather/lib";
 import { createSupabaseAdminClient } from "../../../../lib/supabaseAdmin";
+import { getRequestUser } from "../../../../lib/apiAuth";
 
 type ProfileRow = {
   id: string;
@@ -59,7 +60,34 @@ async function sendExpoPushNotifications(
   return sent;
 }
 
+/**
+ * Callers: a church admin from the web app (scoped to their own church), or a
+ * scheduled job sending `Authorization: Bearer $CRON_SECRET` (all churches).
+ * Anyone else gets 401 — this route emails and pushes real people.
+ */
+async function resolveScope(request: Request): Promise<{ churchId: string | null } | null> {
+  const cronSecret = process.env.CRON_SECRET;
+  if (cronSecret && request.headers.get("authorization") === `Bearer ${cronSecret}`) {
+    return { churchId: null };
+  }
+  const caller = await getRequestUser(request);
+  if (!caller) return null;
+  const { data } = await caller.supabase
+    .from("profiles")
+    .select("church_id, role, disabled")
+    .eq("id", caller.user.id)
+    .maybeSingle();
+  const me = data as { church_id: string | null; role: string; disabled: boolean } | null;
+  if (!me?.church_id || me.role !== "ADMIN" || me.disabled) return null;
+  return { churchId: me.church_id };
+}
+
 export async function POST(request: Request) {
+  const scope = await resolveScope(request);
+  if (!scope) {
+    return NextResponse.json({ error: "Only church admins can send reminders." }, { status: 401 });
+  }
+
   const body = await request.json().catch(() => ({}));
   const lookaheadHours = body?.lookaheadHours ?? Number(process.env.NOTIFICATION_LOOKAHEAD_HOURS ?? 24);
   const targetUserId: string | undefined = typeof body?.userId === "string" ? body.userId : undefined;
@@ -70,11 +98,13 @@ export async function POST(request: Request) {
 
   const supabase = createSupabaseAdminClient() as any;
 
-  const { data: plans, error: plansError } = await supabase
+  let plansQuery = supabase
     .from("service_plans")
     .select("id, church_id, service_date")
     .gte("service_date", todayStr)
     .lte("service_date", endStr);
+  if (scope.churchId) plansQuery = plansQuery.eq("church_id", scope.churchId);
+  const { data: plans, error: plansError } = await plansQuery;
 
   if (plansError) {
     return NextResponse.json({ error: plansError.message }, { status: 500 });
@@ -211,16 +241,27 @@ export async function POST(request: Request) {
 
   let profileByUserId = new Map<string, ProfileRow>();
   if (userIds.length > 0) {
-    const { data: profiles, error: profilesError } = await supabase
-      .from("profiles")
-      .select("id, email, disabled, expo_push_token")
-      .in("id", userIds);
+    const [profilesRes, privateRes] = await Promise.all([
+      supabase.from("profiles").select("id, email, disabled").in("id", userIds),
+      supabase.from("profile_private").select("user_id, expo_push_token").in("user_id", userIds),
+    ]);
 
-    if (profilesError) {
-      return NextResponse.json({ error: profilesError.message }, { status: 500 });
+    if (profilesRes.error) {
+      return NextResponse.json({ error: profilesRes.error.message }, { status: 500 });
     }
 
-    profileByUserId = new Map((profiles as ProfileRow[] | null)?.map((p) => [p.id, p]) ?? []);
+    const tokenByUserId = new Map(
+      ((privateRes.data ?? []) as { user_id: string; expo_push_token: string | null }[]).map((r) => [
+        r.user_id,
+        r.expo_push_token,
+      ])
+    );
+    profileByUserId = new Map(
+      ((profilesRes.data ?? []) as Omit<ProfileRow, "expo_push_token">[]).map((p) => [
+        p.id,
+        { ...p, expo_push_token: tokenByUserId.get(p.id) ?? null },
+      ])
+    );
   }
 
   let dispatched = 0;

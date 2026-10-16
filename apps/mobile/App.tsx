@@ -11,17 +11,24 @@ import * as Sentry from '@sentry/react-native';
 Sentry.init({
   dsn: 'https://cbd58ac7b8466096279b462ce2ac567f@o4511904277594113.ingest.us.sentry.io/4511905796849664',
 
-  // Adds more context data to events (IP address, cookies, user, etc.)
-  // For more information, visit: https://docs.sentry.io/platforms/react-native/data-management/data-collected/
-  sendDefaultPii: true,
+  // Privacy: no IP addresses / cookies / user emails attached to events —
+  // this is what the privacy policy and the App Store / Play data-safety
+  // answers promise ("diagnostics, not linked to identity"). Change those
+  // together if this ever changes.
+  sendDefaultPii: false,
 
-  // Enable Logs
   enableLogs: true,
+  tracesSampleRate: 0.2,
 
-  // Configure Session Replay
-  replaysSessionSampleRate: 0.1,
+  // Replay only when an error happens, never a random sample of sessions.
+  // The integration masks all text, images and inputs by default — keep it
+  // that way; member names and verses are on nearly every screen.
+  replaysSessionSampleRate: 0,
   replaysOnErrorSampleRate: 1,
-  integrations: [Sentry.mobileReplayIntegration(), Sentry.feedbackIntegration()],
+  integrations: [
+    Sentry.mobileReplayIntegration({ maskAllText: true, maskAllImages: true, maskAllVectors: true }),
+    Sentry.feedbackIntegration(),
+  ],
 
   // uncomment the line below to enable Spotlight (https://spotlightjs.com)
   // spotlight: __DEV__,

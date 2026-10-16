@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
-import { View, Text, ScrollView, RefreshControl, Alert, StyleSheet } from "react-native";
+import { View, Text, ScrollView, RefreshControl, Pressable, Linking, StyleSheet } from "react-native";
+import * as Haptics from "expo-haptics";
 import { useFocusEffect } from "@react-navigation/native";
 import { Icon } from "../components/ui/Icon";
 import {
@@ -8,13 +9,14 @@ import {
 } from "../components/ds";
 import { supabase } from "../supabase";
 import { useAuth } from "../context/AuthContext";
+import { WEB_URL } from "../lib/webApi";
 
 type AssignmentChip = { key: string; label: string; role: "Primary" | "Backup" | "Part" };
 /** `start_time` lives directly on the plan (migration 0027) — service_time_id is legacy and often null. */
 type PlanRow = { id: string; title: string; service_date: string; start_time: string | null };
 /** `status` = execution state (PLANNED/DONE/SKIPPED); `assignment_status` = confirm/decline state — the two are unrelated. */
-type PlanItemRow = { id: string; title: string; duration_minutes: number | null; notes: string; status: string; assigned_user_id: string | null; backup_user_id: string | null; assignment_status: string | null };
-type RoleSlotRow = { id: string; role_id: string; assigned_user_id: string | null; backup_user_id: string | null; status: string };
+type PlanItemRow = { id: string; title: string; duration_minutes: number | null; notes: string; status: string; assigned_user_id: string | null; backup_user_id: string | null; assignment_status: string | null; checked_in_at: string | null };
+type RoleSlotRow = { id: string; role_id: string; assigned_user_id: string | null; backup_user_id: string | null; status: string; checked_in_at: string | null };
 type VolunteerRoleRow = { id: string; name: string };
 type ProfilePeer = { id: string; full_name: string | null; email: string | null };
 
@@ -22,6 +24,10 @@ function peerName(map: Record<string, ProfilePeer>, userId: string | null): stri
   if (!userId) return null;
   const p = map[userId];
   return p ? (p.full_name?.trim() || p.email || null) : null;
+}
+function formatClock(iso: string): string {
+  try { return new Date(iso).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }); }
+  catch { return ""; }
 }
 function formatDate(dateStr: string): string {
   try { return new Date(dateStr + "T00:00:00").toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" }); }
@@ -56,7 +62,11 @@ export default function ServicePlanScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [checkingIn, setCheckingIn] = useState(false);
+  const [checkInError, setCheckInError] = useState<string | null>(null);
+  const [live, setLive] = useState(false);
 
+  const isServiceTeam = profile?.role === "ADMIN" || profile?.role === "SERVICE";
   const myUserId = profile?.id ?? null;
 
   const roleLookup = useMemo(() => roles.reduce<Record<string, string>>((acc, r) => { acc[r.id] = r.name; return acc; }, {}), [roles]);
@@ -79,6 +89,20 @@ export default function ServicePlanScreen() {
     }
     return chips;
   }, [myItems, mySlots, roleLookup, myUserId]);
+
+  // Check-in applies to what you're actually covering (primary, not backup).
+  const myPrimary = useMemo(
+    () => [
+      ...myItems.filter((i) => i.assigned_user_id === myUserId).map((i) => i.checked_in_at),
+      ...mySlots.filter((s) => s.assigned_user_id === myUserId).map((s) => s.checked_in_at),
+    ],
+    [myItems, mySlots, myUserId]
+  );
+  const checkedInAt =
+    myPrimary.length > 0 && myPrimary.every(Boolean) ? ([...myPrimary].sort()[0] as string) : null;
+
+  const doneCount = items.filter((i) => i.status === "DONE" || i.status === "SKIPPED").length;
+  const currentItemId = items.find((i) => i.status === "PLANNED")?.id ?? null;
 
   const readyBy = useMemo(() => {
     if (assignmentChips.length === 0 || !plan?.start_time) return null;
@@ -103,8 +127,8 @@ export default function ServicePlanScreen() {
     if (planError || !planData) { setPlan(null); setItems([]); setRoleSlots([]); setLoading(false); setRefreshing(false); return; }
     setPlan(planData as PlanRow);
     const [itemRes, slotRes, roleRes, peersRes] = await Promise.all([
-      supabase.from("service_plan_items").select("id, title, duration_minutes, notes, status, assigned_user_id, backup_user_id, assignment_status").eq("plan_id", planData.id).order("position"),
-      supabase.from("service_plan_role_slots").select("id, role_id, assigned_user_id, backup_user_id, status").eq("plan_id", planData.id).order("sort_order"),
+      supabase.from("service_plan_items").select("id, title, duration_minutes, notes, status, assigned_user_id, backup_user_id, assignment_status, checked_in_at").eq("plan_id", planData.id).order("position"),
+      supabase.from("service_plan_role_slots").select("id, role_id, assigned_user_id, backup_user_id, status, checked_in_at").eq("plan_id", planData.id).order("sort_order"),
       supabase.from("volunteer_roles").select("id, name").eq("church_id", profile.church_id),
       supabase.from("profiles").select("id, full_name, email").eq("church_id", profile.church_id).eq("disabled", false),
     ]);
@@ -118,6 +142,27 @@ export default function ServicePlanScreen() {
   }, [profile?.church_id]);
 
   useFocusEffect(useCallback(() => { setLoading(true); void load(); }, [load]));
+
+  const handleCheckIn = async () => {
+    if (!supabase || !plan || checkingIn) return;
+    setCheckingIn(true);
+    setCheckInError(null);
+    const { error: rpcError } = await supabase.rpc("check_in_to_plan", { p_plan_id: plan.id } as any);
+    setCheckingIn(false);
+    if (rpcError) { setCheckInError("Couldn't check you in. Try again in a moment."); return; }
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    void load();
+  };
+
+  /** Optimistic: the circle fills immediately, and rolls back if the RPC refuses. */
+  const setItemStatus = async (item: PlanItemRow, next: "PLANNED" | "DONE" | "SKIPPED") => {
+    if (!supabase) return;
+    const prev = item.status;
+    setItems((list) => list.map((i) => (i.id === item.id ? { ...i, status: next } : i)));
+    Haptics.selectionAsync().catch(() => {});
+    const { error: rpcError } = await supabase.rpc("set_plan_item_status", { p_item_id: item.id, p_status: next } as any);
+    if (rpcError) setItems((list) => list.map((i) => (i.id === item.id ? { ...i, status: prev } : i)));
+  };
 
   const dateLine = plan
     ? [formatDate(plan.service_date), plan.start_time ? formatStartTime(plan.start_time) : null].filter(Boolean).join(" · ")
@@ -153,16 +198,43 @@ export default function ServicePlanScreen() {
               <Text style={styles.heroTitle}>{planTitle}</Text>
               <Text style={styles.heroMeta}>{dateLine}</Text>
               <View style={styles.statWrap}><StatGrid items={heroStats} columns={3} /></View>
-              <View style={{ flexDirection: "row", gap: 10, marginTop: 6 }}>
-                <View style={{ flex: 1 }}>
-                  <Button label="Print PDF" variant="secondary" style={{ minHeight: 46 }}
-                    onPress={() => Alert.alert("Print bulletin", "Open Gather in a browser, go to Admin → Service plans, and use Print from there.")} />
+              {myPrimary.length > 0 || (isServiceTeam && items.length > 0) ? (
+                <View style={{ flexDirection: "row", gap: 10, marginTop: 6 }}>
+                  {myPrimary.length > 0 ? (
+                    <View style={{ flex: 1 }}>
+                      {checkedInAt ? (
+                        <View style={styles.checkedIn}>
+                          <Icon name="checkCircle" size={18} color={palette.amberInk} />
+                          <Text style={styles.checkedInTxt}>Checked in · {formatClock(checkedInAt)}</Text>
+                        </View>
+                      ) : (
+                        <Button label="Check in" icon="check" loading={checkingIn} style={{ minHeight: 46 }} onPress={handleCheckIn} />
+                      )}
+                    </View>
+                  ) : null}
+                  {isServiceTeam && items.length > 0 ? (
+                    <View style={{ flex: 1 }}>
+                      <Button
+                        label={live ? "Stop running" : "Run service"}
+                        icon={live ? "close" : "servicePlan"}
+                        variant="secondary"
+                        style={{ minHeight: 46 }}
+                        onPress={() => setLive((v) => !v)}
+                      />
+                    </View>
+                  ) : null}
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Button label="Check In" style={{ minHeight: 46 }}
-                    onPress={() => Alert.alert("Check in", "Check-in will be available in a future update.")} />
-                </View>
-              </View>
+              ) : null}
+              {checkInError ? <Text style={styles.inlineError}>{checkInError}</Text> : null}
+              {profile?.role === "ADMIN" ? (
+                <Pressable
+                  onPress={() => Linking.openURL(`${WEB_URL}/admin/service-plans/print/${plan.id}`)}
+                  style={styles.printLink}
+                  accessibilityRole="link"
+                >
+                  <Text style={styles.printLinkTxt}>Open printable bulletin</Text>
+                </Pressable>
+              ) : null}
             </View>
 
             {/* Serving */}
@@ -189,21 +261,61 @@ export default function ServicePlanScreen() {
               <View style={{ marginTop: 8 }}>
                 <View style={styles.sectionRow}>
                   <Text style={styles.sectionLabel}>Order of Service</Text>
-                  {totalMinutes > 0 ? <Pill label={`${totalMinutes} min`} tone="amber" /> : null}
+                  {live ? (
+                    <Pill label={`${doneCount} of ${items.length} done`} tone={doneCount === items.length ? "success" : "amber"} />
+                  ) : totalMinutes > 0 ? (
+                    <Pill label={`${totalMinutes} min`} tone="amber" />
+                  ) : null}
                 </View>
+                {live ? (
+                  <View style={styles.progressTrack} accessibilityLabel={`${doneCount} of ${items.length} parts done`}>
+                    <View style={[styles.progressFill, { width: `${items.length ? (doneCount / items.length) * 100 : 0}%` }]} />
+                  </View>
+                ) : null}
                 {items.map((item, idx) => {
                   const declined = item.assignment_status === "DECLINED";
                   const isMe = item.assigned_user_id === myUserId && !declined;
                   const assignedName = peerName(peers, item.assigned_user_id);
                   const statusTone = declined ? "danger" : item.assignment_status === "CONFIRMED" ? "success" : "amber";
                   const statusLabel = declined ? "Declined" : item.assignment_status === "CONFIRMED" ? "Confirmed" : "Pending";
+                  const done = item.status === "DONE";
+                  const skipped = item.status === "SKIPPED";
+                  const isNow = live && item.id === currentItemId;
                   return (
-                    <View key={item.id} style={[styles.orderCard, isMe && styles.orderCardMe]}>
+                    <View
+                      key={item.id}
+                      style={[
+                        styles.orderCard,
+                        isMe && styles.orderCardMe,
+                        isNow && styles.orderCardNow,
+                        live && (done || skipped) && { opacity: 0.55 },
+                      ]}
+                    >
                       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
                         <View style={{ flexDirection: "row", gap: 14, flex: 1, minWidth: 0 }}>
-                          <Text style={[styles.orderNum, isMe && { color: palette.amberDeep }]}>{String(idx + 1).padStart(2, "0")}</Text>
+                          {live ? (
+                            <Pressable
+                              onPress={() => setItemStatus(item, done || skipped ? "PLANNED" : "DONE")}
+                              hitSlop={10}
+                              accessibilityRole="checkbox"
+                              aria-checked={done}
+                              accessibilityLabel={`Mark ${item.title} ${done ? "not done" : "done"}`}
+                              style={[styles.doneCircle, done && styles.doneCircleOn]}
+                            >
+                              {done ? <Icon name="check" size={16} color={palette.onDark} /> : null}
+                            </Pressable>
+                          ) : (
+                            <Text style={[styles.orderNum, isMe && { color: palette.amberDeep }]}>{String(idx + 1).padStart(2, "0")}</Text>
+                          )}
                           <View style={{ flex: 1, minWidth: 0 }}>
-                            <Text style={styles.orderTitle} numberOfLines={3}>{item.title}</Text>
+                            {isNow ? <Text style={styles.nowLabel}>Now</Text> : null}
+                            <Text
+                              style={[styles.orderTitle, live && (done || skipped) && { textDecorationLine: "line-through" }]}
+                              numberOfLines={3}
+                            >
+                              {item.title}
+                            </Text>
+                            {live && skipped ? <Text style={styles.skippedTxt}>Skipped</Text> : null}
                             {item.notes ? <Text style={styles.orderNotes} numberOfLines={6}>{item.notes}</Text> : null}
                             {isMe ? (
                               <View style={styles.assignedRow}>
@@ -219,7 +331,16 @@ export default function ServicePlanScreen() {
                             ) : null}
                           </View>
                         </View>
-                        {item.duration_minutes != null ? (
+                        {live && !done ? (
+                          <Pressable
+                            onPress={() => setItemStatus(item, skipped ? "PLANNED" : "SKIPPED")}
+                            style={({ pressed }: { pressed: boolean }) => [styles.skipBtn, pressed && { opacity: 0.7 }]}
+                            accessibilityRole="button"
+                            accessibilityLabel={skipped ? `Restore ${item.title}` : `Skip ${item.title}`}
+                          >
+                            <Text style={styles.skipBtnTxt}>{skipped ? "Restore" : "Skip"}</Text>
+                          </Pressable>
+                        ) : item.duration_minutes != null ? (
                           <View style={[styles.durationPill, isMe && { backgroundColor: palette.amber }]}>
                             <Text style={[styles.durationTxt, isMe && { color: palette.onDark }]}>{item.duration_minutes} min</Text>
                           </View>
@@ -255,7 +376,9 @@ export default function ServicePlanScreen() {
                             <Text style={styles.teamRole} numberOfLines={1}>{roleName}</Text>
                             <Text style={[styles.teamPerson, !assignedName && { color: palette.inkMuted, fontFamily: font.regular }]} numberOfLines={1}>{assignedName ?? "Unassigned"}</Text>
                           </View>
-                          {assignedName ? <Pill label={statusLabel} tone={statusTone} /> : null}
+                          {assignedName ? (
+                            slot.checked_in_at ? <Pill label="Here" tone="success" /> : <Pill label={statusLabel} tone={statusTone} />
+                          ) : null}
                         </View>
                         {!isLast ? <Divider inset={70} /> : null}
                       </View>
@@ -302,6 +425,26 @@ const styles = StyleSheet.create({
   assignedTxt: { fontFamily: font.bold, fontSize: 12, color: palette.amberDeep },
   assignedToOther: { fontFamily: font.semibold, fontSize: 12, color: palette.inkSoft },
   durationPill: { backgroundColor: palette.sunken, paddingHorizontal: 10, paddingVertical: 4, borderRadius: radius.chip, alignSelf: "flex-start" },
+  orderCardNow: { borderWidth: 1.5, borderColor: palette.amber },
+  nowLabel: { fontFamily: font.bold, fontSize: 11, color: palette.amberInk, marginBottom: 2 },
+  skippedTxt: { fontFamily: font.medium, fontSize: 12, color: palette.inkMuted, marginTop: 4 },
+  doneCircle: {
+    width: 30, height: 30, borderRadius: 15, borderWidth: 2, borderColor: palette.line,
+    alignItems: "center", justifyContent: "center", marginTop: 1,
+  },
+  doneCircleOn: { backgroundColor: palette.amberInk, borderColor: palette.amberInk },
+  skipBtn: { paddingHorizontal: 12, minHeight: 32, borderRadius: radius.chip, backgroundColor: palette.sunken, justifyContent: "center" },
+  skipBtnTxt: { fontFamily: font.semibold, fontSize: 12, color: palette.inkSoft },
+  progressTrack: { height: 6, borderRadius: 3, backgroundColor: palette.sunken, overflow: "hidden", marginTop: -4, marginBottom: 14 },
+  progressFill: { height: 6, borderRadius: 3, backgroundColor: palette.amber },
+  checkedIn: {
+    minHeight: 46, borderRadius: radius.lg, backgroundColor: palette.amberSofter,
+    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingHorizontal: 12,
+  },
+  checkedInTxt: { fontFamily: font.semibold, fontSize: 14, color: palette.amberInk },
+  inlineError: { fontFamily: font.medium, fontSize: 13, color: palette.dangerInk, marginTop: 10 },
+  printLink: { alignSelf: "center", marginTop: 12, minHeight: 32, justifyContent: "center", paddingHorizontal: 8 },
+  printLinkTxt: { fontFamily: font.semibold, fontSize: 13, color: palette.amberInk },
   durationTxt: { fontFamily: font.bold, fontSize: 11, color: palette.inkSoft },
 
   teamCard: { backgroundColor: palette.surface, borderRadius: radius.xl, overflow: "hidden", ...shadow.sm },

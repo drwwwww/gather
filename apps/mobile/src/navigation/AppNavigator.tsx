@@ -11,6 +11,7 @@ import SearchScreen from "../screens/SearchScreen";
 import FeaturePlaceholderScreen from "../screens/FeaturePlaceholderScreen";
 import GuidedTourScreen from "../screens/GuidedTourScreen";
 import RequestToServeScreen from "../screens/RequestToServeScreen";
+import DeleteAccountScreen from "../screens/DeleteAccountScreen";
 import AppOverlays from "../components/app/AppOverlays";
 import OfflineBanner from "../components/app/OfflineBanner";
 import { ToastProvider } from "../components/ds";
@@ -46,6 +47,7 @@ export default function AppNavigator({ showServe = false }: AppNavigatorProps) {
           <Stack.Screen name="FeaturePlaceholder" component={FeaturePlaceholderScreen} />
           <Stack.Screen name="GuidedTour" component={GuidedTourScreen} presentation="modal" />
           <Stack.Screen name="RequestToServe" component={RequestToServeScreen} />
+          <Stack.Screen name="DeleteAccount" component={DeleteAccountScreen} />
         </Stack.Navigator>
         <AppOverlays />
         <OfflineBanner />

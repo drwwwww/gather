@@ -31,6 +31,8 @@ export default function DemoForm() {
   const [size, setSize] = useState("50-150");
   const [when, setWhen] = useState("flexible");
   const [message, setMessage] = useState("");
+  // Honeypot: hidden from people, filled in by form-spamming bots.
+  const [website, setWebsite] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "sent">("idle");
   const [error, setError] = useState<string | null>(null);
 
@@ -43,7 +45,7 @@ export default function DemoForm() {
       const res = await fetch("/api/demo-request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, church, email, phone, size, when, message }),
+        body: JSON.stringify({ name, church, email, phone, size, when, message, website }),
       });
       const data = (await res.json()) as { ok?: boolean; error?: string };
       if (!res.ok || !data.ok) {
@@ -158,6 +160,17 @@ export default function DemoForm() {
           placeholder="We're mostly trying to fix volunteer scheduling for our worship and kids teams…"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
+        />
+      </div>
+
+      <div aria-hidden="true" className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
+        <label htmlFor="demo-website">Website</label>
+        <input
+          id="demo-website"
+          tabIndex={-1}
+          autoComplete="off"
+          value={website}
+          onChange={(e) => setWebsite(e.target.value)}
         />
       </div>
 

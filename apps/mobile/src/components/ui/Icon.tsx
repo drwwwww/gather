@@ -39,7 +39,13 @@ export type AppIconName =
   | "image"
   | "pencil"
   | "laptop"
-  | "wave";
+  | "wave"
+  | "flag"
+  | "block"
+  | "trash"
+  | "shield"
+  | "fileText"
+  | "more";
 
 const iconMap: Record<AppIconName, React.ComponentProps<typeof MaterialCommunityIcons>["name"]> = {
   church: "church-outline",
@@ -79,6 +85,12 @@ const iconMap: Record<AppIconName, React.ComponentProps<typeof MaterialCommunity
   pencil: "pencil-outline",
   laptop: "laptop",
   wave: "hand-wave-outline",
+  flag: "flag-outline",
+  block: "account-cancel-outline",
+  trash: "trash-can-outline",
+  shield: "shield-check-outline",
+  fileText: "file-document-outline",
+  more: "dots-horizontal",
 };
 
 export function Icon({

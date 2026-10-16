@@ -9,6 +9,7 @@ import { useToast } from "../../../lib/toast";
 import ProfileCard from "../../../components/account/ProfileCard";
 import SecurityCard from "../../../components/account/SecurityCard";
 import ServeCard from "../../../components/account/ServeCard";
+import DeleteAccountCard from "../../../components/account/DeleteAccountCard";
 import type { Database } from "@gather/lib";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
@@ -112,6 +113,12 @@ export default function MemberAccountPage() {
 
       {profile?.role === "MEMBER" && (
         <ServeCard churchId={churchId} onRequested={refresh} />
+      )}
+
+      {!loading && (
+        <div className="max-w-2xl">
+          <DeleteAccountCard />
+        </div>
       )}
 
       {toast ? (

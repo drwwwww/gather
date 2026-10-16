@@ -25,7 +25,15 @@ const COLUMNS = [
       { href: "/signup", label: "Create an account" },
       { href: "/login", label: "Sign in" },
       { href: "/join", label: "Join your church" },
+    ],
+  },
+  {
+    title: "Legal",
+    links: [
       { href: "/privacy", label: "Privacy" },
+      { href: "/terms", label: "Terms" },
+      { href: "/dpa", label: "Data processing" },
+      { href: "/delete-account", label: "Delete your account" },
     ],
   },
 ];
@@ -34,7 +42,7 @@ export default function MarketingFooter() {
   return (
     <footer className="mk-rule bg-[var(--mk-ground)] px-5 pb-10 pt-16 sm:px-8">
       <div className="mx-auto max-w-[1180px]">
-        <div className="grid gap-10 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
+        <div className="grid gap-10 md:grid-cols-[1.4fr_1fr_1fr_1fr_1fr]">
           <div>
             <Link href="/" className="flex items-center gap-2.5">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -73,8 +81,11 @@ export default function MarketingFooter() {
             © {new Date().getFullYear()} Gather. Made for the local church.
           </p>
           <div className="flex gap-5">
-            <Link href="/privacy" className="text-xs text-[var(--mk-ink-faint)] hover:text-[var(--mk-ink-soft)]">
+            <Link href="/privacy" className="text-xs text-[var(--mk-ink-faint)] transition-colors hover:text-[var(--mk-ink-soft)]">
               Privacy
+            </Link>
+            <Link href="/terms" className="text-xs text-[var(--mk-ink-faint)] transition-colors hover:text-[var(--mk-ink-soft)]">
+              Terms
             </Link>
             <a
               href="mailto:support@gatherministry.online"

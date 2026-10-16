@@ -148,6 +148,6 @@ export const PRICING_FAQ = [
   },
   {
     q: "How do we cancel?",
-    a: "One click in Account settings, no phone call. You keep access through the end of the period you've paid for, and you can export your data on the way out.",
+    a: "Email us and it's done — no phone call, no retention pitch. You keep access through the end of the period you've paid for, and we'll send you a full export of your church's data on the way out.",
   },
 ];

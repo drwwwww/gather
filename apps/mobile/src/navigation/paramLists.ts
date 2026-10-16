@@ -29,4 +29,5 @@ export type AppStackParamList = {
   FeaturePlaceholder: { title: string; subtitle?: string };
   GuidedTour: undefined;
   RequestToServe: undefined;
+  DeleteAccount: undefined;
 };

@@ -2,6 +2,14 @@
     membership, which per the seed data is entirely US-based. A church
     serving international members would need real country-code selection;
     flagged rather than guessed. */
+/**
+ * Phone sign-in only works once Supabase's "Allow new users to sign up with
+ * phone" toggle is on, which requires an SMS provider. Until then the
+ * Email/Phone switch stays hidden so nobody (an App Store reviewer included)
+ * can reach a dead end. Flip with EXPO_PUBLIC_PHONE_AUTH=1.
+ */
+export const PHONE_AUTH_ENABLED = process.env.EXPO_PUBLIC_PHONE_AUTH === "1";
+
 export function toE164(raw: string): string | null {
   const trimmed = raw.trim();
   if (trimmed.startsWith("+")) {

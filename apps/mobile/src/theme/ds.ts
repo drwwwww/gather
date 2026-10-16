@@ -42,6 +42,8 @@ export const palette = {
   amberBright: "#FDB84D",
   amberSoft: "#FDECCE",
   amberSofter: "#FFF6E7",
+  /** Amber dark enough for small text/icons on white (~5:1). amber/amberDeep are ~2.1/2.9:1 — fine for fills, too faint for 11px labels. */
+  amberInk: "#B45309",
 
   // Status
   success: "#12B76A",

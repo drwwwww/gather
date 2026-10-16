@@ -4,6 +4,7 @@ import { useEffect, useRef, useMemo, useState } from "react";
 import Link from "next/link";
 import { Users, Calendar, RefreshCw, ClipboardList, ChevronDown, Trash2, StickyNote, Search, X, CheckCircle, UserPlus, RotateCcw } from "lucide-react";
 import { Button } from "../ui/button";
+import SelectMenu from "../ui/SelectMenu";
 
 type ProfileRow = { id: string; full_name: string | null; email: string | null; role: string; disabled: boolean };
 type AssignmentStatus = "OPEN" | "ASSIGNED" | "CONFIRMED" | "DECLINED";
@@ -176,20 +177,16 @@ function AssigneeCell({
   return (
     <div className="group/assignee flex items-center gap-2.5">
       <Avatar profile={profile} />
-      <div className="relative flex min-w-0 flex-1 items-center gap-1 rounded-lg px-1 py-0.5 transition-colors group-hover/assignee:bg-[var(--surface-2)]">
-        <span className={`min-w-0 flex-1 truncate text-sm font-medium ${profile ? "text-[var(--text-primary)]" : "text-[var(--text-muted)] italic"}`}>
-          {profile?.full_name || profile?.email || placeholder}
-        </span>
-        <ChevronDown className="h-3.5 w-3.5 shrink-0 text-[var(--text-muted)] opacity-0 transition-opacity group-hover/assignee:opacity-100" />
-        <select
-          className="absolute inset-0 w-full cursor-pointer opacity-0"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-        >
-          <option value="">Unassigned</option>
-          {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
-      </div>
+      <SelectMenu
+        value={value}
+        onChange={onChange}
+        options={[{ value: "", label: "Unassigned" }, ...options]}
+        placeholder={placeholder}
+        searchable={options.length > 6}
+        ariaLabel="Assigned person"
+        className="min-w-0 flex-1"
+        buttonClassName={`!border-transparent !bg-transparent !px-1 hover:!bg-[var(--surface-2)] !shadow-none font-medium ${profile ? "" : "italic !text-[var(--text-muted)]"}`}
+      />
     </div>
   );
 }
@@ -357,20 +354,18 @@ export default function AssignmentsTable({
           <div className="flex items-center gap-2 pb-3 pl-[168px]">
             <Users className="h-3.5 w-3.5 text-[var(--text-muted)]" />
             <span className="text-[11px] text-[var(--text-muted)]">Backup:</span>
-            <div className="group/backup relative inline-flex items-center gap-1 rounded-lg px-1.5 py-0.5 transition-colors hover:bg-[var(--surface-2)]">
+            <div className="inline-flex items-center gap-1">
               <Avatar profile={backupProfile} size="sm" />
-              <span className={`text-[11px] font-medium ${backupProfile ? "text-[var(--text-secondary)]" : "text-[var(--text-muted)] italic"}`}>
-                {backupProfile?.full_name || backupProfile?.email || "None"}
-              </span>
-              <ChevronDown className="h-3 w-3 shrink-0 text-[var(--text-muted)] opacity-0 transition-opacity duration-100 group-hover/backup:opacity-100" />
-              <select
-                className="absolute inset-0 w-full cursor-pointer opacity-0"
+              <SelectMenu
+                size="sm"
                 value={backupId}
-                onChange={(e) => update(row, { backup_user_id: e.target.value || null })}
-              >
-                <option value="">None</option>
-                {backupOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
+                onChange={(v) => update(row, { backup_user_id: v || null })}
+                options={[{ value: "", label: "None" }, ...backupOptions]}
+                searchable={backupOptions.length > 6}
+                ariaLabel="Backup person"
+                className="w-48"
+                buttonClassName={`!border-transparent !bg-transparent !px-1.5 hover:!bg-[var(--surface-2)] !shadow-none ${backupProfile ? "text-[var(--text-secondary)]" : "italic !text-[var(--text-muted)]"}`}
+              />
             </div>
           </div>
         </div>

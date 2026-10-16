@@ -1,7 +1,7 @@
 import { useState } from "react";
 import {
   View, Text, TextInput, Pressable,
-  KeyboardAvoidingView, Platform, ScrollView, StyleSheet,
+  KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Linking,
 } from "react-native";
 import { Icon } from "../components/ui/Icon";
 import {
@@ -9,7 +9,8 @@ import {
   palette, font, radius,
 } from "../components/ds";
 import { supabase } from "../supabase";
-import { toE164 } from "../lib/phone";
+import { toE164, PHONE_AUTH_ENABLED } from "../lib/phone";
+import { LEGAL } from "../lib/webApi";
 
 type IdentifierMode = "email" | "phone";
 
@@ -135,20 +136,22 @@ export default function SignUpScreen({ navigation }: any) {
                 autoComplete="name"
               />
 
-              <View style={styles.modeToggle}>
-                <Pressable
-                  style={[styles.modeBtn, mode === "email" && styles.modeBtnActive]}
-                  onPress={() => setMode("email")}
-                >
-                  <Text style={[styles.modeBtnTxt, mode === "email" && styles.modeBtnTxtActive]}>Email</Text>
-                </Pressable>
-                <Pressable
-                  style={[styles.modeBtn, mode === "phone" && styles.modeBtnActive]}
-                  onPress={() => setMode("phone")}
-                >
-                  <Text style={[styles.modeBtnTxt, mode === "phone" && styles.modeBtnTxtActive]}>Phone</Text>
-                </Pressable>
-              </View>
+              {PHONE_AUTH_ENABLED ? (
+                <View style={styles.modeToggle}>
+                  <Pressable
+                    style={[styles.modeBtn, mode === "email" && styles.modeBtnActive]}
+                    onPress={() => setMode("email")}
+                  >
+                    <Text style={[styles.modeBtnTxt, mode === "email" && styles.modeBtnTxtActive]}>Email</Text>
+                  </Pressable>
+                  <Pressable
+                    style={[styles.modeBtn, mode === "phone" && styles.modeBtnActive]}
+                    onPress={() => setMode("phone")}
+                  >
+                    <Text style={[styles.modeBtnTxt, mode === "phone" && styles.modeBtnTxtActive]}>Phone</Text>
+                  </Pressable>
+                </View>
+              ) : null}
 
               {mode === "email" ? (
                 <Field
@@ -188,6 +191,15 @@ export default function SignUpScreen({ navigation }: any) {
               ) : null}
 
               <Button label="Create Account" onPress={handleSignUp} loading={loading} style={{ marginTop: 8 }} />
+
+              {/* Sign-up-wrap consent: shown directly above/at the action, links open the live policies. */}
+              <Text style={styles.consent}>
+                By creating an account you agree to Gather's{" "}
+                <Text style={styles.consentLink} onPress={() => Linking.openURL(LEGAL.terms)} accessibilityRole="link">Terms of Service</Text>
+                {" "}and{" "}
+                <Text style={styles.consentLink} onPress={() => Linking.openURL(LEGAL.privacy)} accessibilityRole="link">Privacy Policy</Text>
+                , and confirm you're at least 13 years old.
+              </Text>
 
               <View style={styles.footer}>
                 <Txt variant="body" color="inkSoft">Already have an account? </Txt>
@@ -247,6 +259,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   errorTxt: { fontFamily: font.regular, fontSize: 13, color: palette.dangerInk, lineHeight: 18 },
+  consent: { fontFamily: font.regular, fontSize: 12, lineHeight: 18, color: palette.inkSoft, textAlign: "center", marginTop: 14 },
+  consentLink: { fontFamily: font.semibold, color: palette.amberInk, textDecorationLine: "underline" },
   footer: { flexDirection: "row", justifyContent: "center", alignItems: "center", marginTop: 24 },
   footerLink: { fontFamily: font.bold, fontSize: 15, color: palette.amber },
 });

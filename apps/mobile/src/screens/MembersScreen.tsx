@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
-import { View, Text, ScrollView, RefreshControl, TextInput, StyleSheet } from "react-native";
+import { View, Text, ScrollView, RefreshControl, TextInput, Pressable, StyleSheet } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { Icon } from "../components/ui/Icon";
 import {
@@ -8,6 +8,8 @@ import {
 } from "../components/ds";
 import { supabase } from "../supabase";
 import { useAuth } from "../context/AuthContext";
+import { MemberSafetySheet } from "../components/app/MemberSafetySheet";
+import { loadBlockedIds, setBlocked } from "../lib/blocks";
 
 type MemberRow = { id: string; full_name: string | null; email: string | null; role: string };
 
@@ -28,15 +30,22 @@ export default function MembersScreen({ navigation }: any) {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [blockedIds, setBlockedIds] = useState<Set<string>>(new Set());
+  const [showBlocked, setShowBlocked] = useState(false);
+  const [sheetMember, setSheetMember] = useState<MemberRow | null>(null);
 
   const load = useCallback(async () => {
     const client = supabase;
     if (!client || !profile?.church_id) { setMembers([]); setLoading(false); setRefreshing(false); return; }
-    const { data, error } = await client
-      .from("profiles")
-      .select("id, full_name, email, role")
-      .eq("church_id", profile.church_id)
-      .order("full_name", { ascending: true, nullsFirst: false });
+    const [{ data, error }, blocked] = await Promise.all([
+      client
+        .from("profiles")
+        .select("id, full_name, email, role")
+        .eq("church_id", profile.church_id)
+        .order("full_name", { ascending: true, nullsFirst: false }),
+      loadBlockedIds(),
+    ]);
+    setBlockedIds(blocked);
     if (!error && data) {
       const rows = data as MemberRow[];
       const selfFirst = [...rows].sort((a, b) => {
@@ -53,9 +62,24 @@ export default function MembersScreen({ navigation }: any) {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return members;
-    return members.filter((m) => (m.full_name ?? "").toLowerCase().includes(q) || (m.email ?? "").toLowerCase().includes(q));
-  }, [members, search]);
+    const visible = members.filter((m) => !blockedIds.has(m.id));
+    if (!q) return visible;
+    return visible.filter((m) => (m.full_name ?? "").toLowerCase().includes(q) || (m.email ?? "").toLowerCase().includes(q));
+  }, [members, search, blockedIds]);
+
+  const blockedMembers = useMemo(() => members.filter((m) => blockedIds.has(m.id)), [members, blockedIds]);
+
+  const toggleBlock = async (m: { id: string }) => {
+    if (!user?.id) return;
+    const next = !blockedIds.has(m.id);
+    const ok = await setBlocked(user.id, m.id, next);
+    if (!ok) return;
+    setBlockedIds((prev) => {
+      const s = new Set(prev);
+      if (next) s.add(m.id); else s.delete(m.id);
+      return s;
+    });
+  };
 
   return (
     <Screen>
@@ -92,7 +116,14 @@ export default function MembersScreen({ navigation }: any) {
               const displayName = m.full_name?.trim() || m.email?.split("@")[0] || "Member";
               const isSelf = m.id === user?.id;
               return (
-                <View key={m.id} style={styles.row}>
+                <Pressable
+                  key={m.id}
+                  onPress={isSelf ? undefined : () => setSheetMember(m)}
+                  disabled={isSelf}
+                  style={({ pressed }: { pressed: boolean }) => [styles.row, pressed && { opacity: 0.85 }]}
+                  accessibilityRole={isSelf ? undefined : "button"}
+                  accessibilityHint={isSelf ? undefined : "Options to report or block"}
+                >
                   <Avatar name={m.full_name} email={m.email} seed={m.id} size={46} />
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Text style={styles.name} numberOfLines={1}>
@@ -101,12 +132,40 @@ export default function MembersScreen({ navigation }: any) {
                     {m.email ? <Text style={styles.email} numberOfLines={1}>{m.email}</Text> : null}
                   </View>
                   <Pill label={roleLabel(m.role)} tone={roleTone(m.role)} />
-                </View>
+                  {!isSelf ? <Icon name="more" size={18} color={palette.inkMuted} /> : null}
+                </Pressable>
               );
             })}
           </View>
         )}
+
+        {!loading && blockedMembers.length > 0 ? (
+          <View style={{ marginTop: 28 }}>
+            <Pressable onPress={() => setShowBlocked((v) => !v)} style={styles.blockedToggle} accessibilityRole="button">
+              <Text style={styles.blockedLabel}>Blocked · {blockedMembers.length}</Text>
+              <Icon name={showBlocked ? "chevronLeft" : "chevronRight"} size={16} color={palette.inkMuted} />
+            </Pressable>
+            {showBlocked ? (
+              <View style={{ gap: 10 }}>
+                {blockedMembers.map((m) => (
+                  <Pressable key={m.id} onPress={() => setSheetMember(m)} style={[styles.row, { opacity: 0.7 }]} accessibilityRole="button">
+                    <Avatar name={m.full_name} email={m.email} seed={m.id} size={40} />
+                    <Text style={[styles.name, { flex: 1 }]} numberOfLines={1}>{m.full_name?.trim() || m.email || "Member"}</Text>
+                    <Text style={styles.unblock}>Unblock</Text>
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
+          </View>
+        ) : null}
       </ScrollView>
+
+      <MemberSafetySheet
+        member={sheetMember}
+        isBlocked={sheetMember ? blockedIds.has(sheetMember.id) : false}
+        onClose={() => setSheetMember(null)}
+        onToggleBlock={toggleBlock}
+      />
     </Screen>
   );
 }
@@ -125,4 +184,7 @@ const styles = StyleSheet.create({
   name: { fontFamily: font.bold, fontSize: 15, color: palette.ink },
   you: { fontFamily: font.regular, fontSize: 13, color: palette.inkMuted },
   email: { fontFamily: font.regular, fontSize: 12, color: palette.inkMuted, marginTop: 2 },
+  blockedToggle: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", minHeight: 44, marginBottom: 6 },
+  blockedLabel: { fontFamily: font.semibold, fontSize: 13, color: palette.inkSoft },
+  unblock: { fontFamily: font.semibold, fontSize: 13, color: palette.amberInk },
 });

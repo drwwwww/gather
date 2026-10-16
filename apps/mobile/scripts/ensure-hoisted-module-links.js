@@ -18,11 +18,15 @@ if (fs.existsSync(nestedReactNavigation)) {
   console.log("[ensure-hoisted-module-links] removed apps/mobile/node_modules/@react-navigation (monorepo hoisted copy only)");
 }
 
-const PACKAGES = [
-  "expo-font",
-  "expo-image-picker",
-  "@react-native-async-storage/async-storage",
-];
+// Every dependency this package declares — not a hand-maintained list, which
+// silently exempted every native module added after the list was written
+// (expo-blur shipped with no symlink and failed to resolve in a running dev
+// server until this ran). devDependencies are covered too since some (e.g.
+// babel-preset-expo) are also watched by Metro/autolinking.
+const pkgJson = JSON.parse(fs.readFileSync(path.join(mobileRoot, "package.json"), "utf8"));
+const PACKAGES = Object.keys({ ...pkgJson.dependencies, ...pkgJson.devDependencies }).filter(
+  (name) => name !== "@gather/lib" // real workspace package, not hoisted — must stay a normal resolve, not a root-node_modules symlink
+);
 
 for (const name of PACKAGES) {
   const target = path.resolve(workspaceRoot, "node_modules", name);

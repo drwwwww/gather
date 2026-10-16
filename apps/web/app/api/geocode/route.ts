@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getRequestUser } from "../../../lib/apiAuth";
 
 /**
  * Geocodes a free-text address to lat/lng via OpenStreetMap's Nominatim
@@ -7,6 +8,11 @@ import { NextResponse } from "next/server";
  * failure we return nulls rather than blocking the save.
  */
 export async function POST(req: Request) {
+  // Signed-in callers only, so this isn't an open proxy that gets our
+  // Nominatim User-Agent rate-limited or banned.
+  if (!(await getRequestUser(req))) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   const { address } = (await req.json().catch(() => ({}))) as { address?: string };
   const trimmed = address?.trim();
   if (!trimmed) {

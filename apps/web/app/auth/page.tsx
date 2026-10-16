@@ -441,10 +441,14 @@ export default function AuthPage() {
           {tab === "signup" && (
             <p className="mt-4 text-center text-xs leading-relaxed" style={{ color: "#b8a898" }}>
               By creating an account, you agree to our{" "}
+              <Link href="/terms" className="underline hover:opacity-70" style={{ color: "#9c8778" }}>
+                Terms of Service
+              </Link>{" "}
+              and{" "}
               <Link href="/privacy" className="underline hover:opacity-70" style={{ color: "#9c8778" }}>
                 Privacy Policy
               </Link>
-              .
+              , and confirm you&apos;re at least 13.
             </p>
           )}
         </div>

@@ -8,7 +8,6 @@ type Profile = {
   church_id: string | null;
   full_name: string | null;
   email: string | null;
-  phone: string | null;
   role: string;
   disabled: boolean;
   avatar_url: string | null;
@@ -17,7 +16,7 @@ type Profile = {
   profile_completed_at: string | null;
 };
 
-const PROFILE_COLUMNS = "id, church_id, full_name, email, phone, role, disabled, avatar_url, favorite_verse, ministry_interests, profile_completed_at";
+const PROFILE_COLUMNS = "id, church_id, full_name, email, role, disabled, avatar_url, favorite_verse, ministry_interests, profile_completed_at";
 
 type AuthState = {
   loading: boolean;
@@ -68,7 +67,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .insert({
           id: authUser.id,
           email: authUser.email ?? null,
-          phone: authUser.phone ? (authUser.phone.startsWith("+") ? authUser.phone : `+${authUser.phone}`) : null,
           full_name: (authUser.user_metadata?.full_name as string | undefined) ?? null,
           role: "MEMBER",
           disabled: false,
@@ -76,6 +74,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .select(PROFILE_COLUMNS)
         .single();
       if (error) return null;
+      // Phone lives in profile_private (owner + admins only), not the
+      // directory-visible profiles row.
+      if (authUser.phone) {
+        const phone = authUser.phone.startsWith("+") ? authUser.phone : `+${authUser.phone}`;
+        await client.from("profile_private").upsert({ user_id: authUser.id, phone } as any);
+      }
       return created as Profile;
     };
 
@@ -123,7 +127,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     (async () => {
       const token = await registerForPushNotificationsAsync();
       if (!cancelled && token) {
-        await client.from("profiles").update({ expo_push_token: token } as any).eq("id", profile.id);
+        // profile_private, not profiles: a push token lets anyone holding it
+        // notify this device, and profiles is readable by the whole church.
+        await client
+          .from("profile_private")
+          .upsert({ user_id: profile.id, expo_push_token: token, updated_at: new Date().toISOString() } as any);
       }
     })();
     return () => { cancelled = true; };
