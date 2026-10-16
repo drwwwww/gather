@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { X, Calendar, Shield, Wrench, User, Trash2, Copy, Mail } from "lucide-react";
+import Avatar from "../ui/avatar";
 
 type MemberAssignment = {
   id: string;
@@ -10,6 +11,7 @@ type MemberAssignment = {
 };
 
 type MemberDetailsDrawerProps = {
+  avatarUrl?: string | null;
   open: boolean;
   memberName: string;
   memberEmail: string;
@@ -53,20 +55,10 @@ function avatarColor(name: string) {
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 }
 
-function initials(name: string, email: string) {
-  const n = name.trim();
-  if (n) {
-    const parts = n.split(/\s+/).filter(Boolean);
-    if (parts.length >= 2) return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
-    return n.slice(0, 2).toUpperCase();
-  }
-  return (email.split("@")[0] ?? "?").slice(0, 2).toUpperCase() || "?";
-}
-
 export default function MemberDetailsDrawer({
   open, memberName, memberEmail, roleLabel, statusLabel, source,
   assignments, joinedAt, onClose, onRemoveFromChurch, onRemoveInvite,
-  onCopyInvite, removeFromChurchDisabled, children,
+  onCopyInvite, removeFromChurchDisabled, children, avatarUrl,
 }: MemberDetailsDrawerProps) {
   if (!open) return null;
 
@@ -74,7 +66,6 @@ export default function MemberDetailsDrawer({
   const statusMeta = STATUS_META[statusLabel] ?? STATUS_META.ACTIVE;
   const RoleIcon   = roleMeta.icon;
   const avatarCls  = avatarColor(memberName || memberEmail);
-  const memberInitials = initials(memberName, memberEmail);
 
   const confirmRemove = () => {
     if (removeFromChurchDisabled || !onRemoveFromChurch) return;
@@ -116,9 +107,13 @@ export default function MemberDetailsDrawer({
           {/* Identity */}
           <div className="px-6 py-6 space-y-4">
             <div className="flex items-center gap-4">
-              <span className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-full text-xl font-bold ${avatarCls}`}>
-                {memberInitials}
-              </span>
+              <Avatar
+                name={memberName}
+                email={memberEmail}
+                imageUrl={avatarUrl}
+                size={64}
+                className={`text-xl font-bold ${avatarCls}`}
+              />
               <div className="min-w-0">
                 <h2 className="truncate text-lg font-bold text-[var(--text-primary)]">
                   {memberName || "(No name)"}

@@ -5,8 +5,9 @@ import Link from "next/link";
 import { Users, Calendar, RefreshCw, ClipboardList, ChevronDown, Trash2, StickyNote, Search, X, CheckCircle, UserPlus, RotateCcw } from "lucide-react";
 import { Button } from "../ui/button";
 import SelectMenu from "../ui/SelectMenu";
+import PersonAvatar from "../ui/avatar";
 
-type ProfileRow = { id: string; full_name: string | null; email: string | null; role: string; disabled: boolean };
+type ProfileRow = { id: string; full_name: string | null; email: string | null; role: string; disabled: boolean; avatar_url?: string | null };
 type AssignmentStatus = "OPEN" | "ASSIGNED" | "CONFIRMED" | "DECLINED";
 
 export type BulletinSlotRow = {
@@ -70,23 +71,23 @@ const STATUS_META: Record<AssignmentStatus, { label: string; bar: string; badge:
 type StatusFilter = "ALL" | AssignmentStatus;
 type UnifiedRow = { kind: "bulletin"; data: BulletinSlotRow } | { kind: "item"; data: BulletinItemRow };
 
-function initials(p: ProfileRow | undefined) {
-  if (!p) return "?";
-  const n = p.full_name?.trim();
-  if (n) {
-    const parts = n.split(/\s+/);
-    return parts.length >= 2 ? `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase() : n.slice(0, 2).toUpperCase();
-  }
-  return (p.email?.slice(0, 2) ?? "??").toUpperCase();
-}
-
 function Avatar({ profile, size = "md" }: { profile: ProfileRow | undefined; size?: "sm" | "md" }) {
-  const sz = size === "sm" ? "h-6 w-6 text-[9px]" : "h-8 w-8 text-[11px]";
-  const bg = profile ? "bg-amber-100 text-amber-700" : "bg-[var(--surface-2)] text-[var(--text-muted)]";
+  if (!profile) {
+    const sz = size === "sm" ? "h-6 w-6 text-[9px]" : "h-8 w-8 text-[11px]";
+    return (
+      <span className={`flex shrink-0 items-center justify-center rounded-full bg-[var(--surface-2)] font-bold text-[var(--text-muted)] ${sz}`}>
+        —
+      </span>
+    );
+  }
   return (
-    <span className={`flex shrink-0 items-center justify-center rounded-full font-bold ${sz} ${bg}`}>
-      {profile ? initials(profile) : "—"}
-    </span>
+    <PersonAvatar
+      name={profile.full_name}
+      email={profile.email}
+      imageUrl={profile.avatar_url}
+      size={size === "sm" ? 24 : 32}
+      className={`bg-amber-100 font-bold text-amber-700 ${size === "sm" ? "text-[9px]" : "text-[11px]"}`}
+    />
   );
 }
 

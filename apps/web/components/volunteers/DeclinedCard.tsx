@@ -1,22 +1,18 @@
 "use client";
 
 import { UserX, CheckCircle2 } from "lucide-react";
+import Avatar from "../ui/avatar";
 
 type DeclinedItem = {
   id: string;
   role: string;
   detail: string;
+  avatarUrl?: string | null;
 };
 
 type DeclinedCardProps = {
   items: DeclinedItem[];
 };
-
-function initials(name: string) {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length >= 2) return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
-  return name.slice(0, 2).toUpperCase() || "?";
-}
 
 export default function DeclinedCard({ items }: DeclinedCardProps) {
   const safeItems = Array.isArray(items) ? items : [];
@@ -54,9 +50,8 @@ export default function DeclinedCard({ items }: DeclinedCardProps) {
         <ul className="divide-y divide-[var(--border)]">
           {safeItems.slice(0, 6).map((item) => (
             <li key={item.id} className="flex items-center gap-3 px-5 py-3">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-100 text-[11px] font-bold text-red-600">
-                {initials(item.detail)}
-              </span>
+              <Avatar name={item.detail} imageUrl={item.avatarUrl} size={32}
+                className="bg-red-100 text-[11px] font-bold text-red-600" />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold text-[var(--text-primary)]">{item.detail}</p>
                 <p className="truncate text-xs text-[var(--text-muted)]">{item.role}</p>

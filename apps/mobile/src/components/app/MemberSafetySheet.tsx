@@ -5,7 +5,7 @@ import { Icon } from "../ui/Icon";
 import { Avatar, Button, palette, font, radius, space } from "../ds";
 import { postWebApi } from "../../lib/webApi";
 
-export type SafetyMember = { id: string; full_name: string | null; email: string | null };
+export type SafetyMember = { id: string; full_name: string | null; email: string | null; avatar_url?: string | null };
 
 const REASONS = [
   { key: "INAPPROPRIATE", label: "Inappropriate photo or profile" },
@@ -76,7 +76,7 @@ export function MemberSafetySheet({
           <View style={styles.grabber} />
 
           <View style={styles.head}>
-            <Avatar name={member.full_name} email={member.email} seed={member.id} size={44} />
+            <Avatar imageUri={member.avatar_url} name={member.full_name} email={member.email} seed={member.id} size={44} />
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text style={styles.name} numberOfLines={1}>{name}</Text>
               {member.email ? <Text style={styles.sub} numberOfLines={1}>{member.email}</Text> : null}

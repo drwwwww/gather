@@ -11,7 +11,7 @@ import { useAuth } from "../context/AuthContext";
 
 type EventResult = { id: string; title: string; location: string | null; start_at: string };
 type AnnouncementResult = { id: string; title: string; body: string | null; publish_at: string | null; image_url: string | null };
-type MemberResult = { id: string; full_name: string | null; email: string | null; role: string };
+type MemberResult = { id: string; full_name: string | null; email: string | null; role: string; avatar_url: string | null };
 
 function whenLabel(iso: string): string {
   try {
@@ -67,7 +67,7 @@ export default function SearchScreen({ navigation }: any) {
         .limit(8),
       client
         .from("profiles")
-        .select("id, full_name, email, role")
+        .select("id, full_name, email, role, avatar_url")
         .eq("church_id", churchId)
         .or(`full_name.ilike.${like},email.ilike.${like}`)
         .order("full_name", { ascending: true })
@@ -206,7 +206,7 @@ export default function SearchScreen({ navigation }: any) {
                     style={styles.row}
                     onPress={() => navigation.navigate("Members")}
                   >
-                    <Avatar name={m.full_name} email={m.email} seed={m.id} size={38} />
+                    <Avatar imageUri={m.avatar_url} name={m.full_name} email={m.email} seed={m.id} size={38} />
                     <View style={{ flex: 1, minWidth: 0 }}>
                       <Text style={styles.rowTitle} numberOfLines={1}>
                         {m.full_name?.trim() || m.email?.split("@")[0] || "Member"}

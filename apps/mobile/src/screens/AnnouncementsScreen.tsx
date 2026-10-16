@@ -75,7 +75,7 @@ export default function AnnouncementsScreen({ navigation }: any) {
 
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingHorizontal: space.gutter, paddingTop: 12, paddingBottom: 130 }}
+        contentContainerStyle={{ paddingHorizontal: space.gutter, paddingTop: 12, paddingBottom: space.xxl }}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); void load(); }} tintColor={palette.amber} />}
       >

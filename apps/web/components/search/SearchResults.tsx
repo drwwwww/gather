@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Calendar, Megaphone, UserRound, ArrowRight } from "lucide-react";
 import type { Database } from "@gather/lib";
+import Avatar from "../ui/avatar";
 
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 type EventRow = Database["public"]["Tables"]["events"]["Row"];
@@ -120,7 +121,6 @@ export default function SearchResults({ query, profiles, events, announcements }
         ) : (
           profiles.map((p) => {
             const name = p.full_name || p.email || "Unknown";
-            const initials = name.slice(0, 2).toUpperCase();
             const role = p.role ?? "MEMBER";
             return (
               <Link
@@ -128,9 +128,8 @@ export default function SearchResults({ query, profiles, events, announcements }
                 href="/people"
                 className="flex items-center gap-3 px-4 py-3 no-underline transition-colors hover:bg-[var(--surface-2)]"
               >
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-100 text-[11px] font-bold text-amber-700">
-                  {initials}
-                </span>
+                <Avatar name={p.full_name} email={p.email} imageUrl={p.avatar_url} size={32}
+                  className="bg-amber-100 text-[11px] font-bold text-amber-700" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium text-[var(--text-primary)]">{name}</p>
                   {p.full_name && (

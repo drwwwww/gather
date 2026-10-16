@@ -349,11 +349,23 @@ export function Avatar({
   /** A real photo (local picker URI or uploaded public URL) — falls back to initials when absent. */
   imageUri?: string | null;
 }) {
-  if (imageUri) {
+  // A broken or deleted photo URL falls back to initials instead of a blank circle.
+  const [failedUri, setFailedUri] = React.useState<string | null>(null);
+  if (imageUri && failedUri !== imageUri) {
     return (
       <Image
         source={{ uri: imageUri }}
-        style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: palette.sunken }}
+        onError={() => setFailedUri(imageUri)}
+        accessibilityIgnoresInvertColors
+        style={{
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          backgroundColor: palette.sunken,
+          // Neutral hairline so light photos don't bleed into white cards.
+          borderWidth: StyleSheet.hairlineWidth,
+          borderColor: "rgba(0,0,0,0.1)",
+        }}
       />
     );
   }

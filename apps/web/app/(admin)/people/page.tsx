@@ -384,7 +384,7 @@ export default function PeoplePage() {
           />
 
           <MembersTable
-            members={filteredMembers.map((m) => ({ ...m, createdAt: m.profile?.created_at }))}
+            members={filteredMembers.map((m) => ({ ...m, createdAt: m.profile?.created_at, avatarUrl: m.profile?.avatar_url ?? null }))}
             roleOptions={roleOptions}
             onRoleChange={handleRoleChange}
             onToggleStatus={handleStatusToggle}
@@ -408,6 +408,7 @@ export default function PeoplePage() {
           source={selectedMember?.source ?? "member"}
           assignments={selectedAssignments}
           joinedAt={selectedMember?.profile?.created_at ?? undefined}
+          avatarUrl={selectedMember?.profile?.avatar_url ?? null}
           onClose={() => setSelectedMemberId(null)}
           onCopyInvite={selectedMember?.source === "invite" ? () => handleCopyInvite(selectedMember.id) : undefined}
           onRemoveFromChurch={

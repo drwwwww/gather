@@ -2,6 +2,7 @@
 
 import { Bell, CheckCircle2, Send } from "lucide-react";
 import type { PendingRow } from "../dashboard/PendingConfirmationsCard";
+import Avatar from "../ui/avatar";
 
 type PendingResponsesCardProps = {
   items: PendingRow[];
@@ -9,12 +10,6 @@ type PendingResponsesCardProps = {
   onNudge?: (row: PendingRow) => void;
   nudgingId?: string | null;
 };
-
-function initials(name: string) {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length >= 2) return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
-  return name.slice(0, 2).toUpperCase() || "?";
-}
 
 export default function PendingResponsesCard({ items, onFollowUp, onNudge, nudgingId }: PendingResponsesCardProps) {
   const safeItems = Array.isArray(items) ? items : [];
@@ -59,9 +54,8 @@ export default function PendingResponsesCard({ items, onFollowUp, onNudge, nudgi
         <ul className="divide-y divide-[var(--border)]">
           {safeItems.map((row) => (
             <li key={row.id} className="flex items-center gap-3 px-5 py-3">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-100 text-[11px] font-bold text-amber-700">
-                {initials(row.assignee)}
-              </span>
+              <Avatar name={row.assignee} imageUrl={row.avatarUrl} size={32}
+                className="bg-amber-100 text-[11px] font-bold text-amber-700" />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold text-[var(--text-primary)]">{row.assignee}</p>
                 <p className="truncate text-xs text-[var(--text-muted)]">{row.role}</p>

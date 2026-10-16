@@ -9,22 +9,13 @@ import {
   Layers, Megaphone, Calendar, Bell, Settings, LogOut,
 } from "lucide-react";
 import { supabase } from "../../lib/supabaseClient";
+import Avatar from "../ui/avatar";
 
 function avatarFromUserMetadata(meta: unknown): string | null {
   if (!meta || typeof meta !== "object") return null;
   const m = meta as Record<string, unknown>;
   const url = m.avatar_url ?? m.picture;
   return typeof url === "string" && url.length > 0 ? url : null;
-}
-
-function adminInitials(fullName: string, email: string) {
-  const n = fullName.trim();
-  if (n) {
-    const parts = n.split(/\s+/).filter(Boolean);
-    if (parts.length >= 2) return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
-    return n.slice(0, 2).toUpperCase();
-  }
-  return (email.split("@")[0] ?? "?").slice(0, 2).toUpperCase() || "?";
 }
 
 const NAV_MAIN = [
@@ -93,11 +84,13 @@ export default function AdminShell({ children }: { children: ReactNode }) {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("full_name, email, role, church_id")
+        .select("full_name, email, role, church_id, avatar_url")
         .eq("id", userId)
         .maybeSingle();
 
       if (!profile) return;
+      // The photo members upload (mobile or Account) wins over an OAuth picture.
+      if (profile.avatar_url) setAvatarUrl(profile.avatar_url);
       if (profile.role !== "ADMIN") {
         router.replace(pathname === "/account" ? "/member/account" : "/member");
         return;
@@ -112,6 +105,10 @@ export default function AdminShell({ children }: { children: ReactNode }) {
       }
     };
     loadProfile();
+    // Account page fires this after a photo upload/removal so the header updates in place.
+    const onAvatar = (e: Event) => setAvatarUrl((e as CustomEvent<string | null>).detail ?? null);
+    window.addEventListener("gather-avatar-updated", onAvatar);
+    return () => window.removeEventListener("gather-avatar-updated", onAvatar);
   }, []);
 
   useEffect(() => {
@@ -132,7 +129,6 @@ export default function AdminShell({ children }: { children: ReactNode }) {
     }
   }, [notificationScope]);
 
-  const initials = adminInitials(displayName, userEmail);
 
   const isActive = (href: string) =>
     href === "/admin" ? pathname === href : pathname?.startsWith(href) ?? false;
@@ -186,13 +182,13 @@ export default function AdminShell({ children }: { children: ReactNode }) {
           {/* User profile */}
           <div className="border-t border-[var(--border)] px-3 py-3">
             <div className="flex items-center gap-2.5">
-              {avatarUrl ? (
-                <img src={avatarUrl} alt={displayName} className="h-8 w-8 shrink-0 rounded-full object-cover ring-2 ring-[var(--border)]" />
-              ) : (
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-100 text-[10px] font-bold text-amber-700">
-                  {initials}
-                </span>
-              )}
+              <Avatar
+                name={displayName}
+                email={userEmail}
+                imageUrl={avatarUrl}
+                size={32}
+                className="bg-amber-100 text-[10px] font-bold text-amber-700"
+              />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-xs font-semibold text-[var(--text-primary)]">{displayName}</p>
                 <p className="truncate text-[10px] text-[var(--text-muted)]">Administrator</p>
@@ -251,14 +247,14 @@ export default function AdminShell({ children }: { children: ReactNode }) {
                   <span className="absolute right-1.5 top-1.5 flex h-[7px] w-[7px] items-center justify-center rounded-full bg-red-500" />
                 )}
               </Link>
-              <Link href="/account" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl overflow-hidden transition-colors hover:ring-2 hover:ring-amber-300">
-                {avatarUrl ? (
-                  <img src={avatarUrl} alt={displayName} className="h-9 w-9 rounded-xl object-cover" />
-                ) : (
-                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-100 text-[11px] font-bold text-amber-700">
-                    {initials}
-                  </span>
-                )}
+              <Link href="/account" aria-label="Account settings" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-shadow hover:ring-2 hover:ring-amber-300 focus-visible:ring-2 focus-visible:ring-amber-400">
+                <Avatar
+                  name={displayName}
+                  email={userEmail}
+                  imageUrl={avatarUrl}
+                  size={36}
+                  className="bg-amber-100 text-[11px] font-bold text-amber-700"
+                />
               </Link>
             </div>
           </header>

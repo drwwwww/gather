@@ -7,7 +7,6 @@ import { navigate } from "../../navigation/navigationRef";
 
 // Swap for any photo that reads as "you're part of the team" / "welcome home".
 const FIRST_ASSIGNMENT_IMAGE = "https://images.unsplash.com/photo-1509062522246-3755977927d7?w=900&q=80";
-const TUTORIAL_IMAGE = "https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=900&q=80";
 
 /**
  * Mounted once, as a sibling of the main Stack.Navigator inside
@@ -29,10 +28,10 @@ export default function AppOverlays() {
       <CenterCardModal
         visible={showTutorial}
         onClose={dismissTutorial}
-        imageUri={TUTORIAL_IMAGE}
+        icon="wave"
         eyebrow="Welcome to Gather"
-        title="You're in! Want the two-minute tour?"
-        body="See how to check announcements, RSVP to events, and — if you're on a serving team — manage your schedule. Takes about two minutes."
+        title="You're in. Take a quick tour?"
+        body="A one-minute look at where news, events and your serving schedule live. You can replay it any time from your profile."
         primaryLabel="Show me around"
         onPrimaryPress={() => {
           dismissTutorial();

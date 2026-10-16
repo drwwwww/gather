@@ -18,12 +18,21 @@ type PlanRow = { id: string; title: string; service_date: string; start_time: st
 type PlanItemRow = { id: string; title: string; duration_minutes: number | null; notes: string; status: string; assigned_user_id: string | null; backup_user_id: string | null; assignment_status: string | null; checked_in_at: string | null };
 type RoleSlotRow = { id: string; role_id: string; assigned_user_id: string | null; backup_user_id: string | null; status: string; checked_in_at: string | null };
 type VolunteerRoleRow = { id: string; name: string };
-type ProfilePeer = { id: string; full_name: string | null; email: string | null };
+type ProfilePeer = { id: string; full_name: string | null; email: string | null; avatar_url: string | null };
 
 function peerName(map: Record<string, ProfilePeer>, userId: string | null): string | null {
   if (!userId) return null;
   const p = map[userId];
   return p ? (p.full_name?.trim() || p.email || null) : null;
+}
+/** YYYY-MM-DD for "now" in an IANA timezone (en-CA formats dates as ISO). */
+function todayInTimeZone(tz: string): string {
+  try { return new Date().toLocaleDateString("en-CA", { timeZone: tz }); }
+  catch { return new Date().toISOString().slice(0, 10); }
+}
+function formatWeekday(dateStr: string): string {
+  try { return new Date(dateStr + "T00:00:00").toLocaleDateString(undefined, { weekday: "long" }); }
+  catch { return "on service day"; }
 }
 function formatClock(iso: string): string {
   try { return new Date(iso).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }); }
@@ -66,7 +75,10 @@ export default function ServicePlanScreen() {
   const [checkInError, setCheckInError] = useState<string | null>(null);
   const [live, setLive] = useState(false);
 
-  const isServiceTeam = profile?.role === "ADMIN" || profile?.role === "SERVICE";
+  const [churchTz, setChurchTz] = useState<string>("America/New_York");
+
+  // Running the service is an admin job; volunteers only check themselves in.
+  const canRunService = profile?.role === "ADMIN";
   const myUserId = profile?.id ?? null;
 
   const roleLookup = useMemo(() => roles.reduce<Record<string, string>>((acc, r) => { acc[r.id] = r.name; return acc; }, {}), [roles]);
@@ -101,6 +113,10 @@ export default function ServicePlanScreen() {
   const checkedInAt =
     myPrimary.length > 0 && myPrimary.every(Boolean) ? ([...myPrimary].sort()[0] as string) : null;
 
+  // Check-in opens on the service day in the church's timezone (the server
+  // enforces the same rule in check_in_to_plan).
+  const isServiceDay = !!plan && plan.service_date === todayInTimeZone(churchTz);
+
   const doneCount = items.filter((i) => i.status === "DONE" || i.status === "SKIPPED").length;
   const currentItemId = items.find((i) => i.status === "PLANNED")?.id ?? null;
 
@@ -114,7 +130,12 @@ export default function ServicePlanScreen() {
   const load = useCallback(async () => {
     if (!supabase || !profile?.church_id) { setError("Unable to load profile."); setLoading(false); setRefreshing(false); return; }
     setError(null);
-    const today = new Date().toISOString().slice(0, 10);
+    const { data: churchRow } = await supabase.from("churches").select("timezone").eq("id", profile.church_id).maybeSingle();
+    const tz = (churchRow as { timezone: string | null } | null)?.timezone || "America/New_York";
+    setChurchTz(tz);
+    // "Today" in the church's timezone — a UTC date would drop Sunday's plan
+    // on Sunday evening in the US.
+    const today = todayInTimeZone(tz);
     const { data: planData, error: planError } = await supabase
       .from("service_plans")
       .select("id, title, service_date, start_time")
@@ -130,7 +151,7 @@ export default function ServicePlanScreen() {
       supabase.from("service_plan_items").select("id, title, duration_minutes, notes, status, assigned_user_id, backup_user_id, assignment_status, checked_in_at").eq("plan_id", planData.id).order("position"),
       supabase.from("service_plan_role_slots").select("id, role_id, assigned_user_id, backup_user_id, status, checked_in_at").eq("plan_id", planData.id).order("sort_order"),
       supabase.from("volunteer_roles").select("id, name").eq("church_id", profile.church_id),
-      supabase.from("profiles").select("id, full_name, email").eq("church_id", profile.church_id).eq("disabled", false),
+      supabase.from("profiles").select("id, full_name, email, avatar_url").eq("church_id", profile.church_id).eq("disabled", false),
     ]);
     setItems(itemRes.error ? [] : (itemRes.data ?? []) as PlanItemRow[]);
     setRoleSlots(slotRes.error ? [] : (slotRes.data ?? []) as RoleSlotRow[]);
@@ -149,7 +170,15 @@ export default function ServicePlanScreen() {
     setCheckInError(null);
     const { error: rpcError } = await supabase.rpc("check_in_to_plan", { p_plan_id: plan.id } as any);
     setCheckingIn(false);
-    if (rpcError) { setCheckInError("Couldn't check you in. Try again in a moment."); return; }
+    if (rpcError) {
+      setCheckInError(
+        String(rpcError.message).includes("NOT_SERVICE_DAY")
+          ? "Check-in opens on the day of the service."
+          : "Couldn't check you in. Try again in a moment."
+      );
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
+      return;
+    }
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     void load();
   };
@@ -181,7 +210,7 @@ export default function ServicePlanScreen() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: space.gutter, paddingTop: 12, paddingBottom: 130 }}
+        contentContainerStyle={{ paddingHorizontal: space.gutter, paddingTop: 12, paddingBottom: space.xxl }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); void load(); }} tintColor={palette.amber} />}
       >
         {loading ? (
@@ -198,7 +227,7 @@ export default function ServicePlanScreen() {
               <Text style={styles.heroTitle}>{planTitle}</Text>
               <Text style={styles.heroMeta}>{dateLine}</Text>
               <View style={styles.statWrap}><StatGrid items={heroStats} columns={3} /></View>
-              {myPrimary.length > 0 || (isServiceTeam && items.length > 0) ? (
+              {myPrimary.length > 0 || (canRunService && items.length > 0) ? (
                 <View style={{ flexDirection: "row", gap: 10, marginTop: 6 }}>
                   {myPrimary.length > 0 ? (
                     <View style={{ flex: 1 }}>
@@ -207,12 +236,19 @@ export default function ServicePlanScreen() {
                           <Icon name="checkCircle" size={18} color={palette.amberInk} />
                           <Text style={styles.checkedInTxt}>Checked in · {formatClock(checkedInAt)}</Text>
                         </View>
-                      ) : (
+                      ) : isServiceDay ? (
                         <Button label="Check in" icon="check" loading={checkingIn} style={{ minHeight: 46 }} onPress={handleCheckIn} />
+                      ) : (
+                        <View style={styles.checkInLater} accessibilityRole="text">
+                          <Icon name="clock" size={16} color={palette.inkSoft} />
+                          <Text style={styles.checkInLaterTxt} numberOfLines={1}>
+                            Check-in opens {formatWeekday(plan.service_date)}
+                          </Text>
+                        </View>
                       )}
                     </View>
                   ) : null}
-                  {isServiceTeam && items.length > 0 ? (
+                  {canRunService && items.length > 0 ? (
                     <View style={{ flex: 1 }}>
                       <Button
                         label={live ? "Stop running" : "Run service"}
@@ -368,7 +404,7 @@ export default function ServicePlanScreen() {
                       <View key={slot.id}>
                         <View style={styles.teamRow}>
                           {assignedName ? (
-                            <Avatar name={assignedName} size={42} seed={slot.assigned_user_id ?? roleName} />
+                            <Avatar imageUri={slot.assigned_user_id ? peers[slot.assigned_user_id]?.avatar_url : null} name={assignedName} size={42} seed={slot.assigned_user_id ?? roleName} />
                           ) : (
                             <View style={styles.emptyAvatar}><Icon name="add" size={18} color={palette.inkMuted} /></View>
                           )}
@@ -441,6 +477,11 @@ const styles = StyleSheet.create({
     minHeight: 46, borderRadius: radius.lg, backgroundColor: palette.amberSofter,
     flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingHorizontal: 12,
   },
+  checkInLater: {
+    minHeight: 46, borderRadius: radius.lg, backgroundColor: palette.sunken,
+    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingHorizontal: 12,
+  },
+  checkInLaterTxt: { fontFamily: font.semibold, fontSize: 14, color: palette.inkSoft },
   checkedInTxt: { fontFamily: font.semibold, fontSize: 14, color: palette.amberInk },
   inlineError: { fontFamily: font.medium, fontSize: 13, color: palette.dangerInk, marginTop: 10 },
   printLink: { alignSelf: "center", marginTop: 12, minHeight: 32, justifyContent: "center", paddingHorizontal: 8 },

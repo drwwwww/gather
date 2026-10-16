@@ -6,6 +6,7 @@ export type TeamRow = {
   id: string;
   role: string;
   assignee: string;
+  avatarUrl?: string | null;
   status: string;
 };
 

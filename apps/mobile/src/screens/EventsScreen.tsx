@@ -275,7 +275,7 @@ export default function EventsScreen({ navigation }: any) {
 
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: 132, paddingTop: 4 }}
+        contentContainerStyle={{ paddingBottom: space.xxl, paddingTop: 4 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl

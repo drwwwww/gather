@@ -1,129 +1,153 @@
-import { useEffect, useRef, useState } from "react";
-import { View, Text, Pressable, Animated, Easing, useWindowDimensions, StyleSheet, NativeSyntheticEvent, NativeScrollEvent } from "react-native";
-import type { AppIconName } from "../components/ui/Icon";
-import { Screen, Txt, Button, IconChip, PulseRing, palette, font } from "../components/ds";
+import { useRef, useState } from "react";
+import {
+  View, Text, Pressable, Animated, Platform, useWindowDimensions, StyleSheet,
+  NativeSyntheticEvent, NativeScrollEvent,
+} from "react-native";
+import * as Haptics from "expo-haptics";
+import { Icon, type AppIconName } from "../components/ui/Icon";
+import { Screen, Button, BrandMark, palette, font, radius, shadow, space } from "../components/ds";
+import { MEMBER_TABS, SERVE_TABS, type TabDef } from "../components/app/TabBar";
 import { useAuth } from "../context/AuthContext";
+import { useReduceMotion } from "../hooks/useReduceMotion";
 
-type Slide = { icon: AppIconName; title: string; body: string };
+type Slide = {
+  key: string;
+  title: string;
+  body: string;
+  /** Which real tab this slide is about — drawn as a miniature tab bar. */
+  tab?: string;
+  hero?: "brand" | AppIconName;
+};
 
-const BASE_SLIDES: Slide[] = [
+const MEMBER_SLIDES: Slide[] = [
   {
-    icon: "church",
+    key: "welcome",
+    hero: "brand",
     title: "Welcome to Gather",
-    body: "Everything about your church community lives here — announcements, events, and your people, all in one calm place.",
+    body: "Your church's news, events and people — in one calm place.",
   },
   {
-    icon: "announcements",
-    title: "Stay in the loop",
-    body: "New announcements show up on Home and under the Announcements tab. You'll get a toast the moment one goes out while you're in the app.",
+    key: "news",
+    tab: "Announcements",
+    title: "News from your church",
+    body: "Announcements land here first. If one goes out while you're in the app, you'll see it right away.",
   },
   {
-    icon: "events",
+    key: "events",
+    tab: "Events",
     title: "RSVP in a tap",
-    body: "Browse upcoming events and let your church know you're coming — right from the event's detail screen.",
+    body: "See what's coming up — at your church and at churches nearby — and let them know you're coming.",
   },
 ];
 
-const SERVE_SLIDE: Slide = {
-  icon: "serve",
-  title: "Manage your schedule",
-  body: "When you're on the schedule, you'll find it under the Serve tab — confirm or decline, and see exactly what you're serving in.",
-};
+const SERVE_SLIDES: Slide[] = [
+  {
+    key: "serve",
+    tab: "Serve",
+    title: "Your serving schedule",
+    body: "When you're scheduled, it shows up here. Confirm or decline in one tap so your team knows where things stand.",
+  },
+  {
+    key: "plan",
+    tab: "ServicePlan",
+    title: "Sunday's plan",
+    body: "The order of service and who's on the team. On the day, tap Check in when you arrive.",
+  },
+];
 
-const CLOSING_SLIDE: Slide = {
-  icon: "checkCircle",
+const CLOSING: Slide = {
+  key: "done",
+  hero: "checkCircle",
   title: "You're all set",
-  body: "That's the whole tour. Explore at your own pace — everything here is easy to find again from the Home tab.",
+  body: "Replay this tour any time from your profile.",
 };
 
-/** Idle up/down bob so a slide's icon feels alive even when nobody's swiping. */
-function useFloat() {
-  const anim = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(anim, { toValue: 1, duration: 1400, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-        Animated.timing(anim, { toValue: 0, duration: 1400, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-      ])
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [anim]);
-  return anim.interpolate({ inputRange: [0, 1], outputRange: [0, -8] });
-}
-
-function SlideView({ slide, index, width, scrollX, isClosing }: { slide: Slide; index: number; width: number; scrollX: Animated.Value; isClosing?: boolean }) {
-  const inputRange = [(index - 1) * width, index * width, (index + 1) * width];
-  const iconScale = scrollX.interpolate({ inputRange, outputRange: [0.55, 1, 0.55], extrapolate: "clamp" });
-  const iconRotate = scrollX.interpolate({ inputRange, outputRange: ["-8deg", "0deg", "8deg"], extrapolate: "clamp" });
-  const iconOpacity = scrollX.interpolate({ inputRange, outputRange: [0.25, 1, 0.25], extrapolate: "clamp" });
-  // Floor raised well above 0 and the range narrowed — this used to hit full
-  // gray-out for most of the swipe, which read as low-contrast/hard to read
-  // rather than a subtle motion cue. The rise (translateY) still does the
-  // visible "arriving" motion; opacity now only lightly accents it.
-  const narrowRange = [(index - 0.6) * width, index * width, (index + 0.6) * width];
-  const contentOpacity = scrollX.interpolate({ inputRange: narrowRange, outputRange: [0.55, 1, 0.55], extrapolate: "clamp" });
-  const contentTranslateY = scrollX.interpolate({ inputRange, outputRange: [16, 0, 16], extrapolate: "clamp" });
-  const floatY = useFloat();
-
+/** A miniature of the real tab bar with the slide's tab lit — shows exactly
+    where to tap, using the same icons and labels as the bar below. */
+function TabPreview({ tabs, activeKey }: { tabs: TabDef[]; activeKey: string }) {
   return (
-    <View style={[styles.slide, { width }]}>
-      <View style={styles.iconStage}>
-        {isClosing ? <PulseRing size={96} color={palette.amber} /> : null}
-        <Animated.View
-          style={{
-            opacity: iconOpacity,
-            transform: [{ scale: iconScale }, { rotate: iconRotate }, { translateY: floatY }],
-          }}
-        >
-          <IconChip name={slide.icon} tone="amber" size={96} iconSize={44} />
-        </Animated.View>
-      </View>
-      <Animated.View style={{ opacity: contentOpacity, transform: [{ translateY: contentTranslateY }] }}>
-        <Txt variant="h1" center style={{ marginTop: 28, marginBottom: 12 }}>{slide.title}</Txt>
-        <Txt variant="body" color="inkSoft" center style={{ maxWidth: 300, lineHeight: 22, alignSelf: "center" }}>{slide.body}</Txt>
-      </Animated.View>
+    <View style={styles.preview} accessible accessibilityLabel={`${tabs.find((t) => t.key === activeKey)?.label} tab`}>
+      {tabs.map((t) => {
+        const on = t.key === activeKey;
+        return (
+          <View key={t.key} style={styles.previewItem}>
+            <View style={[styles.previewIcon, on && styles.previewIconOn]}>
+              <Icon name={t.icon} size={22} color={on ? palette.amberInk : palette.inkMuted} />
+            </View>
+            <Text style={[styles.previewLabel, on && styles.previewLabelOn]} numberOfLines={1}>
+              {t.shortLabel}
+            </Text>
+          </View>
+        );
+      })}
     </View>
   );
 }
 
-function Dot({ index, page, width, scrollX, onPress }: { index: number; page: number; width: number; scrollX: Animated.Value; onPress: () => void }) {
-  const inputRange = [(index - 1) * width, index * width, (index + 1) * width];
-  // `width` isn't animatable on the native driver — only transform/opacity are.
-  // scaleX on a fixed-size dot gives the same "worm" grow effect (and the
-  // stretched circle reading as a pill is exactly the look we want anyway).
-  const dotScaleX = scrollX.interpolate({ inputRange, outputRange: [1, 3, 1], extrapolate: "clamp" });
-  const dotOpacity = scrollX.interpolate({ inputRange, outputRange: [0.35, 1, 0.35], extrapolate: "clamp" });
+function SlideView({
+  slide, index, width, scrollX, tabs, reduceMotion,
+}: {
+  slide: Slide; index: number; width: number; scrollX: Animated.Value; tabs: TabDef[]; reduceMotion: boolean;
+}) {
+  // One quiet motion only: the illustration drifts at a slower rate than the
+  // page (light parallax). No idle bobbing, no rotation, text stays fully
+  // legible throughout the swipe.
+  const range = [(index - 1) * width, index * width, (index + 1) * width];
+  const drift = reduceMotion
+    ? 0
+    : scrollX.interpolate({ inputRange: range, outputRange: [width * 0.25, 0, -width * 0.25], extrapolate: "clamp" });
+
   return (
-    <Pressable onPress={onPress} hitSlop={8}>
-      <Animated.View style={[styles.dot, { opacity: dotOpacity, transform: [{ scaleX: dotScaleX }] }]} />
-    </Pressable>
+    <View style={[styles.slide, { width }]}>
+      <Animated.View style={[styles.stage, { transform: [{ translateX: drift as any }] }]}>
+        {slide.tab ? (
+          <TabPreview tabs={tabs} activeKey={slide.tab} />
+        ) : slide.hero === "brand" ? (
+          <BrandMark size={88} rounding={28} />
+        ) : slide.hero ? (
+          <View style={styles.heroChip}>
+            <Icon name={slide.hero} size={40} color={palette.amberInk} />
+          </View>
+        ) : null}
+      </Animated.View>
+
+      <View style={styles.copy}>
+        <Text style={styles.title} accessibilityRole="header">{slide.title}</Text>
+        <Text style={styles.body}>{slide.body}</Text>
+      </View>
+    </View>
   );
 }
 
 export default function GuidedTourScreen({ navigation }: any) {
   const { profile } = useAuth();
-  const showServe = profile?.role === "SERVICE" || profile?.role === "ADMIN";
-  const slides: Slide[] = [...BASE_SLIDES, ...(showServe ? [SERVE_SLIDE] : []), CLOSING_SLIDE];
+  const reduceMotion = useReduceMotion();
+  const serves = profile?.role === "SERVICE" || profile?.role === "ADMIN";
+  const tabs = serves ? SERVE_TABS : MEMBER_TABS;
+  const slides: Slide[] = [...MEMBER_SLIDES, ...(serves ? SERVE_SLIDES : []), CLOSING];
 
   const { width } = useWindowDimensions();
   const [page, setPage] = useState(0);
   const scrollX = useRef(new Animated.Value(0)).current;
-  // `any` here, not sloppiness: this project's react-native type resolution is
-  // broken project-wide (pre-existing, unrelated to this screen — see other
-  // files' identical "no exported member" errors), so ScrollView's instance
-  // type doesn't resolve cleanly either way. .scrollTo() is standard RN.
   const scrollRef = useRef<any>(null);
+  const isFirst = page === 0;
   const isLast = page === slides.length - 1;
 
   const goToPage = (i: number) => {
-    scrollRef.current?.scrollTo({ x: i * width, animated: true });
-    setPage(i);
+    const next = Math.max(0, Math.min(slides.length - 1, i));
+    scrollRef.current?.scrollTo({ x: next * width, animated: !reduceMotion });
+    if (next !== page) {
+      setPage(next);
+      Haptics.selectionAsync().catch(() => {});
+    }
   };
 
-  const onScrollJS = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+  const onMomentumEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const i = Math.round(e.nativeEvent.contentOffset.x / width);
-    if (i !== page) setPage(i);
+    if (i !== page) {
+      setPage(i);
+      Haptics.selectionAsync().catch(() => {});
+    }
   };
 
   const finish = () => {
@@ -133,44 +157,66 @@ export default function GuidedTourScreen({ navigation }: any) {
 
   return (
     <Screen edges={["top", "bottom"]}>
-      <View style={{ flex: 1 }}>
-        <View style={styles.topRow}>
-          <View style={{ flex: 1 }} />
-          {!isLast ? (
-            <Pressable onPress={finish} hitSlop={10}>
-              <Text style={styles.skip}>Skip</Text>
+      <View style={styles.topRow}>
+        <Text style={styles.counter} accessibilityLiveRegion="polite">
+          {page + 1} of {slides.length}
+        </Text>
+        {!isLast ? (
+          <Pressable
+            onPress={finish}
+            hitSlop={space.sm}
+            accessibilityRole="button"
+            accessibilityLabel="Skip tour"
+            style={({ pressed }: { pressed: boolean }) => [styles.skip, pressed && { opacity: 0.55 }]}
+          >
+            <Text style={styles.skipTxt}>Skip</Text>
+          </Pressable>
+        ) : null}
+      </View>
+
+      <Animated.ScrollView
+        ref={scrollRef}
+        horizontal
+        pagingEnabled
+        bounces={false}
+        showsHorizontalScrollIndicator={false}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { x: scrollX } } }], { useNativeDriver: true })}
+        onMomentumScrollEnd={onMomentumEnd}
+        scrollEventThrottle={16}
+        style={{ flex: 1 }}
+      >
+        {slides.map((slide, i) => (
+          <SlideView key={slide.key} slide={slide} index={i} width={width} scrollX={scrollX} tabs={tabs} reduceMotion={reduceMotion} />
+        ))}
+      </Animated.ScrollView>
+
+      <View style={styles.bottom}>
+        {/* Segmented progress: completed segments filled, so position reads at a glance. */}
+        <View style={styles.progress} accessible={false}>
+          {slides.map((s, i) => (
+            <Pressable
+              key={s.key}
+              onPress={() => goToPage(i)}
+              hitSlop={{ top: space.md, bottom: space.md }}
+              style={styles.segmentHit}
+              accessibilityRole="button"
+              accessibilityLabel={`Go to step ${i + 1}`}
+            >
+              <View style={[styles.segment, i <= page && styles.segmentOn]} />
             </Pressable>
-          ) : null}
+          ))}
         </View>
 
-        <Animated.ScrollView
-          ref={scrollRef}
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          onScroll={Animated.event(
-            [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-            { useNativeDriver: true, listener: onScrollJS }
-          )}
-          scrollEventThrottle={16}
-          style={{ flex: 1 }}
-        >
-          {slides.map((slide, i) => (
-            <SlideView key={i} slide={slide} index={i} width={width} scrollX={scrollX} isClosing={i === slides.length - 1 && isLast} />
-          ))}
-        </Animated.ScrollView>
-
-        <View style={styles.bottom}>
-          <View style={styles.dots}>
-            {slides.map((_, i) => (
-              <Dot key={i} index={i} page={page} width={width} scrollX={scrollX} onPress={() => goToPage(i)} />
-            ))}
+        <View style={styles.actions}>
+          {!isFirst ? (
+            <Button label="Back" variant="ghost" full={false} onPress={() => goToPage(page - 1)} style={styles.backBtn} />
+          ) : null}
+          <View style={{ flex: 1 }}>
+            <Button
+              label={isLast ? "Start using Gather" : "Next"}
+              onPress={isLast ? finish : () => goToPage(page + 1)}
+            />
           </View>
-          <Button
-            label={isLast ? "Get started" : "Next"}
-            onPress={isLast ? finish : () => goToPage(page + 1)}
-            icon={isLast ? undefined : "arrowRight"}
-          />
         </View>
       </View>
     </Screen>
@@ -178,11 +224,47 @@ export default function GuidedTourScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  topRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 24, height: 44 },
-  skip: { fontFamily: font.semibold, fontSize: 14, color: palette.inkMuted },
-  slide: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 },
-  iconStage: { alignItems: "center", justifyContent: "center" },
-  bottom: { paddingHorizontal: 28, paddingBottom: 8, gap: 20 },
-  dots: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7 },
-  dot: { width: 7, height: 7, borderRadius: 3.5, backgroundColor: palette.amber },
+  topRow: {
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    paddingHorizontal: space.gutter, minHeight: 44,
+  },
+  counter: { fontFamily: font.medium, fontSize: 13, color: palette.inkMuted },
+  skip: { minHeight: 44, minWidth: 44, alignItems: "flex-end", justifyContent: "center" },
+  skipTxt: { fontFamily: font.semibold, fontSize: 15, color: palette.inkSoft },
+
+  slide: { flex: 1, paddingHorizontal: space.xl, justifyContent: "center" },
+  stage: { height: 180, alignItems: "center", justifyContent: "center" },
+  heroChip: {
+    width: 88, height: 88, borderRadius: radius.lg, backgroundColor: palette.amberSofter,
+    alignItems: "center", justifyContent: "center",
+  },
+  copy: { marginTop: space.xl, alignItems: "center" },
+  title: {
+    fontFamily: font.bold, fontSize: 26, lineHeight: 32, letterSpacing: -0.4,
+    color: palette.ink, textAlign: "center",
+  },
+  body: {
+    fontFamily: font.regular, fontSize: 16, lineHeight: 24, color: palette.inkSoft,
+    textAlign: "center", marginTop: space.md, maxWidth: 320,
+  },
+
+  preview: {
+    flexDirection: "row", alignSelf: "stretch", backgroundColor: palette.surface,
+    borderRadius: radius.lg, paddingVertical: space.md, paddingHorizontal: space.sm,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: palette.line,
+    ...Platform.select({ ios: shadow.md, android: { elevation: 3 }, default: shadow.md }),
+  },
+  previewItem: { flex: 1, alignItems: "center", gap: space.xs },
+  previewIcon: { width: 44, height: 32, borderRadius: radius.chip, alignItems: "center", justifyContent: "center" },
+  previewIconOn: { backgroundColor: palette.amberSofter },
+  previewLabel: { fontFamily: font.medium, fontSize: 11, color: palette.inkMuted },
+  previewLabelOn: { fontFamily: font.semibold, color: palette.amberInk },
+
+  bottom: { paddingHorizontal: space.gutter, paddingBottom: space.sm, gap: space.lg },
+  progress: { flexDirection: "row", gap: space.xs },
+  segmentHit: { flex: 1, justifyContent: "center" },
+  segment: { height: 4, borderRadius: 2, backgroundColor: palette.line },
+  segmentOn: { backgroundColor: palette.amber },
+  actions: { flexDirection: "row", alignItems: "center", gap: space.md },
+  backBtn: { paddingHorizontal: space.xl },
 });

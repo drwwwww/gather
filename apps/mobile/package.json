@@ -45,6 +45,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@expo/ngrok": "^4.1.0",
     "@types/react": "~19.2.18",
     "babel-preset-expo": "~57.0.10",
     "cross-env": "^10.1.0",

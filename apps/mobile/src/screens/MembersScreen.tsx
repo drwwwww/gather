@@ -11,7 +11,7 @@ import { useAuth } from "../context/AuthContext";
 import { MemberSafetySheet } from "../components/app/MemberSafetySheet";
 import { loadBlockedIds, setBlocked } from "../lib/blocks";
 
-type MemberRow = { id: string; full_name: string | null; email: string | null; role: string };
+type MemberRow = { id: string; full_name: string | null; email: string | null; role: string; avatar_url: string | null };
 
 function roleTone(role: string): "amber" | "success" | "neutral" {
   if (role === "ADMIN") return "amber";
@@ -40,7 +40,7 @@ export default function MembersScreen({ navigation }: any) {
     const [{ data, error }, blocked] = await Promise.all([
       client
         .from("profiles")
-        .select("id, full_name, email, role")
+        .select("id, full_name, email, role, avatar_url")
         .eq("church_id", profile.church_id)
         .order("full_name", { ascending: true, nullsFirst: false }),
       loadBlockedIds(),
@@ -124,7 +124,7 @@ export default function MembersScreen({ navigation }: any) {
                   accessibilityRole={isSelf ? undefined : "button"}
                   accessibilityHint={isSelf ? undefined : "Options to report or block"}
                 >
-                  <Avatar name={m.full_name} email={m.email} seed={m.id} size={46} />
+                  <Avatar imageUri={m.avatar_url} name={m.full_name} email={m.email} seed={m.id} size={46} />
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Text style={styles.name} numberOfLines={1}>
                       {displayName}{isSelf ? <Text style={styles.you}>  you</Text> : null}
@@ -149,7 +149,7 @@ export default function MembersScreen({ navigation }: any) {
               <View style={{ gap: 10 }}>
                 {blockedMembers.map((m) => (
                   <Pressable key={m.id} onPress={() => setSheetMember(m)} style={[styles.row, { opacity: 0.7 }]} accessibilityRole="button">
-                    <Avatar name={m.full_name} email={m.email} seed={m.id} size={40} />
+                    <Avatar imageUri={m.avatar_url} name={m.full_name} email={m.email} seed={m.id} size={40} />
                     <Text style={[styles.name, { flex: 1 }]} numberOfLines={1}>{m.full_name?.trim() || m.email || "Member"}</Text>
                     <Text style={styles.unblock}>Unblock</Text>
                   </Pressable>

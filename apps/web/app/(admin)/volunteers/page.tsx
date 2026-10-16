@@ -180,6 +180,7 @@ export default function VolunteersPage() {
         assignee: s.assigned_user_id && profilesById[s.assigned_user_id]
           ? profilesById[s.assigned_user_id]?.full_name || "Assigned"
           : "Unassigned",
+        avatarUrl: s.assigned_user_id ? profilesById[s.assigned_user_id]?.avatar_url ?? null : null,
         status: s.status
       }));
     const bulletinItemsPending = bulletinItems
@@ -190,6 +191,7 @@ export default function VolunteersPage() {
         assignee: i.assigned_user_id && profilesById[i.assigned_user_id]
           ? profilesById[i.assigned_user_id]?.full_name || "Assigned"
           : "Unassigned",
+        avatarUrl: i.assigned_user_id ? profilesById[i.assigned_user_id]?.avatar_url ?? null : null,
         status: i.status
       }));
     return [...slotItems, ...bulletinItemsPending];
@@ -203,7 +205,8 @@ export default function VolunteersPage() {
         role: s.role_name,
         detail: s.assigned_user_id && profilesById[s.assigned_user_id]
           ? profilesById[s.assigned_user_id]?.full_name || "Assigned"
-          : "Unassigned"
+          : "Unassigned",
+        avatarUrl: s.assigned_user_id ? profilesById[s.assigned_user_id]?.avatar_url ?? null : null
       }));
     const bulletinItemsDeclined = bulletinItems
       .filter((i) => i.status === "DECLINED")
@@ -212,7 +215,8 @@ export default function VolunteersPage() {
         role: i.title,
         detail: i.assigned_user_id && profilesById[i.assigned_user_id]
           ? profilesById[i.assigned_user_id]?.full_name || "Assigned"
-          : "Unassigned"
+          : "Unassigned",
+        avatarUrl: i.assigned_user_id ? profilesById[i.assigned_user_id]?.avatar_url ?? null : null
       }));
     return [...slotItems, ...bulletinItemsDeclined];
   }, [bulletinSlots, bulletinItems, profilesById]);

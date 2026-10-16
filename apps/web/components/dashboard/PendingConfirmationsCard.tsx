@@ -7,6 +7,7 @@ export type PendingRow = {
   role: string;
   assignee: string;
   status: string;
+  avatarUrl?: string | null;
 };
 
 function stitchIconForRole(role: string) {

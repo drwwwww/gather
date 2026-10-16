@@ -9,6 +9,7 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../supabase";
 import { LEGAL } from "../lib/webApi";
+import { useAvatarEditor } from "../hooks/useAvatarEditor";
 
 function roleTone(role: string): "amber" | "success" | "neutral" {
   if (role === "ADMIN") return "amber";
@@ -33,6 +34,7 @@ function MenuRow({ icon, label, onPress }: { icon: any; label: string; onPress: 
 
 export default function ProfileMenuScreen({ navigation }: any) {
   const { user, profile } = useAuth();
+  const avatar = useAvatarEditor();
   const [churchName, setChurchName] = useState<string | null>(null);
   const [loadingChurch, setLoadingChurch] = useState(false);
 
@@ -59,7 +61,22 @@ export default function ProfileMenuScreen({ navigation }: any) {
       <AppBar title="Profile" onBack={() => navigation.goBack()} />
       <ScrollView contentContainerStyle={{ paddingHorizontal: space.gutter, paddingBottom: 60 }} showsVerticalScrollIndicator={false}>
         <View style={styles.head}>
-          <Avatar name={displayName} email={email} tone="amber" size={88} />
+          <Pressable
+            onPress={avatar.choose}
+            disabled={avatar.busy}
+            accessibilityRole="button"
+            accessibilityLabel={avatar.photoUri ? "Change profile photo" : "Add profile photo"}
+            style={({ pressed }: { pressed: boolean }) => [styles.avatarBtn, pressed && { opacity: 0.8 }]}
+          >
+            <Avatar imageUri={avatar.photoUri} name={displayName} email={email} tone="amber" size={88} />
+            {avatar.busy ? (
+              <View style={styles.avatarBusy}><ActivityIndicator color={palette.onDark} /></View>
+            ) : null}
+            <View style={styles.avatarBadge}>
+              <Icon name="camera" size={15} color={palette.onDark} />
+            </View>
+          </Pressable>
+          {avatar.error ? <Text style={styles.avatarError}>{avatar.error}</Text> : null}
           <Text style={styles.name}>{displayName}</Text>
           {email ? <Text style={styles.email}>{email}</Text> : null}
           <View style={{ marginTop: 12 }}><Pill label={roleLabel(role)} tone={roleTone(role)} /></View>
@@ -93,6 +110,8 @@ export default function ProfileMenuScreen({ navigation }: any) {
 
         <Text style={styles.groupLabel}>Help & legal</Text>
         <View style={styles.card}>
+          <MenuRow icon="sparkle" label="App tour" onPress={() => navigation.navigate("GuidedTour")} />
+          <Divider inset={58} />
           <MenuRow icon="mail" label="Contact support" onPress={() => Linking.openURL(`mailto:${LEGAL.supportEmail}`)} />
           <Divider inset={58} />
           <MenuRow icon="shield" label="Privacy policy" onPress={() => Linking.openURL(LEGAL.privacy)} />
@@ -123,6 +142,18 @@ const styles = StyleSheet.create({
   infoValue: { fontFamily: font.bold, fontSize: 14, color: palette.ink },
   menuRow: { flexDirection: "row", alignItems: "center", gap: 14, padding: 16 },
   menuIcon: { width: 36, height: 36, borderRadius: 12, backgroundColor: palette.amberSofter, alignItems: "center", justifyContent: "center" },
+  avatarBtn: { width: 88, height: 88 },
+  avatarBusy: {
+    ...StyleSheet.absoluteFillObject, borderRadius: 44,
+    backgroundColor: "rgba(0,0,0,0.35)", alignItems: "center", justifyContent: "center",
+  },
+  // Camera badge: the affordance that the photo is tappable.
+  avatarBadge: {
+    position: "absolute", right: -2, bottom: -2, width: 30, height: 30, borderRadius: 15,
+    backgroundColor: palette.amberInk, borderWidth: 3, borderColor: palette.bg,
+    alignItems: "center", justifyContent: "center",
+  },
+  avatarError: { fontFamily: font.medium, fontSize: 13, color: palette.dangerInk, marginTop: 10, textAlign: "center" },
   menuLabel: { fontFamily: font.semibold, fontSize: 15, color: palette.ink, flex: 1 },
   groupLabel: {
     fontFamily: font.semibold, fontSize: 12, letterSpacing: 0.6, textTransform: "uppercase",

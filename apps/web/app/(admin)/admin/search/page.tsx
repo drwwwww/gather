@@ -44,7 +44,7 @@ export default function SearchPage() {
 
       const like = `%${query}%`;
       const [profilesResult, eventsResult, announcementsResult] = await Promise.all([
-        supabase.from("profiles").select("id, full_name, email, role")
+        supabase.from("profiles").select("id, full_name, email, role, avatar_url")
           .eq("church_id", profile.church_id)
           .or(`full_name.ilike.${like},email.ilike.${like}`)
           .limit(5),

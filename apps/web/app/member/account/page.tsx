@@ -106,6 +106,9 @@ export default function MemberAccountPage() {
             onNameChange={setProfileName}
             onSave={handleSaveProfile}
             saveDisabled={profileSaveDisabled}
+            userId={profile?.id}
+            avatarUrl={profile?.avatar_url ?? null}
+            onAvatarChange={(url) => setProfile((prev) => (prev ? { ...prev, avatar_url: url } : prev))}
           />
           <SecurityCard onChangePassword={handleChangePassword} onSignOut={handleSignOut} />
         </div>

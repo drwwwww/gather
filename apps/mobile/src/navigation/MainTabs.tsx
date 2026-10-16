@@ -33,13 +33,8 @@ export default function MainTabs() {
     headerShown: false,
     lazy: false,
     freezeOnBlur: false,
-    tabBarStyle: {
-      position: "absolute" as const,
-      backgroundColor: "transparent",
-      borderTopWidth: 0,
-      elevation: 0,
-    },
-    sceneContainerStyle: { paddingBottom: 88 },
+    // The custom TabBar sits in normal flow below the scenes, so each screen
+    // ends exactly at the bar — no absolute positioning or padding guesses.
   } as const;
 
   if (showServe) {

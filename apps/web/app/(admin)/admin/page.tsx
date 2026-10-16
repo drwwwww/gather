@@ -21,6 +21,7 @@ import type { EventRow } from "../../../components/dashboard/UpcomingEventsCard"
 import type { RosterMix } from "../../../components/dashboard/RosterDonutCard";
 import RosterDonutCard from "../../../components/dashboard/RosterDonutCard";
 import UpcomingEventsCard from "../../../components/dashboard/UpcomingEventsCard";
+import Avatar from "../../../components/ui/avatar";
 
 type EventItem = Database["public"]["Tables"]["events"]["Row"];
 type AnnouncementRow = Database["public"]["Tables"]["announcements"]["Row"];
@@ -43,12 +44,6 @@ function greeting(hour: number) {
 
 function firstName(name: string) {
   return name.trim().split(/\s+/)[0] ?? "there";
-}
-
-function assigneeInitials(label: string) {
-  const parts = label.trim().split(/\s+/).filter(Boolean);
-  if (parts.length >= 2) return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
-  return label.slice(0, 2).toUpperCase();
 }
 
 const AVATAR_COLORS = [
@@ -113,7 +108,7 @@ export default function AdminEntryPage() {
         supabase.from("events").select("*").eq("church_id", profile.church_id).order("start_at", { ascending: true }),
         supabase.from("announcements").select("*").eq("church_id", profile.church_id),
         supabase.from("volunteer_roles").select("id, name").eq("church_id", profile.church_id),
-        supabase.from("profiles").select("id, full_name, email, role, created_at").eq("church_id", profile.church_id),
+        supabase.from("profiles").select("id, full_name, email, role, created_at, avatar_url").eq("church_id", profile.church_id),
         supabase.from("churches").select("address, name, worship_days").eq("id", profile.church_id).maybeSingle(),
         supabase.from("service_plans").select("id, service_date, title, start_time").eq("church_id", profile.church_id).order("service_date", { ascending: true }),
       ]);
@@ -135,6 +130,7 @@ export default function AdminEntryPage() {
 
     const rolesById = new Map(roles.map((r) => [r.id, r.name]));
     const profilesById = new Map(profiles.map((p) => [p.id, p.full_name || p.email || "Member"]));
+    const avatarById = new Map(profiles.map((p) => [p.id, p.avatar_url ?? null]));
 
     // Prefer an actual scheduled plan's date; fall back to projecting the church's worship_days.
     const nextService = nextPlanRow ? null : getNextWorshipDate(church?.worship_days ?? [0]);
@@ -179,18 +175,18 @@ export default function AdminEntryPage() {
     setRosterMix({ open: slotOpen + itemOpen, assigned: slotAssigned + itemAssigned, confirmed: slotConfirmed + itemConfirmed, declined: slotDeclined + itemDeclined });
 
     setTeamRows([
-      ...planSlots.map((s) => ({ id: `r-${s.id}`, role: rolesById.get(s.role_id) || "Role", assignee: s.assigned_user_id ? profilesById.get(s.assigned_user_id) || "Assigned" : "Open", status: s.status })),
-      ...planItems.filter((i) => !!i.assigned_user_id).map((i) => ({ id: `i-${i.id}`, role: i.title, assignee: profilesById.get(i.assigned_user_id!) || "Assigned", status: normItemStatus(i) })),
+      ...planSlots.map((s) => ({ id: `r-${s.id}`, role: rolesById.get(s.role_id) || "Role", assignee: s.assigned_user_id ? profilesById.get(s.assigned_user_id) || "Assigned" : "Open", avatarUrl: s.assigned_user_id ? avatarById.get(s.assigned_user_id) : null, status: s.status })),
+      ...planItems.filter((i) => !!i.assigned_user_id).map((i) => ({ id: `i-${i.id}`, role: i.title, assignee: profilesById.get(i.assigned_user_id!) || "Assigned", avatarUrl: avatarById.get(i.assigned_user_id!), status: normItemStatus(i) })),
     ]);
 
     setPendingRows([
       ...planSlots.filter((s) => s.status === "ASSIGNED" || s.status === "DECLINED").map((s) => ({
         id: `r-${s.id}`, role: rolesById.get(s.role_id) || "Role",
-        assignee: s.assigned_user_id ? profilesById.get(s.assigned_user_id) || "Member" : "Unassigned", status: s.status,
+        assignee: s.assigned_user_id ? profilesById.get(s.assigned_user_id) || "Member" : "Unassigned", avatarUrl: s.assigned_user_id ? avatarById.get(s.assigned_user_id) : null, status: s.status,
       })),
       ...planItems.filter((i) => { const st = normItemStatus(i); return st === "ASSIGNED" || st === "DECLINED"; }).map((i) => ({
         id: `i-${i.id}`, role: i.title,
-        assignee: i.assigned_user_id ? profilesById.get(i.assigned_user_id) || "Member" : "Unassigned", status: normItemStatus(i),
+        assignee: i.assigned_user_id ? profilesById.get(i.assigned_user_id) || "Member" : "Unassigned", avatarUrl: i.assigned_user_id ? avatarById.get(i.assigned_user_id) : null, status: normItemStatus(i),
       })),
     ].slice(0, 5));
 
@@ -352,9 +348,9 @@ export default function AdminEntryPage() {
               <div className="mb-4 flex items-center gap-2.5">
                 <div className="flex -space-x-2">
                   {avatarPreview.map((row) => (
-                    <span key={row.id} title={row.assignee}
-                      className={`flex h-8 w-8 items-center justify-center rounded-full border-2 border-amber-100 text-[10px] font-bold ${avatarColor(row.assignee)}`}>
-                      {assigneeInitials(row.assignee)}
+                    <span key={row.id} title={row.assignee} className="rounded-full ring-2 ring-amber-100">
+                      <Avatar name={row.assignee} imageUrl={row.avatarUrl} size={32}
+                        className={`text-[10px] font-bold ${avatarColor(row.assignee)}`} />
                     </span>
                   ))}
                   {extraAvatars > 0 && (
@@ -455,9 +451,8 @@ export default function AdminEntryPage() {
                 <ul className="divide-y divide-[var(--border)]">
                   {pendingRows.map((row) => (
                     <li key={row.id} className="flex items-center gap-3 px-5 py-3">
-                      <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold ${row.status === "DECLINED" ? "bg-red-100 text-red-600" : "bg-amber-100 text-amber-700"}`}>
-                        {assigneeInitials(row.assignee)}
-                      </span>
+                      <Avatar name={row.assignee} imageUrl={row.avatarUrl} size={32}
+                        className={`text-[11px] font-bold ${row.status === "DECLINED" ? "bg-red-100 text-red-600" : "bg-amber-100 text-amber-700"}`} />
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-semibold text-[var(--text-primary)]">{row.assignee}</p>
                         <p className="truncate text-xs text-[var(--text-muted)]">{row.role}</p>

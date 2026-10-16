@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Users, MoreHorizontal, Copy, Trash2, UserMinus, Shield, Wrench, User } from "lucide-react";
 import { formatRelativeTime } from "../../lib/format";
 import type { Role } from "@gather/lib";
+import Avatar from "../ui/avatar";
 
 export type MemberStatus = "ACTIVE" | "INACTIVE" | "INVITED";
 
@@ -17,6 +18,7 @@ export type MemberRow = {
   source: "member" | "invite";
   isCurrentUser: boolean;
   createdAt?: string;
+  avatarUrl?: string | null;
 };
 
 type MembersTableProps = {
@@ -43,16 +45,6 @@ const ROLE_META: Record<string, { icon: typeof Shield; label: string; cls: strin
   SERVICE: { icon: Wrench,  label: "Service Team",  cls: "text-blue-700   bg-blue-50"   },
   MEMBER:  { icon: User,    label: "Member",        cls: "text-slate-600  bg-slate-100" },
 };
-
-function memberInitials(name: string, email: string) {
-  const n = name.trim();
-  if (n) {
-    const parts = n.split(/\s+/).filter(Boolean);
-    if (parts.length >= 2) return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
-    return n.slice(0, 2).toUpperCase();
-  }
-  return (email.split("@")[0] ?? "?").slice(0, 2).toUpperCase() || "?";
-}
 
 const AVATAR_COLORS = [
   "bg-violet-100 text-violet-700",
@@ -167,7 +159,6 @@ export default function MembersTable({
             </tr>
           ) : (
             members.map((member) => {
-              const initials = memberInitials(member.name || "", member.email);
               const avatarCls = avatarColor(member.name || member.email);
               const statusMeta = STATUS_META[member.status];
               const roleMeta = ROLE_META[member.role] ?? ROLE_META.MEMBER;
@@ -185,9 +176,13 @@ export default function MembersTable({
                   {/* Member: avatar + name + email */}
                   <td className="py-4 pl-6 pr-4">
                     <div className="flex items-center gap-3 min-w-0">
-                      <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-bold ${avatarCls}`}>
-                        {initials}
-                      </span>
+                      <Avatar
+                        name={member.name}
+                        email={member.email}
+                        imageUrl={member.avatarUrl}
+                        size={40}
+                        className={`text-xs font-bold ${avatarCls}`}
+                      />
                       <div className="min-w-0">
                         <p className="truncate font-semibold text-[var(--text-primary)] group-hover:text-amber-700 transition-colors">
                           {member.name || "(No name)"}

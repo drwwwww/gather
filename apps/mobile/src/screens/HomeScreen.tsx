@@ -299,7 +299,7 @@ export default function HomeScreen({ navigation }: any) {
       {/* ── Header: identity left, actions grouped right (Monzo) ── */}
       <View style={styles.topRow}>
         <Pressable onPress={() => navigation.navigate("ProfileMenu")} style={styles.identity}>
-          <Avatar name={profile?.full_name ?? user?.user_metadata?.full_name} tone="amber" size={40} />
+          <Avatar imageUri={profile?.avatar_url} name={profile?.full_name ?? user?.user_metadata?.full_name} tone="amber" size={40} />
           <View style={{ minWidth: 0 }}>
             <Text style={styles.eyebrow}>{greetingFor(hour)}</Text>
             <Text style={styles.churchName} numberOfLines={1}>
@@ -334,7 +334,7 @@ export default function HomeScreen({ navigation }: any) {
 
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: 132 }}
+        contentContainerStyle={{ paddingBottom: space.xxl }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={palette.amber} />

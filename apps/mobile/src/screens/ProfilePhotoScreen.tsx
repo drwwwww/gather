@@ -1,70 +1,15 @@
-import { useState } from "react";
 import { View, Text, Pressable, StyleSheet, ActivityIndicator } from "react-native";
-import * as ImagePicker from "expo-image-picker";
 import { Icon } from "../components/ui/Icon";
 import {
   Screen, Txt, Button, Avatar, OnboardingProgress,
   palette, font, radius,
 } from "../components/ds";
-import { supabase } from "../supabase";
 import { useAuth } from "../context/AuthContext";
-
-async function uploadAvatar(userId: string, uri: string): Promise<string | null> {
-  if (!supabase) return null;
-  try {
-    const ext = uri.split(".").pop()?.toLowerCase().split("?")[0] || "jpg";
-    const contentType = ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : ext === "gif" ? "image/gif" : "image/jpeg";
-    const path = `${userId}/${Date.now()}.${ext}`;
-    const response = await fetch(uri);
-    const blob = await response.blob();
-    const { error: uploadError } = await supabase.storage.from("avatars").upload(path, blob, { contentType, upsert: true });
-    if (uploadError) return null;
-    const { data } = supabase.storage.from("avatars").getPublicUrl(path);
-    return data.publicUrl;
-  } catch {
-    return null;
-  }
-}
+import { useAvatarEditor } from "../hooks/useAvatarEditor";
 
 export default function ProfilePhotoScreen({ navigation }: any) {
-  const { user, profile, refreshProfile } = useAuth();
-  const [localUri, setLocalUri] = useState<string | null>(profile?.avatar_url ?? null);
-  const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const pick = async (source: "library" | "camera") => {
-    setError(null);
-    const perm =
-      source === "library"
-        ? await ImagePicker.requestMediaLibraryPermissionsAsync()
-        : await ImagePicker.requestCameraPermissionsAsync();
-    if (!perm.granted) {
-      setError(source === "library" ? "Photo library access is off — you can enable it in Settings, or skip for now." : "Camera access is off — you can enable it in Settings, or skip for now.");
-      return;
-    }
-
-    const result =
-      source === "library"
-        ? await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], allowsEditing: true, aspect: [1, 1], quality: 0.7 })
-        : await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [1, 1], quality: 0.7 });
-
-    if (result.canceled || !result.assets?.[0]) return;
-    const asset = result.assets[0];
-    setLocalUri(asset.uri);
-
-    if (!user?.id) return;
-    setUploading(true);
-    const publicUrl = await uploadAvatar(user.id, asset.uri);
-    setUploading(false);
-    if (!publicUrl) {
-      setError("Couldn't upload that photo. You can try again or skip for now.");
-      return;
-    }
-    if (supabase) {
-      await supabase.from("profiles").update({ avatar_url: publicUrl } as any).eq("id", user.id);
-      await refreshProfile();
-    }
-  };
+  const { profile } = useAuth();
+  const { photoUri, busy: uploading, error, pick } = useAvatarEditor();
 
   return (
     <Screen edges={["top", "bottom"]}>
@@ -79,7 +24,7 @@ export default function ProfilePhotoScreen({ navigation }: any) {
         <View style={{ alignItems: "center", marginBottom: 28 }}>
           <View style={styles.avatarWrap}>
             <Avatar
-              imageUri={localUri}
+              imageUri={photoUri}
               name={profile?.full_name}
               email={profile?.email}
               size={140}
