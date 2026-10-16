@@ -17,7 +17,9 @@ import {
   reindexPlanRoleSlots,
   type PlanItemDraft,
   type PlanRoleSlotDraft,
-  type ServicePlanRoleSlot
+  type ServicePlanRoleSlot,
+  newRowId,
+  rememberPlanRows
 } from "../../../../../lib/db/servicePlans";
 import type { Database, ServicePlanStatus } from "@gather/lib";
 
@@ -29,12 +31,8 @@ type PlanItem = PlanItemDraft;
 
 type PageState = "loading" | "ready" | "restricted";
 
-const createLocalId = () => {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
-  }
-  return `local-${Math.random().toString(16).slice(2)}`;
-};
+// Real UUIDs (also on plain-http LAN hosts): saves reuse them as row ids.
+const createLocalId = () => newRowId();
 
 export default function ServicePlanEditorPage() {
   const params = useParams<{ planId: string }>();
@@ -86,6 +84,8 @@ export default function ServicePlanEditorPage() {
       return;
     }
 
+    // Register what this editor loaded so saves only send what the admin changed.
+    rememberPlanRows(planId, { items: itemData ?? [] });
     setError(null);
     setPlan(planData);
     setRoles(roleData ?? []);

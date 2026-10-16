@@ -200,3 +200,12 @@ export function formatDurationMinutes(totalMinutes?: number | null) {
   if (!parts.length) parts.push("0 min");
   return `~${parts.join(" ")}`;
 }
+
+/**
+ * YYYY-MM-DD for a date in the viewer's own timezone. Use this — never
+ * `toISOString().slice(0, 10)`, which is the UTC date and rolls over to
+ * tomorrow on a US evening (Sunday's service vanishes from "upcoming" at 8pm).
+ */
+export function localDateString(value: Date = new Date()): string {
+  return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`;
+}

@@ -24,6 +24,7 @@ import {
 import type { Database, Role } from "@gather/lib";
 
 import type { PlanItemRow, PlanSlotRow } from "../../../components/people/types";
+import { localDateString } from "../../../lib/format";
 
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
 type ChurchRow = Database["public"]["Tables"]["churches"]["Row"];
@@ -68,7 +69,7 @@ export default function PeoplePage() {
       setCurrentUserId(context.userId);
       setServiceTimes(context.serviceTimes);
 
-      const todayStr = new Date().toISOString().slice(0, 10);
+      const todayStr = localDateString();
       const [profiles, rolesResult, plansResult] = await Promise.all([
         listProfilesByChurch(context.profile.church_id),
         supabase

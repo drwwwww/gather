@@ -37,7 +37,8 @@ import {
   type PresetWithCount,
   type ServicePlan,
   type ServicePlanItem,
-  type ServicePresetItem
+  type ServicePresetItem,
+  newRowId
 } from "../../../../lib/db/servicePlans";
 import type { ServiceEntry } from "../../../../components/servicePlans/ServicePlanHeader";
 import { supabase } from "../../../../lib/supabaseClient";
@@ -48,12 +49,8 @@ type RoleRow = Database["public"]["Tables"]["volunteer_roles"]["Row"];
 
 type PageState = "loading" | "ready" | "restricted";
 
-const createLocalId = () => {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
-  }
-  return `local-${Math.random().toString(16).slice(2)}`;
-};
+// Real UUIDs (also on plain-http LAN hosts): saves reuse them as row ids.
+const createLocalId = () => newRowId();
 
 export default function ServicePlansPage() {
   const [plansForDate, setPlansForDate] = useState<ServicePlan[]>([]);
@@ -339,8 +336,9 @@ export default function ServicePlansPage() {
         await supabase?.from("service_plans").update({ preset_id: selectedPresetId }).eq("id", activePlan.id);
       }
       const presetItems = await fetchPresetItems(selectedPresetId);
+      // Fresh ids: these become new rows in this plan (the preset's own ids belong to the preset).
       const draftItems = presetItems.map((item: ServicePresetItem) => ({
-        id: item.id, title: item.title, duration_minutes: item.duration_minutes,
+        id: createLocalId(), title: item.title, duration_minutes: item.duration_minutes,
         notes: item.notes ?? "", owner_role_id: item.owner_role_id,
         assigned_user_id: null as string | null, backup_user_id: null as string | null,
         status: "PLANNED" as ServicePlanStatus,
@@ -368,7 +366,8 @@ export default function ServicePlansPage() {
         });
         if (!activePlan) return;
       }
-      const draftItems = mapPlanItems(previousItems);
+      // Fresh ids and a clean slate: last week's rows (and their DONE marks) stay last week's.
+      const draftItems = mapPlanItems(previousItems).map((item) => ({ ...item, id: createLocalId(), status: "PLANNED" as ServicePlanStatus }));
       await replacePlanItems(activePlan.id, draftItems);
       const previousSlots: ServicePlanRoleSlot[] = await fetchPlanRoleSlots(previousPlan.id);
       await replacePlanRoleSlots(activePlan.id, previousSlots.map((s) => ({

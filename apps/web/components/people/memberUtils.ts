@@ -1,6 +1,6 @@
 import type { Role } from "@gather/lib";
 import type { PlanItemRow, PlanSlotRow, ProfileRow, ServiceTimeRow } from "./types";
-import { formatShortWeekdayDateTime } from "../../lib/format";
+import { formatShortWeekdayDateTime, localDateString } from "../../lib/format";
 
 export type InviteEntry = {
   id: string;
@@ -66,7 +66,7 @@ export function getUpcomingItemAssignments(
   planItems: PlanItemRow[],
   profileId: string
 ) {
-  const nowDate = new Date().toISOString().slice(0, 10);
+  const nowDate = localDateString();
   return planItems
     .filter((item) => item.assigned_user_id === profileId && item.service_date >= nowDate)
     .sort((a, b) => a.service_date.localeCompare(b.service_date))
@@ -83,7 +83,7 @@ export function getUpcomingAssignments(
   _serviceTimes: ServiceTimeRow[],
   profileId: string
 ) {
-  const nowDate = new Date().toISOString().slice(0, 10);
+  const nowDate = localDateString();
   return planSlots
     .filter((slot) => slot.assigned_user_id === profileId && slot.service_date >= nowDate)
     .sort((a, b) => a.service_date.localeCompare(b.service_date))

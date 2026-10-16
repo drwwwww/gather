@@ -93,7 +93,9 @@ export async function POST(request: Request) {
   const targetUserId: string | undefined = typeof body?.userId === "string" ? body.userId : undefined;
   const now = new Date();
   const cutoff = new Date(now.getTime() + lookaheadHours * 60 * 60 * 1000);
-  const todayStr = now.toISOString().slice(0, 10);
+  // Query a day early in UTC, then keep only plans that are today-or-later in
+  // their own church's timezone (UTC "today" is already tomorrow on a US evening).
+  const todayStr = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
   const endStr = cutoff.toISOString().slice(0, 10);
 
   const supabase = createSupabaseAdminClient() as any;
@@ -110,7 +112,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: plansError.message }, { status: 500 });
   }
 
-  const planList = (plans ?? []) as ServicePlanRow[];
+  const rawPlans = (plans ?? []) as ServicePlanRow[];
+  const churchIdsForTz = [...new Set(rawPlans.map((p) => p.church_id))];
+  const { data: tzRows } = churchIdsForTz.length
+    ? await supabase.from("churches").select("id, timezone").in("id", churchIdsForTz)
+    : { data: [] };
+  const tzByChurch = new Map(((tzRows ?? []) as { id: string; timezone: string | null }[]).map((c) => [c.id, c.timezone || "America/New_York"]));
+  const planList = rawPlans.filter(
+    (p) => p.service_date >= now.toLocaleDateString("en-CA", { timeZone: tzByChurch.get(p.church_id) ?? "America/New_York" })
+  );
   const planById = new Map(planList.map((p) => [p.id, p]));
   const planIds = planList.map((p) => p.id);
 

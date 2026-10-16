@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronDown, ChevronRight, Minus, Plus, StickyNote, X } from "lucide-react";
+import { ChevronDown, ChevronRight, Minus, Plus, StickyNote, X, AlertTriangle } from "lucide-react";
 import type { AssignmentStatus } from "@gather/lib";
 import type { Database } from "@gather/lib";
 import type { PlanRoleSlotDraft } from "../../lib/db/servicePlans";
@@ -75,6 +75,17 @@ export default function ServicePlanRoleSlotsSection({
   const staffed = roles.filter((r) => (slotsByRole.get(r.id)?.length ?? 0) > 0);
   const unstaffed = roles.filter((r) => (slotsByRole.get(r.id)?.length ?? 0) === 0);
   const visibleRoles = showUnstaffed ? roles : staffed;
+
+  // Roles each person holds in this service — flags double-booking.
+  const rolesByPerson = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const s of slots) {
+      if (!s.assigned_user_id) continue;
+      const name = roles.find((r) => r.id === s.role_id)?.name ?? "another role";
+      map.set(s.assigned_user_id, [...(map.get(s.assigned_user_id) ?? []), name]);
+    }
+    return map;
+  }, [slots, roles]);
 
   const totals = useMemo(() => {
     const t = { total: slots.length, confirmed: 0, open: 0, declined: 0 };
@@ -198,6 +209,10 @@ export default function ServicePlanRoleSlotsSection({
                   <div className="border-t border-[var(--border)]">
                     {roleSlots.map((slot) => {
                       const notesOpen = openNotes.has(slot.id) || !!slot.notes;
+                      // Every role this person holds here, minus this one occurrence.
+                      const heldRoles = slot.assigned_user_id ? [...(rolesByPerson.get(slot.assigned_user_id) ?? [])] : [];
+                      heldRoles.splice(heldRoles.indexOf(role.name), 1);
+                      const alsoServing = heldRoles;
                       return (
                         <div
                           key={slot.id}
@@ -227,10 +242,13 @@ export default function ServicePlanRoleSlotsSection({
                                   assigned_user_id: v || null,
                                   // Assigning someone moves an untouched slot forward;
                                   // clearing it sends the slot back to Open.
+                                  // A different person hasn't answered yet, so their
+                                  // slot is pending regardless of the last person's
+                                  // answer (the database enforces the same rule).
                                   status: v
-                                    ? slot.status === "OPEN"
-                                      ? "ASSIGNED"
-                                      : slot.status
+                                    ? v === slot.assigned_user_id
+                                      ? slot.status
+                                      : "ASSIGNED"
                                     : "OPEN",
                                 })
                               }
@@ -266,6 +284,13 @@ export default function ServicePlanRoleSlotsSection({
                               <X className="h-3.5 w-3.5" />
                             </button>
                           </div>
+
+                          {alsoServing.length > 0 && (
+                            <p className="mt-1 flex items-center gap-1 text-[11px] text-[var(--text-secondary)]">
+                              <AlertTriangle className="h-3 w-3 shrink-0 text-[var(--warning)]" aria-hidden />
+                              Also serving as {alsoServing.join(", ")} in this service
+                            </p>
+                          )}
 
                           {notesOpen && (
                             <input

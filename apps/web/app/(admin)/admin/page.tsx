@@ -22,6 +22,7 @@ import type { RosterMix } from "../../../components/dashboard/RosterDonutCard";
 import RosterDonutCard from "../../../components/dashboard/RosterDonutCard";
 import UpcomingEventsCard from "../../../components/dashboard/UpcomingEventsCard";
 import Avatar from "../../../components/ui/avatar";
+import { localDateString } from "../../../lib/format";
 
 type EventItem = Database["public"]["Tables"]["events"]["Row"];
 type AnnouncementRow = Database["public"]["Tables"]["announcements"]["Row"];
@@ -99,7 +100,7 @@ export default function AdminEntryPage() {
     const now = new Date();
     const thisWeekEnd = new Date(now);
     thisWeekEnd.setDate(thisWeekEnd.getDate() + 7);
-    const todayDateStr = now.toISOString().slice(0, 10);
+    const todayDateStr = localDateString(now);
     const thirtyDaysAgo = new Date(now);
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
@@ -135,7 +136,7 @@ export default function AdminEntryPage() {
     // Prefer an actual scheduled plan's date; fall back to projecting the church's worship_days.
     const nextService = nextPlanRow ? null : getNextWorshipDate(church?.worship_days ?? [0]);
     setNextServiceAt(nextService ?? null);
-    setNextServiceDateLabel(nextPlanRow?.service_date ?? nextService?.toISOString().slice(0, 10) ?? null);
+    setNextServiceDateLabel(nextPlanRow?.service_date ?? (nextService ? localDateString(nextService) : null) ?? null);
 
     type SlotRow = { id: string; role_id: string; plan_id: string; assigned_user_id: string | null; backup_user_id: string | null; status: string; created_at: string };
     type ItemRow = { id: string; title: string; assigned_user_id: string | null; assignment_status: string | null };

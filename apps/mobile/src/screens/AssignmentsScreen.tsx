@@ -168,14 +168,16 @@ export default function AssignmentsScreen() {
 
   /** Only celebrate a confirmation — declining should stay quiet and neutral. */
   const celebrateConfirm = (a: AssignmentRow) => {
-    const confirmedAfter = assignments.filter(
+    // Backup rows mirror someone else's status — count only what's yours.
+    const mine = assignments.filter((r) => !r.isBackup);
+    const confirmedAfter = mine.filter(
       (r) => r.status === "CONFIRMED" || r.key === a.key
     ).length;
-    const remaining = assignments.filter(
+    const remaining = mine.filter(
       (r) => r.key !== a.key && (r.status === "ASSIGNED" || r.status === "OPEN")
     ).length;
     const upcomingServices = new Set(
-      assignments.filter((r) => r.status === "CONFIRMED" || r.key === a.key).map((r) => r.scheduled_date)
+      mine.filter((r) => r.status === "CONFIRMED" || r.key === a.key).map((r) => r.scheduled_date)
     ).size;
 
     setCelebration({
@@ -198,20 +200,9 @@ export default function AssignmentsScreen() {
 
     const { data: rpcData, error: rpcError } = await supabase.rpc("respond_assignment", { p_source: sourceMap[a.source], p_id, p_response: response });
     if (rpcError) {
-      console.warn("[Serve] respond_assignment RPC unavailable, falling back:", rpcError.message);
-      let errMsg: string | null = null;
-      if (a.source === "bulletin_role" && a.bulletinSlotId) {
-        const { error, count } = await supabase.from("service_plan_role_slots").update({ status: response }, { count: "exact" }).eq("id", a.bulletinSlotId);
-        if (error) errMsg = error.message;
-        else if (count === 0) errMsg = "Permission denied. Ask an admin to confirm your role is set to Service.";
-      } else if (a.source === "bulletin_part" && a.bulletinItemId) {
-        const { error, count } = await supabase.from("service_plan_items").update({ assignment_status: response }, { count: "exact" }).eq("id", a.bulletinItemId);
-        if (error) errMsg = error.message.includes("assignment_status") ? "Database migration 0018 hasn't been applied yet." : error.message;
-        else if (count === 0) errMsg = "Permission denied. Ask an admin to confirm your role is set to Service.";
-      }
-      if (errMsg) { console.error("[Serve] respond error:", errMsg); setRowError({ key: a.key, message: errMsg }); setSavingKey(null); return; }
-      setAssignments((prev) => prev.map((row) => (row.key === a.key ? { ...row, status: response } : row)));
-      if (response === "CONFIRMED") celebrateConfirm(a);
+      // No direct-table fallback: answering goes through respond_assignment
+      // only, which is where the backup/primary and past-service rules live.
+      setRowError({ key: a.key, message: "Couldn't save your answer. Check your connection and try again." });
       setSavingKey(null);
       return;
     }
@@ -224,9 +215,10 @@ export default function AssignmentsScreen() {
       return;
     }
     const promoted = rpcData?.promoted === true;
-    if (promoted && response === "DECLINED") setAssignments((prev) => prev.filter((row) => row.key !== a.key));
+    // Declining as primary (backup took over) or stepping down as backup removes you from it.
+    if (response === "DECLINED" && (promoted || a.isBackup)) setAssignments((prev) => prev.filter((row) => row.key !== a.key));
     else setAssignments((prev) => prev.map((row) => (row.key === a.key ? { ...row, status: response } : row)));
-    if (response === "CONFIRMED") celebrateConfirm(a);
+    if (response === "CONFIRMED" && !a.isBackup) celebrateConfirm(a);
     setSavingKey(null);
   };
 
@@ -236,7 +228,8 @@ export default function AssignmentsScreen() {
     else acc.push({ date: row.scheduled_date, rows: [row] });
     return acc;
   }, []);
-  const pendingCount = assignments.filter((a) => a.status === "ASSIGNED" || a.status === "OPEN").length;
+  // Only primaries owe an answer; a backup's row mirrors the primary's status.
+  const pendingCount = assignments.filter((a) => !a.isBackup && (a.status === "ASSIGNED" || a.status === "OPEN")).length;
 
   return (
     <Screen>
@@ -278,7 +271,7 @@ export default function AssignmentsScreen() {
                   <Text style={styles.groupLabel}>{formatDateLabel(date)}</Text>
                   <View style={{ gap: 12 }}>
                     {rows.map((a) => {
-                      const needsResponse = a.status !== "CONFIRMED" && a.status !== "DECLINED";
+                      const needsResponse = !a.isBackup && a.status !== "CONFIRMED" && a.status !== "DECLINED";
                       const saving = savingKey === a.key;
                       return (
                         <View key={a.key} style={styles.card}>
@@ -287,7 +280,8 @@ export default function AssignmentsScreen() {
                               <Text style={styles.cardTitle}>{a.titleLine}</Text>
                               <Text style={styles.cardSub}>{subtitleFor(a)}</Text>
                             </View>
-                            {a.status === "CONFIRMED" ? <Pill label="Confirmed" tone="success" />
+                            {a.isBackup ? <Pill label="Backup" tone="neutral" />
+                              : a.status === "CONFIRMED" ? <Pill label="Confirmed" tone="success" />
                               : a.status === "DECLINED" ? <Pill label="Declined" tone="danger" />
                               : <Pill label="Pending" tone="amber" />}
                           </View>
@@ -309,6 +303,19 @@ export default function AssignmentsScreen() {
                                   <Text style={styles.declineTxt}>{saving ? "Saving…" : "Decline"}</Text>
                                 </Pressable>
                               </View>
+                            </>
+                          ) : a.isBackup ? (
+                            <>
+                              <View style={styles.divider} />
+                              <Text style={styles.backupNote}>You'll be asked to step in if the person serving can't make it.</Text>
+                              <Pressable
+                                onPress={() => void respondToAssignment(a, "DECLINED")}
+                                disabled={!!savingKey}
+                                accessibilityRole="button"
+                                style={({ pressed }: { pressed: boolean }) => [styles.stepDown, { opacity: savingKey ? 0.55 : pressed ? 0.7 : 1 }]}
+                              >
+                                <Text style={styles.stepDownTxt}>{saving ? "Saving…" : "Step down as backup"}</Text>
+                              </Pressable>
                             </>
                           ) : null}
                         </View>
@@ -337,6 +344,9 @@ const styles = StyleSheet.create({
   header: { height: 56, paddingHorizontal: space.gutter, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   headerTitle: { fontFamily: font.bold, fontSize: 22, color: palette.ink, letterSpacing: -0.4 },
 
+  backupNote: { fontFamily: font.regular, fontSize: 13, lineHeight: 19, color: palette.inkSoft },
+  stepDown: { alignSelf: "flex-start", minHeight: 44, justifyContent: "center", marginTop: 4 },
+  stepDownTxt: { fontFamily: font.semibold, fontSize: 14, color: palette.dangerInk },
   statusCard: { backgroundColor: palette.surface, borderRadius: radius.xl, padding: 18, flexDirection: "row", alignItems: "center", gap: 14, marginBottom: 24, ...shadow.md },
   statusHl: { fontFamily: font.bold, fontSize: 17, color: palette.ink, letterSpacing: -0.2 },
   statusBd: { fontFamily: font.regular, fontSize: 13, color: palette.inkSoft, marginTop: 2 },
