@@ -159,10 +159,14 @@ export default function EventDetailScreen({ navigation, route }: any) {
   const onCalendar = async () => {
     setNotice(null);
     try {
-      const ok = await addToCalendar(event, address);
-      if (!ok) setNotice("Add to calendar works in the Gather app on your phone.");
-    } catch {
-      setNotice("Couldn't open your calendar. Try again.");
+      const result = await addToCalendar(event, address);
+      if (result === "saved") {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+        setNotice("Added to your calendar.");
+      }
+    } catch (err) {
+      // Show the real reason (permission off, sheet unavailable…) rather than a generic error.
+      setNotice(err instanceof Error && err.message ? err.message : "Couldn't open your calendar.");
     }
   };
 

@@ -6,6 +6,7 @@ import { MapPin, Clock, Users, ChevronDown, Calendar as CalIcon } from "lucide-r
 import { format } from "date-fns";
 import EventTemplates, { type EventTemplate } from "./EventTemplates";
 import ImageUpload from "../announcements/ImageUpload";
+import SelectMenu from "../ui/SelectMenu";
 
 export type EventFormValues = {
   title: string;
@@ -20,7 +21,22 @@ export type EventFormValues = {
   endTime: string;
   allDay: boolean;
   imageUrl: string | null;
+  /** New events only: create a series. */
+  repeat: RepeatRule;
+  repeatCount: number;
+  /** New events only: also post an announcement so members hear about it. */
+  announce: boolean;
 };
+
+export type RepeatRule = "none" | "weekly" | "biweekly" | "monthly";
+
+const REPEAT_OPTIONS = [
+  { value: "none", label: "Does not repeat" },
+  { value: "weekly", label: "Every week" },
+  { value: "biweekly", label: "Every 2 weeks" },
+  { value: "monthly", label: "Every month" },
+];
+const COUNT_OPTIONS = [2, 3, 4, 6, 8, 10, 12, 16, 26, 52].map((n) => ({ value: String(n), label: `${n} times` }));
 
 type EventFormProps = {
   values: EventFormValues;
@@ -32,6 +48,9 @@ type EventFormProps = {
   onChange: (patch: Partial<EventFormValues>) => void;
   onSubmit: () => void;
   onCancelEdit: () => void;
+  /** Edit mode only: permanently delete the event (RSVPs go with it). */
+  onDelete?: () => void;
+  saving?: boolean;
   onTemplateSelect: (template: EventTemplate) => void;
   error?: string | null;
 };
@@ -241,7 +260,7 @@ function AudienceSelect({ value, onChange, disabled }: { value: string; onChange
 }
 
 // ── main form ─────────────────────────────────────────────────────────────────
-export default function EventForm({ values, timezoneLabel, isEditing, churchId, churchAddress = "", onChange, onSubmit, onCancelEdit, onTemplateSelect, error }: EventFormProps) {
+export default function EventForm({ values, timezoneLabel, isEditing, churchId, churchAddress = "", onChange, onSubmit, onCancelEdit, onDelete, saving = false, onTemplateSelect, error }: EventFormProps) {
   const canSubmit = Boolean(values.title.trim()) && Boolean(values.startDate) && (values.allDay || Boolean(values.startTime));
 
   return (
@@ -343,6 +362,55 @@ export default function EventForm({ values, timezoneLabel, isEditing, churchId, 
         <AudienceSelect value={values.audience} onChange={v => onChange({ audience: v })} />
       </div>
 
+      {/* Repeat — new events only; each occurrence becomes its own event
+          so it can be edited, cancelled or RSVP'd individually. */}
+      {!isEditing && (
+        <div className="space-y-1.5">
+          <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Repeat</label>
+          <div className={`grid gap-2 ${values.repeat !== "none" ? "sm:grid-cols-2" : ""}`}>
+            <SelectMenu
+              value={values.repeat}
+              onChange={(v) => onChange({ repeat: v as RepeatRule })}
+              options={REPEAT_OPTIONS}
+              ariaLabel="Repeat"
+              buttonClassName="!h-[42px] !rounded-xl"
+            />
+            {values.repeat !== "none" && (
+              <SelectMenu
+                value={String(values.repeatCount)}
+                onChange={(v) => onChange({ repeatCount: Number(v) })}
+                options={COUNT_OPTIONS}
+                ariaLabel="Number of times"
+                buttonClassName="!h-[42px] !rounded-xl"
+              />
+            )}
+          </div>
+          {values.repeat !== "none" && (
+            <p className="text-xs text-[var(--text-muted)]">
+              Creates {values.repeatCount} separate events you can edit or cancel one at a time.
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Announce — new events only */}
+      {!isEditing && (
+        <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3.5 py-3 transition-colors hover:bg-[var(--surface)]">
+          <input
+            type="checkbox"
+            checked={values.announce}
+            onChange={(e) => onChange({ announce: e.target.checked })}
+            className="mt-0.5 h-4 w-4 shrink-0 accent-amber-500"
+          />
+          <span>
+            <span className="block text-sm font-medium text-[var(--text-primary)]">Also post an announcement</span>
+            <span className="block text-xs text-[var(--text-muted)]">
+              Shares the date, place and details in News, for the same audience.
+            </span>
+          </span>
+        </label>
+      )}
+
       {timezoneLabel && (
         <p className="text-xs text-[var(--text-muted)]">Times are in {timezoneLabel}.</p>
       )}
@@ -352,10 +420,24 @@ export default function EventForm({ values, timezoneLabel, isEditing, churchId, 
       {/* Actions */}
       <div className="flex items-center justify-between gap-3 border-t border-[var(--border)] pt-4">
         {isEditing ? (
-          <button type="button" onClick={onCancelEdit} className="text-sm font-medium text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)]">Cancel</button>
+          <div className="flex items-center gap-4">
+            <button type="button" onClick={onCancelEdit} className="text-sm font-medium text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)]">Cancel</button>
+            {onDelete && (
+              <button type="button" onClick={onDelete} disabled={saving}
+                className="text-sm font-medium text-red-600 transition-colors hover:text-red-700 disabled:opacity-50">
+                Delete event
+              </button>
+            )}
+          </div>
         ) : <span />}
-        <button type="button" onClick={onSubmit} disabled={!canSubmit} className="btn btn-primary-gradient">
-          {isEditing ? "Update event" : "Create event"}
+        <button type="button" onClick={onSubmit} disabled={!canSubmit || saving} className="btn btn-primary-gradient">
+          {saving
+            ? "Saving…"
+            : isEditing
+              ? "Save changes"
+              : values.repeat !== "none"
+                ? `Create ${values.repeatCount} events`
+                : "Create event"}
         </button>
       </div>
 

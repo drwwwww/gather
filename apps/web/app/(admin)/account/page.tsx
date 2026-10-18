@@ -259,6 +259,8 @@ export default function AccountPage() {
 
   const handleDeleteServiceTime = async (id: string) => {
     if (!supabase) return;
+    const name = serviceTimes.find((t) => t.id === id)?.name ?? "this service time";
+    if (typeof window !== "undefined" && !window.confirm(`Remove "${name}"? Existing service plans are kept; new weeks won't be scheduled for it.`)) return;
     const { error } = await supabase
       .from("service_times")
       .delete()

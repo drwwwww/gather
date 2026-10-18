@@ -222,7 +222,7 @@ export default function AdminShell({ children }: { children: ReactNode }) {
               }}
               role="search"
             >
-              <div className="relative flex h-9 max-w-sm items-center overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 focus-within:border-amber-300 focus-within:ring-2 focus-within:ring-amber-100 transition-all">
+              <div className="relative flex h-9 max-w-sm items-center overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 focus-within:border-amber-300 focus-within:ring-2 focus-within:ring-amber-100 transition">
                 <Search className="mr-2 h-4 w-4 shrink-0 text-[var(--text-muted)]" aria-hidden />
                 <input
                   type="search"

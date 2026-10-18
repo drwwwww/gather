@@ -1,5 +1,8 @@
 import { Linking, Platform, Share } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+// Static import: Expo Go loaded the dynamic import as a lazy bundle, and the
+// native sheet never appeared. Must be "/legacy" — see addToCalendar.
+import * as Calendar from "expo-calendar/legacy";
 
 export type EventLike = {
   id: string;
@@ -70,24 +73,62 @@ export function openDirections(address: string, label?: string) {
   );
 }
 
+/** Google Calendar "new event" link — works on any device with a browser. */
+function googleCalendarUrl(e: EventLike, start: Date, end: Date, where: string) {
+  const fmt = (d: Date) => d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+  const q = new URLSearchParams({
+    action: "TEMPLATE",
+    text: e.title,
+    dates: `${fmt(start)}/${fmt(end)}`,
+    ...(where ? { location: where } : {}),
+    ...(e.description ? { details: e.description } : {}),
+  });
+  return `https://calendar.google.com/calendar/render?${q.toString()}`;
+}
+
 /**
- * Opens the system "new calendar event" sheet prefilled — the person reviews
- * and saves it themselves, so no broad calendar access is needed.
- * Resolves false where unavailable (web preview).
+ * Opens the phone's own "New Event" sheet (Apple Calendar on iPhone, the
+ * default calendar app on Android) prefilled — the person reviews and saves
+ * it, so no broad calendar access is needed on iOS 17+.
+ *
+ * Must import from "expo-calendar/legacy": in SDK 57 the same function from
+ * "expo-calendar" is a stub that always throws (the new object API that
+ * replaces it is unavailable in Expo Go).
+ *
+ * On a phone this never silently switches to a web calendar; if the native
+ * sheet can't open it asks for calendar access once, retries, and otherwise
+ * throws with the real reason so it can be shown and fixed.
  */
-export async function addToCalendar(e: EventLike, address: string | null): Promise<boolean> {
-  if (Platform.OS === "web") return false;
-  const Calendar = await import("expo-calendar");
+export async function addToCalendar(e: EventLike, address: string | null): Promise<"saved" | "canceled" | "web"> {
   const start = new Date(e.start_at);
   const end = e.end_at ? new Date(e.end_at) : new Date(start.getTime() + 2 * 3600_000);
-  await Calendar.createEventInCalendarAsync({
+  const where = [e.location, address].filter(Boolean).join(", ");
+
+  if (Platform.OS === "web") {
+    await Linking.openURL(googleCalendarUrl(e, start, end, where));
+    return "web";
+  }
+
+  const details = {
     title: e.title,
     startDate: start,
     endDate: end,
-    location: [e.location, address].filter(Boolean).join(", ") || undefined,
+    location: where || undefined,
     notes: e.description ?? undefined,
-  });
-  return true;
+  };
+  const open = async () => {
+    const result = await Calendar.createEventInCalendarAsync(details);
+    return result?.action === "saved" ? "saved" : "canceled";
+  };
+
+  try {
+    return await open();
+  } catch (first) {
+    console.warn("[addToCalendar] native sheet failed, asking for calendar access:", first);
+    const { granted } = await Calendar.requestCalendarPermissionsAsync();
+    if (!granted) throw new Error("Calendar access is off. You can turn it on in Settings → Gather.");
+    return await open();
+  }
 }
 
 export async function shareEvent(e: EventLike, address: string | null) {

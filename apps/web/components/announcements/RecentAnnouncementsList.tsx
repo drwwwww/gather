@@ -52,7 +52,7 @@ export default function RecentAnnouncementsList({
       {loading ? (
         <div className="flex flex-col items-center justify-center gap-4 py-8">
           <Loader />
-          <p className="text-sm text-[var(--text-muted)]">Loading announcements...</p>
+          <p className="text-sm text-[var(--text-muted)]">Loading announcements…</p>
         </div>
       ) : announcements.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-[var(--border)] bg-[var(--surface)] px-6 py-12 text-center">
@@ -75,7 +75,7 @@ export default function RecentAnnouncementsList({
           return (
             <div
               key={announcement.id}
-              className={`group overflow-hidden rounded-2xl transition-all duration-200 hover:shadow-md ${
+              className={`group overflow-hidden rounded-2xl transition duration-200 hover:shadow-md ${
                 isDraft
                   ? "border-2 border-dashed border-[var(--primary-soft)] bg-[var(--primary-soft)]"
                   : "border border-[var(--border)] bg-[var(--surface)]"

@@ -332,9 +332,9 @@ export default function AdminEntryPage() {
                 </div>
                 <div className="relative h-2 w-full overflow-hidden rounded-full bg-amber-200/60">
                   {/* Pending layer: assigned but not confirmed */}
-                  <div className="absolute inset-y-0 left-0 rounded-full bg-amber-400/50 transition-all duration-500" style={{ width: `${filledPct}%` }} />
+                  <div className="absolute inset-y-0 left-0 rounded-full bg-amber-400/50 transition duration-500" style={{ width: `${filledPct}%` }} />
                   {/* Confirmed layer: sits on top of pending */}
-                  <div className="absolute inset-y-0 left-0 rounded-full bg-emerald-500 transition-all duration-500" style={{ width: `${confirmedPct}%` }} />
+                  <div className="absolute inset-y-0 left-0 rounded-full bg-emerald-500 transition duration-500" style={{ width: `${confirmedPct}%` }} />
                 </div>
                 <p className="text-[10px] text-amber-700/60">
                   {rosterMix.open > 0 ? `${rosterMix.open} open slot${rosterMix.open !== 1 ? "s" : ""} · ` : ""}

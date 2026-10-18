@@ -20,7 +20,7 @@ function RsvpBar({ label, count, total, color }: { label: string; count: number;
         <span className="tabular-nums font-semibold text-[var(--text-primary)]">{count}</span>
       </div>
       <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--surface-2)]">
-        <div className={`h-full rounded-full transition-all duration-500 ease-out ${color}`} style={{ width: `${pct}%` }} />
+        <div className={`h-full rounded-full transition duration-500 ease-out ${color}`} style={{ width: `${pct}%` }} />
       </div>
     </div>
   );

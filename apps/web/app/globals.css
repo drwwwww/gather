@@ -104,6 +104,12 @@
 }
 
 @layer base {
+  /* One visible keyboard focus ring for every control, even where a component sets focus:outline-none. */
+  :is(a, button, input, textarea, summary, [role="button"], [role="menuitem"], [role="option"], [role="tab"], [role="switch"], [tabindex]):focus-visible {
+    outline: 2px solid var(--primary) !important;
+    outline-offset: 2px;
+  }
+
   html,
   body {
     height: 100%;

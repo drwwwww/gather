@@ -256,8 +256,10 @@ export default function MembersTable({
                       <button
                         type="button"
                         onClick={(e) => { e.stopPropagation(); setOpenMenuId(isMenuOpen ? null : member.id); }}
-                        className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] opacity-0 transition-all group-hover:opacity-100 hover:bg-[var(--surface-2)] hover:text-[var(--text-primary)]"
+                        className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] opacity-0 transition group-hover:opacity-100 hover:bg-[var(--surface-2)] hover:text-[var(--text-primary)]"
                         aria-expanded={isMenuOpen}
+                        aria-haspopup="menu"
+                        aria-label={`Options for ${member.name || member.email || "member"}`}
                       >
                         <MoreHorizontal className="h-4 w-4" />
                       </button>

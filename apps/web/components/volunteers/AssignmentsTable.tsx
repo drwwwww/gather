@@ -426,7 +426,7 @@ export default function AssignmentsTable({
           </div>
           <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--surface-2)]">
             <div
-              className="h-full rounded-full bg-emerald-400 transition-all duration-500 ease-out"
+              className="h-full rounded-full bg-emerald-400 transition duration-500 ease-out"
               style={{ width: `${confirmedPct}%` }}
             />
           </div>

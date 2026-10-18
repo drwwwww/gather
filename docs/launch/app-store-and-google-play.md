@@ -1,5 +1,7 @@
 # Getting Gather onto the App Store and Google Play
 
+_Status (Oct 17, 2026): code-side readiness complete; next step is the first TestFlight build (Part 1, Step 4)._
+
 Written October 2026 for an **Apple Developer account enrolled as an Individual** (Andrew Bernadel, team `87CQ7YHV4P`), with Gather on Expo SDK 57 / EAS (project `26babdf8-…`, owner `drww`, bundle ID `com.bernadelstudios.gather`).
 
 Store rules change often. Before each big step, check the linked Apple or Google page. The flow below matches how both stores worked as of this writing.
@@ -14,7 +16,9 @@ Store rules change often. Before each big step, check the linked Apple or Google
 | ☐ | Make sure `support@gatherministry.online` actually receives mail. Apple, Google, the privacy policy and report emails all point there. | Your email host |
 | ☐ | Add `CRON_SECRET` in Vercel if you ever want scheduled reminders. The dispatch route now rejects anyone who isn't a church admin or the cron. | Vercel → Settings → Env |
 | ☐ | Choose a reviewer account. Apple and Google both need a login that shows everything. Use an existing **SERVICE-role** Grace Community demo account, so the reviewer sees the Plan and Serve tabs too. The password is in team notes; don't put it in the repo. | — |
-| ☐ | Decide on iPad. `app.json` has `supportsTablet: true`, which means Apple **requires 13" iPad screenshots** and tests the app on iPad. For a phone-first v1, consider setting it to `false`. | `apps/mobile/app.json` |
+| ✅ | iPad off (`supportsTablet: false`) — no iPad screenshots or iPad review needed. | `apps/mobile/app.json` |
+| ✅ | App icon is 1024×1024 with no alpha channel (Apple rejects alpha). | `apps/mobile/assets/icon.png` |
+| ✅ | Web deployed with the legal pages and API routes (`/privacy`, `/terms`, `/delete-account`, `/api/account/delete`, `/api/moderation/report`). | Vercel |
 
 ---
 
@@ -74,7 +78,7 @@ eas submit --platform ios --latest
 | Privacy Policy URL | `https://gatherministry.online/privacy` |
 | Category | Primary: **Lifestyle** (where church apps usually sit). Secondary: **Productivity** |
 | Copyright | `2026 Andrew Bernadel` (change it after the LLC) |
-| Screenshots | **6.9" iPhone (1320×2868) is required.** Apple scales it down for smaller phones. Add 13" iPad if `supportsTablet` stays true. 3–6 screenshots: Home, Your Schedule + confirm, Service plan in Run-service mode, Events, Announcements. |
+| Screenshots | **6.9" iPhone (1320×2868) is required.** Apple scales it down for smaller phones. 3–6 screenshots: Home, Your Schedule + confirm, Service plan in Run-service mode, Events, Announcements. |
 
 ### Step 7: App Privacy ("nutrition label")
 Answer exactly as in [store-privacy-answers.md](store-privacy-answers.md). These answers match the privacy policy and `app.json`'s privacy manifest. Keep the three consistent.

@@ -97,11 +97,11 @@ export default function EventsList({
         {/* Search */}
         <div className="relative flex items-center">
           <Search className="absolute left-3 h-4 w-4 text-[var(--text-muted)]" />
-          <input type="text" placeholder="Search events…" value={search} onChange={e => setSearch(e.target.value)}
+          <input type="text" placeholder="Search events…" aria-label="Search events" value={search} onChange={e => setSearch(e.target.value)}
             className="h-9 rounded-xl border border-[var(--border)] bg-[var(--surface)] pl-9 pr-9 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-100 w-48"
           />
           {search && (
-            <button type="button" onClick={() => setSearch("")} className="absolute right-3 text-[var(--text-muted)] hover:text-[var(--text-primary)]">
+            <button type="button" onClick={() => setSearch("")} aria-label="Clear search" className="absolute right-3 text-[var(--text-muted)] hover:text-[var(--text-primary)]">
               <X className="h-3.5 w-3.5" />
             </button>
           )}
@@ -206,6 +206,9 @@ export default function EventsList({
                 {/* Actions menu */}
                 <div className="relative shrink-0" ref={isMenuOpen ? menuRef : null}>
                   <button type="button"
+                    aria-label={`Options for ${event.title}`}
+                    aria-haspopup="menu"
+                    aria-expanded={isMenuOpen}
                     onClick={e => { e.stopPropagation(); setOpenMenuId(id => id === event.id ? null : event.id); }}
                     className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-2)] hover:text-[var(--text-primary)]"
                   >

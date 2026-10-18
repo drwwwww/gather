@@ -120,7 +120,7 @@ export default function NextServiceReadinessStrip({
                       <span className={`font-semibold tabular-nums ${text}`}>{val}</span>
                     </div>
                     <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--surface-2)]">
-                      <div className={`h-full rounded-full transition-all duration-500 ease-out ${bar}`} style={{ width: `${pct}%` }} />
+                      <div className={`h-full rounded-full transition duration-500 ease-out ${bar}`} style={{ width: `${pct}%` }} />
                     </div>
                   </div>
                 );

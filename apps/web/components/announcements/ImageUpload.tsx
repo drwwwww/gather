@@ -72,7 +72,7 @@ export default function ImageUpload({ value, churchId, onChange, disabled }: Ima
     return (
       <div className="group relative overflow-hidden rounded-xl border border-[var(--border)]">
         <img src={value} alt="Announcement banner" className="h-44 w-full object-cover" />
-        <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/0 opacity-0 transition-all group-hover:bg-black/30 group-hover:opacity-100">
+        <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/0 opacity-0 transition group-hover:bg-black/30 group-hover:opacity-100">
           <button
             type="button"
             onClick={() => inputRef.current?.click()}

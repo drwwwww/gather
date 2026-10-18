@@ -134,7 +134,7 @@ export default function ScheduleBuilder({
                 +
               </button>
             </div>
-            <button type="button" onClick={onAddSlot}
+            <button type="button" onClick={onAddSlot} aria-label="Add role slot"
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500 text-white transition-colors hover:bg-amber-600 focus:outline-none">
               <Plus className="h-5 w-5" />
             </button>

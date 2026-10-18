@@ -220,7 +220,7 @@ export default function NotificationsPage() {
                         type="button"
                         onClick={() => markOneRead(notification.id)}
                         title="Mark as read"
-                        className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[var(--text-muted)] opacity-0 transition-all group-hover:opacity-100 hover:bg-[var(--surface-2)] hover:text-green-600"
+                        className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-[var(--text-muted)] opacity-0 transition group-hover:opacity-100 hover:bg-[var(--surface-2)] hover:text-green-600"
                       >
                         <Check className="h-3.5 w-3.5" />
                       </button>

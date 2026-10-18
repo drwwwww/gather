@@ -119,8 +119,9 @@ export default function ProfileCard({
           <ProfilePhotoField userId={userId} name={name} email={email} avatarUrl={avatarUrl} onAvatarChange={onAvatarChange} />
         )}
         <div className="space-y-1.5">
-          <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Display name</label>
+          <label htmlFor="profile-name" className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Display name</label>
           <input
+            id="profile-name"
             type="text"
             placeholder="Full name"
             value={name}
@@ -129,8 +130,9 @@ export default function ProfileCard({
           />
         </div>
         <div className="space-y-1.5">
-          <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Email address</label>
+          <label htmlFor="profile-email" className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Email address</label>
           <input
+            id="profile-email"
             type="email"
             value={email}
             readOnly

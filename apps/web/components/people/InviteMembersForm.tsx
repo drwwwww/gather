@@ -133,6 +133,7 @@ export default function InviteMembersForm({ churchName, joinLink, joinCode, onCr
         <textarea
           rows={4}
           placeholder="name@example.com, another@example.com"
+          aria-label="Email addresses to invite"
           value={emailsRaw}
           onChange={(e) => setEmailsRaw(e.target.value)}
           className="w-full resize-none rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-100"
@@ -164,7 +165,7 @@ export default function InviteMembersForm({ churchName, joinLink, joinCode, onCr
             <button
               type="button"
               onClick={handleCopyMessage}
-              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium transition-all duration-150 ${
+              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium transition duration-150 ${
                 copied
                   ? "bg-green-50 text-green-700"
                   : "bg-[var(--surface)] text-[var(--text-secondary)] hover:bg-[var(--border)]"

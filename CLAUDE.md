@@ -8,6 +8,21 @@ Gather exists to give churches their time back. Church leaders spend too many ho
 
 ---
 
+## Where We Are (October 17, 2026)
+
+**Phase: pre-submission.** The code side of App Store readiness is done; remaining work is on-device testing and the human steps of store submission.
+
+| Area | State |
+|---|---|
+| Web admin | Feature-complete for v1 (dashboard, people, volunteers, service plans/presets, announcements, events with repeat/announce/delete, account, reports). UI-protocol audit done (see Engineering Decisions). |
+| Mobile | All member + service-team flows live: home, news, events (address, directions, native calendar, saved, nearby churches), bulletin with check-in / run service, Serve schedule with backups, profile photos, report/block, account deletion, tour. Phone-only (`supportsTablet: false`). |
+| Backend | 45 migrations; scheduling and privilege rules enforced by triggers/RPCs; security audit and scheduling audit both done and verified live. |
+| Legal / privacy | Privacy, Terms, DPA, Delete-account pages live; store privacy answers drafted. Not attorney-reviewed. |
+| Store readiness | Icon flattened, privacy manifest, export compliance, deletion, report/block all done. **Next:** test on real iPhone + Android, first `eas build` → TestFlight (no Mac needed), screenshots, listing, submit. Guide: `docs/launch/app-store-and-google-play.md`. |
+| Not started / deferred | Stripe live keys, SMS provider for phone sign-in, data-caching layer, dark mode, Android device testing, LLC + D-U-N-S. |
+
+---
+
 ## Goals
 
 1. **Volunteer coordination without friction** — scheduling, role assignment, confirmations, and reminders should take minutes, not mornings.
@@ -100,7 +115,7 @@ gather/
 │   ├── ui/           # @gather/ui — placeholder (no source yet)
 │   └── config/       # Shared ESLint + TS base config
 ├── supabase/
-│   └── migrations/   # 44 SQL migrations (up-only)
+│   └── migrations/   # 45 SQL migrations (up-only)
 └── design-handoff/   # HTML/markdown dossiers from design system
 ```
 
@@ -182,9 +197,11 @@ All mutations flow through RLS-protected tables. SECURITY DEFINER helpers bypass
 | Function | What it does |
 |---|---|
 | `bootstrap_church(name, slug, timezone)` | Creates church + sets profile to ADMIN |
-| `create_service_plan_from_preset(service_time_id, date, preset_id)` | Clones preset into a new plan |
-| `respond_assignment(source, id, response)` | CONFIRMED/DECLINED for slot or item; promotes backup on decline |
-| `admin_remove_member_from_church(user_id)` | Nulls church_id; guards last-admin removal |
+| `respond_assignment(source, id, response)` | Primary: CONFIRMED/DECLINED (decline promotes backup). Backup: DECLINED steps down, CONFIRMED is an ack. Past services refused. |
+| `check_in_to_plan(plan_id)` | Volunteer check-in, service day only (church tz) |
+| `set_plan_item_status(item_id, status)` | Admin-only run of show: PLANNED/DONE/SKIPPED |
+| `admin_remove_member_from_church(user_id)` | Nulls church_id, releases upcoming slots (`release_future_assignments`), guards last admin |
+| `prepare_account_deletion(user_id)` | Service role only — slot hand-off + last-admin guard before auth user deletion |
 
 ### Helper functions (SECURITY DEFINER)
 
@@ -348,7 +365,8 @@ Rebuilt (not a reskin) around three references: **Home** blends Monzo (grouped w
 |---|---|
 | `HomeScreen` | Grouped "Next up" hero, "Awaiting your reply" (SERVICE/ADMIN), image Browse tiles, "Upcoming" list, "Latest news" carousel |
 | `AssignmentsScreen` ("Your Schedule") | User's upcoming assignments grouped by date, each showing `{service name} · {time}` (not just time — see the service_time_id note under Database); confirm/decline via `respond_assignment` RPC, triggers `ConfirmCelebration` on confirm |
-| `ServicePlanScreen` | Read-only bulletin view of run-of-show |
+| `ServicePlanScreen` | Bulletin: run of show + team; volunteers **Check in** on service day, admins **Run service** (mark parts done/skipped) |
+| `EventDetailScreen` | Full-width date/time/place rows, Directions, native Add to calendar, Share, RSVP (own church only; closed after the event) |
 | `AnnouncementsScreen` | Featured card + list, all with a real photo or a deterministic fallback |
 | `EventsScreen` | Eventbrite-style filter chips + large photo cards, share/save actions |
 | `SignInScreen` | Two-step email → password reveal, full-width pill CTA, "Forgot password?" as its own step |
@@ -362,7 +380,7 @@ Rebuilt (not a reskin) around three references: **Home** blends Monzo (grouped w
 | `packages/ui` | Placeholder only — no shared component library |
 | Stripe billing | `/api/checkout` calls Stripe's REST API directly (no SDK), but needs real `STRIPE_SECRET_KEY` + `STRIPE_PRICE_*` env vars to actually complete a purchase — currently returns a friendly "not configured" error |
 | No data-fetching/caching layer | Screens call Supabase directly with local `useState` (no React Query/SWR) — fine at current scale, but means duplicate fetches between screens and no stale-while-revalidate. Deliberately not migrated wholesale; touches every screen's fetch logic and isn't safe to do without per-screen device testing. Revisit as a scoped, incremental migration, not a single pass. |
-| Mobile ServicePlanScreen | Read-only; editing is web-only |
+| Mobile ServicePlanScreen | Run-of-show *content* is edited on web only; mobile does check-in and run-service |
 | Web/mobile React version split | Web is pinned to React 18 (Next 14.2 doesn't officially support React 19); mobile runs React 19.2.3 (Expo 57 requires it). Kept apart via `pnpm.overrides`. Resolves itself once web moves to Next 15. |
 | Vercel build needs `node-linker=isolated` | `vercel.json` overrides the install command to `pnpm install --filter web... --config.node-linker=isolated` — the default hoisted linker (used locally, see `.npmrc`) puts two physically separate copies of React 18 in the graph when mobile's React 19 is also present, which crashes `/404`/`/500` prerendering (`styled-jsx`'s `StyleRegistry` gets a null hook dispatcher). Do not remove this override without re-verifying a real Vercel/isolated-linker build. |
 | Nearby churches uses a demo neighbor | Grace Community is placed at its ZIP (27510, Carrboro NC — its street address is fictional) and a demo church, **"Hope Fellowship (demo)"** (`hope-fellowship-demo`, Chapel Hill, ~2.8 mi away, 4 public events, no members), exists so "Nearby churches" has something to show. Remove it before real churches launch: `node .seed-tmp/nearby_seed.mjs undo` (or set `discoverable = false`). Real churches get coordinates when an admin saves their address on Account (`/api/geocode`). |
@@ -419,10 +437,14 @@ Rebuilt (not a reskin) around three references: **Home** blends Monzo (grouped w
 - **Plan editor saves in place** — `replacePlanItems`/`replacePlanRoleSlots` used to delete every row and re-insert on each 500ms autosave (new ids every save → broken reminders/open mobile screens, check-ins wiped, could lose the plan if the insert failed). Now `syncRows` sends only what the admin changed **relative to what this editor loaded** (`rememberPlanRows` baseline, registered by `fetchPlanItems`/`fetchPlanRoleSlots` and the `[planId]` page), updates in place, inserts new rows with the editor's own UUID (`newRowId()`, works on plain-http LAN hosts), deletes only rows this editor knew and removed, and serializes saves per plan. Verified live: a volunteer's confirmation / a decline-promotion made while an admin's editor was open survives that editor's autosave; no duplicate rows. Editor shows an inline "Also serving as … in this service" note for double-booking.
 - **"Today" is local, not UTC** — web uses `localDateString()` (`lib/format.ts`) and mobile the church timezone; `toISOString().slice(0,10)` rolls to tomorrow on US evenings and hid Sunday's service. Reminder dispatch filters plans per church timezone.
 - **Events: addresses + real event features (migration 0044)** — `events.address` (street address) alongside `location` (venue/room); apps show `event.address || church.address` everywhere (`eventAddress()` in `apps/mobile/src/lib/events.ts`), including nearby churches. Web `EventForm` has separate Venue and Address fields (placeholder = church address, "Use church address" reset); `EventsList` shows venue · address. Mobile: date and time are each their own full line (`eventWhen()` — "Friday, October 23" / "6:30 – 8:30 PM", multi-day aware) instead of a truncating 3-column `StatGrid`; detail has full-width info rows, Directions (Apple/Google Maps via `openDirections`), Add to calendar (`expo-calendar` `createEventInCalendarAsync` — the system sheet, no broad calendar access; needs `NSCalendars*UsageDescription`, a native module so standalone builds must be rebuilt), Share (with address), Happening now / Ended states (`eventPhase`), RSVP closed after an event ends, going/maybe counts kept live. Cards show "You're going" + N going; Save is persisted per user on device (`loadSavedEvents`) with a **Saved** filter (it used to be in-memory only); the fabricated "Free · All welcome" line was removed. Demo church address set to "Weaver Street, Carrboro, NC 27510" so Directions resolve.
+- **Calendar fix + iPad off** — in SDK 57, `createEventInCalendarAsync` imported from `"expo-calendar"` is a stub that always throws; import it from `"expo-calendar/legacy"` (the new object API is stubbed in Expo Go). On phones `addToCalendar` is native-only (static import, retries once after requesting calendar access, otherwise surfaces the real error) — the Google Calendar link is used only in the web preview. `ios.supportsTablet` is now `false` (phone-only v1: no iPad screenshots/review). New native deps in this monorepo also need `node apps/mobile/scripts/ensure-hoisted-module-links.js` + a Metro restart with `--clear`, or a running dev server reports `Unable to resolve`.
+- **Admin event workflow** — the create/edit modal now stays open (with the error shown) when saving fails instead of closing and losing the form; image removal actually clears `image_url`; all-day events are recognised when edited (00:00–23:59); **Delete event** in edit mode (warns with the RSVP count, suggests Cancel to keep a record); **Repeat** (weekly / every 2 weeks / monthly, 2–52 times — each occurrence is its own event, `expandRepeats` in the events page); **Also post an announcement** (same audience, body = when + where + details); button reads "Create N events" / "Saving…"; row menu buttons have `aria-label`s.
 - **App icon flattened** — `assets/icon.png` re-saved as RGB (no alpha channel); App Store Connect rejects store icons with an alpha channel even when every pixel is opaque.
 - **Photos on web too** — `components/ui/avatar.tsx` is now the single web avatar (photo or two-letter initials, falls back on load error, `className` carries each caller's initials colors). Used in AdminShell (sidebar + header; prefers `profiles.avatar_url` over OAuth metadata and listens for `gather-avatar-updated`), People table + member drawer, Volunteers assignments table + Pending/Declined cards, dashboard team strip + pending list, and admin search. Row data carries `avatarUrl` (dashboard builds an `avatarById` map). Account pages (admin + member) get a photo control in `ProfileCard`: `lib/avatar.ts` center-crops and re-encodes to a 512px JPEG in the browser (canvas) before upload, same `<uid>/avatar-<ts>.jpg` layout as mobile. `NextServiceTeamCard` is unused (only its `TeamRow` type is imported).
 - **Tour is account-level, first login only** — `useFirstChurchTutorialCard` now reads/writes `user_metadata.tour_offered_at` (plus the old device flag as a fast path) and only offers it to accounts under 14 days old, so it no longer reappears on new devices/reinstalls/web or for existing users. `GuidedTourScreen` was rebuilt: each slide shows a miniature of the real tab bar with its tab lit (`MEMBER_TABS`/`SERVE_TABS` are now exported from `TabBar.tsx`), segmented progress, Back/Next, one light parallax (none under Reduce Motion), no idle bobbing/rotation. Replayable from Profile → App tour.
 - **Tab bar rebuilt to platform specs** — root cause of the "off" spacing was leftovers from the floating-bar era: `MainTabs` still set `tabBarStyle.position: "absolute"` + `sceneContainerStyle.paddingBottom: 88` (removed in React Navigation 7), the bar itself was absolute, and every tab screen hard-coded `paddingBottom: 130–132`. Now the custom bar sits in normal flow below the scenes (bottom-tabs 7 lays a non-absolute custom bar out after the scene), tab screens end with `space.xxl`, and the bar's bottom padding is exactly `insets.bottom`. Metrics per platform (`M` in `TabBar.tsx`): iOS HIG 49pt + inset, 25pt glyph, 10pt label 3pt above the bar edge, dim-to-0.5 on press, selection haptic iOS-only; Android Material 3 80dp, 24dp icon in a 64×32 active-indicator pill (scaleX-in), 12sp label, ripple bounded to the pill. Selected tabs use the filled glyph (`glyphActive`), idle the outline. Emits `tabPress` before navigating. Do not reintroduce absolute positioning or per-screen bottom padding guesses.
+- **Deleting a service time no longer deletes its plans (migration 0045)** — `service_plans.service_time_id` and `service_presets.service_time_id` were `ON DELETE CASCADE`, so removing a service time on Account silently wiped every plan (with assignments and answers) built on it. Both FKs are now `ON DELETE SET NULL`; plans keep their own `start_time` (backfilled where null). Account asks before removing a service time.
+- **Web admin UI-protocol audit (October 2026)** — runtime sweep of all 12 admin pages (no console errors, no native selects/date/time inputs) plus a static pass against Vercel's Web Interface Guidelines. Fixed: one global `:focus-visible` amber outline in `globals.css` `@layer base` (28 controls had `focus:outline-none` with no replacement — keep the global rule rather than re-adding per-component rings); `aria-label`s on icon-only buttons (member/preset menus with `aria-haspopup`/`aria-expanded`, Volunteers add-slot, events clear-search) and on search/invite inputs that only had placeholders; Account labels tied to inputs with `htmlFor`/`id`; the Discoverable switch labeled; `transition-all` → `transition` and `...` → `…` across admin surfaces; confirmations before deleting a role (shows how many upcoming services use it — deleting a role still removes its slots) and a service time. Deletes elsewhere already confirmed.
 - **Docs** — `docs/launch/app-store-and-google-play.md` (Apple as Individual → LLC conversion/transfer → Google Play), `docs/launch/store-privacy-answers.md`, `docs/security/incident-response.md`.
 ---
 

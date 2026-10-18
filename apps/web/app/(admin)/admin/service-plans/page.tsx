@@ -16,7 +16,7 @@ import GenerateFromPresetButton from "../../../../components/servicePlans/Genera
 import { PageGrid, PageGridFull, PageGridRowTwoOne } from "../../../../components/layout/PageGrid";
 import RolesCard from "../../../../components/volunteers/RolesCard";
 import { getCurrentContext } from "../../../../lib/supabaseData";
-import { formatFriendlyLocalDate } from "../../../../lib/format";
+import { formatFriendlyLocalDate, localDateString } from "../../../../lib/format";
 import { useToast } from "../../../../lib/toast";
 import {
   createPlanRow,
@@ -156,6 +156,18 @@ export default function ServicePlansPage() {
 
   const handleDeleteRole = async (roleId: string) => {
     if (!supabase || !churchId) return;
+    const roleName = roles.find((r) => r.id === roleId)?.name ?? "this role";
+    // Deleting a role removes its slots from every plan, so say how many upcoming ones that touches.
+    const { count } = await supabase
+      .from("service_plan_role_slots")
+      .select("id, service_plans!inner(service_date)", { count: "exact", head: true })
+      .eq("role_id", roleId)
+      .gte("service_plans.service_date", localDateString());
+    const upcoming = count ?? 0;
+    const warning = upcoming > 0
+      ? `Delete "${roleName}"? It's used in ${upcoming} upcoming service${upcoming === 1 ? "" : "s"}, and those slots (and anyone assigned to them) will be removed.`
+      : `Delete "${roleName}"?`;
+    if (typeof window !== "undefined" && !window.confirm(warning)) return;
     const { error } = await supabase.from("volunteer_roles").delete().eq("id", roleId);
     if (error) { pushToast(error.message, "error"); return; }
     loadRoles(churchId);

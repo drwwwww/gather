@@ -66,6 +66,7 @@ function TimezoneCombobox({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search timezones…"
+              aria-label="Search timezones"
               className="flex-1 bg-transparent text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none"
             />
           </div>
@@ -147,10 +148,11 @@ export default function ChurchSettingsCard({
       <div className="space-y-4">
         {/* Church name */}
         <div className="space-y-1.5">
-          <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
+          <label htmlFor="church-name" className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
             Church name
           </label>
           <input
+            id="church-name"
             type="text"
             placeholder="Church name"
             value={churchName}
@@ -161,11 +163,12 @@ export default function ChurchSettingsCard({
 
         {/* Join code */}
         <div className="space-y-1.5">
-          <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
+          <label htmlFor="church-join-code" className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
             Join code
           </label>
           <div className="flex items-center gap-2">
             <input
+              id="church-join-code"
               type="text"
               value={joinCode}
               readOnly
@@ -195,10 +198,11 @@ export default function ChurchSettingsCard({
 
         {/* Address — used to place the church for "nearby churches" event search on mobile */}
         <div className="space-y-1.5">
-          <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
+          <label htmlFor="church-address" className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
             Address
           </label>
           <input
+            id="church-address"
             type="text"
             placeholder="123 Main St, Springfield, IL"
             value={address}
@@ -220,6 +224,7 @@ export default function ChurchSettingsCard({
             type="button"
             role="switch"
             aria-checked={discoverable}
+            aria-label="Discoverable nearby"
             onClick={() => onDiscoverableChange(!discoverable)}
             className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${discoverable ? "bg-amber-500" : "bg-[var(--border)]"}`}
           >

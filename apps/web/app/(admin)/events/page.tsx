@@ -6,7 +6,7 @@ import AdminHeader from "../../../components/admin/AdminHeader";
 import Loader from "../../../components/ui/Loader";
 import { getCurrentContext, indexProfilesById, listProfilesByChurch } from "../../../lib/supabaseData";
 import { supabase } from "../../../lib/supabaseClient";
-import EventForm, { type EventFormValues } from "../../../components/events/EventForm";
+import EventForm, { type EventFormValues, type RepeatRule } from "../../../components/events/EventForm";
 import EventsList, { type EventListTab } from "../../../components/events/EventsList";
 import RsvpPanel from "../../../components/events/RsvpPanel";
 import AttendeeListDialog from "../../../components/events/AttendeeListDialog";
@@ -33,6 +33,9 @@ export default function EventsPage() {
     endTime: "",
     allDay: false,
     imageUrl: null,
+    repeat: "none",
+    repeatCount: 4,
+    announce: false,
   });
   const [churchId, setChurchId] = useState<string>("");
   const [churchAddress, setChurchAddress] = useState<string>("");
@@ -154,67 +157,121 @@ export default function EventsPage() {
     return counts;
   }, [rsvpCountsByEvent]);
 
-  const handleCreateOrUpdate = async () => {
-    if (!supabase) return;
+  const [saving, setSaving] = useState(false);
+
+  /** Returns true when saved, so the modal only closes on success (it used to close on errors too, losing the form). */
+  const handleCreateOrUpdate = async (): Promise<boolean> => {
+    if (!supabase || saving) return false;
     setError(null);
     const trimmedTitle = formValues.title.trim();
-    if (!trimmedTitle || !formValues.startDate || (!formValues.allDay && !formValues.startTime)) return;
+    if (!trimmedTitle || !formValues.startDate || (!formValues.allDay && !formValues.startTime)) return false;
 
     const context = await getCurrentContext();
     if (!context) {
       router.push("/login");
-      return;
+      return false;
     }
 
     const startAtValue = buildDateTime(formValues.startDate, formValues.allDay ? "00:00" : formValues.startTime);
     if (!startAtValue) {
       setError("Start date/time is required.");
-      return;
+      return false;
     }
     if (formValues.endDate && !formValues.allDay && !formValues.endTime) {
-      setError("End time is required when an end date is set.");
-      return;
+      setError("Add an end time, or clear the end date.");
+      return false;
     }
-    const rawEndAt = formValues.endDate
-      ? buildDateTime(formValues.endDate, formValues.allDay ? "23:59" : formValues.endTime)
+    // All-day with no end date still ends that same day.
+    const endDateForSave = formValues.endDate || (formValues.allDay ? formValues.startDate : "");
+    const rawEndAt = endDateForSave
+      ? buildDateTime(endDateForSave, formValues.allDay ? "23:59" : formValues.endTime)
       : "";
     const endAtValue = rawEndAt || null;
 
     if (endAtValue && new Date(endAtValue) < new Date(startAtValue)) {
-      setError("End time must be after start time.");
-      return;
+      setError("The end time is before the start time.");
+      return false;
     }
 
-    const payload = {
+    const base = {
       church_id: context.profile.church_id,
       title: trimmedTitle,
-      start_at: startAtValue,
-      end_at: endAtValue,
       audience: formValues.audience as EventItem["audience"],
       location: formValues.location.trim() || null,
       address: formValues.address.trim() || null,
       description: formValues.description.trim() || null,
-      ...(formValues.imageUrl ? { image_url: formValues.imageUrl } as any : {}),
+      // Always sent, so removing an image actually removes it.
+      image_url: formValues.imageUrl ?? null,
     };
 
-    if (selectedEventId) {
-      const { error: updateError } = await supabase
-        .from("events")
-        .update(payload)
-        .eq("id", selectedEventId);
-      if (updateError) {
-        setError(updateError.message);
-        return;
+    setSaving(true);
+    try {
+      if (selectedEventId) {
+        const { error: updateError } = await supabase
+          .from("events")
+          .update({ ...base, start_at: startAtValue, end_at: endAtValue })
+          .eq("id", selectedEventId);
+        if (updateError) {
+          setError(updateError.message);
+          return false;
+        }
+      } else {
+        const occurrences = expandRepeats(startAtValue, endAtValue, formValues.repeat, formValues.repeatCount);
+        const { error: insertError } = await supabase
+          .from("events")
+          .insert(occurrences.map((o) => ({ ...base, start_at: o.start, end_at: o.end })));
+        if (insertError) {
+          setError(insertError.message);
+          return false;
+        }
+        if (formValues.announce) {
+          const when = new Date(startAtValue).toLocaleString(undefined, {
+            weekday: "long", month: "long", day: "numeric",
+            ...(formValues.allDay ? {} : { hour: "numeric", minute: "2-digit" }),
+          });
+          const where = [base.location, base.address || context.church.address].filter(Boolean).join(", ");
+          const series = occurrences.length > 1 ? ` (repeats ${REPEAT_LABEL[formValues.repeat]}, ${occurrences.length} times)` : "";
+          const body = [`${when}${series}`, where, base.description].filter(Boolean).join("\n\n");
+          const { error: annError } = await supabase.from("announcements").insert({
+            church_id: base.church_id,
+            title: trimmedTitle,
+            body,
+            audience: base.audience,
+            publish_at: new Date().toISOString(),
+            ...(base.image_url ? { image_url: base.image_url } : {}),
+          } as never);
+          if (annError) {
+            // The event itself saved — say so rather than failing the whole action.
+            setError(`Event created, but the announcement couldn't be posted: ${annError.message}`);
+            refresh();
+            return false;
+          }
+        }
       }
-    } else {
-      const { error: insertError } = await supabase
-        .from("events")
-        .insert(payload);
-      if (insertError) {
-        setError(insertError.message);
-        return;
-      }
+      resetForm();
+      refresh();
+      return true;
+    } finally {
+      setSaving(false);
     }
+  };
+
+  const handleDeleteEvent = async () => {
+    if (!supabase || !selectedEventId) return;
+    const event = events.find((e) => e.id === selectedEventId);
+    const going = rsvpCountsByEvent[selectedEventId]?.GOING ?? 0;
+    const warning = going > 0
+      ? `Delete "${event?.title}"? ${going} ${going === 1 ? "person has" : "people have"} RSVP'd — their RSVPs will be removed too. To keep a record, cancel it instead.`
+      : `Delete "${event?.title}"? This can't be undone.`;
+    if (typeof window !== "undefined" && !window.confirm(warning)) return;
+    setSaving(true);
+    const { error: deleteError } = await supabase.from("events").delete().eq("id", selectedEventId);
+    setSaving(false);
+    if (deleteError) {
+      setError(deleteError.message);
+      return;
+    }
+    setComposerOpen(false);
     resetForm();
     refresh();
   };
@@ -231,8 +288,11 @@ export default function EventsPage() {
       startTime: toTimeInput(event.start_at),
       endDate: event.end_at ? toDateInput(event.end_at) : "",
       endTime: event.end_at ? toTimeInput(event.end_at) : "",
-      allDay: false,
-      imageUrl: (event as any).image_url ?? null,
+      allDay: isAllDay(event),
+      imageUrl: event.image_url ?? null,
+      repeat: "none",
+      repeatCount: 4,
+      announce: false,
     });
   };
 
@@ -248,8 +308,11 @@ export default function EventsPage() {
       startTime: toTimeInput(event.start_at),
       endDate: event.end_at ? toDateInput(event.end_at) : "",
       endTime: event.end_at ? toTimeInput(event.end_at) : "",
-      allDay: false,
-      imageUrl: (event as any).image_url ?? null,
+      allDay: isAllDay(event),
+      imageUrl: event.image_url ?? null,
+      repeat: "none",
+      repeatCount: 4,
+      announce: false,
     });
   };
 
@@ -294,6 +357,9 @@ export default function EventsPage() {
       endTime: "",
       allDay: false,
       imageUrl: null,
+      repeat: "none",
+      repeatCount: 4,
+      announce: false,
     });
   };
 
@@ -401,8 +467,10 @@ export default function EventsPage() {
               churchId={churchId}
               churchAddress={churchAddress}
               onChange={(patch) => setFormValues((prev) => ({ ...prev, ...patch }))}
-              onSubmit={() => { void handleCreateOrUpdate(); setComposerOpen(false); }}
+              onSubmit={() => { void handleCreateOrUpdate().then((ok) => { if (ok) setComposerOpen(false); }); }}
               onCancelEdit={() => { setComposerOpen(false); resetForm(); }}
+              onDelete={selectedEventId ? () => void handleDeleteEvent() : undefined}
+              saving={saving}
               onTemplateSelect={handleTemplateSelect}
               error={error}
             />
@@ -415,6 +483,42 @@ export default function EventsPage() {
       </PageGridFull>
     </PageGrid>
   );
+}
+
+const REPEAT_LABEL: Record<RepeatRule, string> = {
+  none: "",
+  weekly: "weekly",
+  biweekly: "every 2 weeks",
+  monthly: "monthly",
+};
+
+/** Start/end pairs for a repeating series; monthly keeps the same day of month (clamped). */
+function expandRepeats(startIso: string, endIso: string | null, rule: RepeatRule, count: number) {
+  const start = new Date(startIso);
+  const duration = endIso ? new Date(endIso).getTime() - start.getTime() : null;
+  const n = rule === "none" ? 1 : Math.max(1, Math.min(count, 52));
+  return Array.from({ length: n }, (_, i) => {
+    const s = new Date(start);
+    if (rule === "weekly") s.setDate(start.getDate() + 7 * i);
+    if (rule === "biweekly") s.setDate(start.getDate() + 14 * i);
+    if (rule === "monthly") {
+      const day = start.getDate();
+      s.setDate(1);
+      s.setMonth(start.getMonth() + i);
+      const last = new Date(s.getFullYear(), s.getMonth() + 1, 0).getDate();
+      s.setDate(Math.min(day, last));
+    }
+    return { start: s.toISOString(), end: duration != null ? new Date(s.getTime() + duration).toISOString() : null };
+  });
+}
+
+/** Events saved as all-day run 00:00 → 23:59 local; recognise them when editing. */
+function isAllDay(event: { start_at: string; end_at: string | null }) {
+  const s = new Date(event.start_at);
+  if (s.getHours() !== 0 || s.getMinutes() !== 0) return false;
+  if (!event.end_at) return false;
+  const e = new Date(event.end_at);
+  return e.getHours() === 23 && e.getMinutes() === 59;
 }
 
 function buildDateTime(dateValue: string, timeValue: string) {

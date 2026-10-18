@@ -722,7 +722,7 @@ export default function VolunteersPage() {
                       className={[
                         "flex min-w-[52px] flex-col items-center gap-1 rounded-xl px-2 py-2",
                         "motion-safe:animate-volunteers-strip-reveal",
-                        "transition-all duration-200 ease-out",
+                        "transition duration-200 ease-out",
                         isSelected
                           ? "bg-[#EF9F27] cursor-default scale-[1.0]"
                           : "cursor-pointer hover:bg-[#FDF3E3] hover:scale-[1.04] hover:shadow-sm active:scale-[0.97]"

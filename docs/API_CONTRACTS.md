@@ -1,22 +1,31 @@
 # API Contracts
 
-## Supabase Tables
-- churches
-- profiles
-- ministries
-- service_times
-- volunteer_roles
-- volunteer_assignments
-- announcements
-- events
-- event_rsvps
-- notification_log
+_Last updated: October 2026. Column-level detail is in CLAUDE.md → Database Schema; types in `packages/lib/src/types/database.ts`._
 
-## Shared Schemas
-See packages/lib/src/schemas for zod validation schemas.
+## Tables (all RLS-protected, church-scoped)
 
-## Notification Dispatcher
-POST /api/notifications/dispatch
-- Body (optional): { lookaheadHours?: number }
-- Returns: { dispatched: number }
+`churches` · `profiles` · `profile_private` · `service_times` · `volunteer_roles` · `service_presets` / `service_preset_items` · `service_plans` · `service_plan_role_slots` · `service_plan_items` · `announcements` · `events` (`location` = venue, `address` = street address) · `event_rsvps` · `notification_log` · `serve_requests` · `content_reports` · `user_blocks`
 
+(`volunteer_assignments` was dropped in migration 0024.)
+
+## RPCs
+
+| Function | Caller | Purpose |
+|---|---|---|
+| `bootstrap_church(name, slug, timezone)` | new admin | Create church, make caller ADMIN |
+| `respond_assignment(source, id, response)` | volunteer | Primary: confirm/decline (decline promotes backup). Backup: decline steps down. Past services refused. |
+| `check_in_to_plan(plan_id)` | volunteer | Service day only (church timezone) |
+| `set_plan_item_status(item_id, status)` | admin | Run of show: PLANNED / DONE / SKIPPED |
+| `admin_remove_member_from_church(user_id)` | admin | Removes member, releases their upcoming slots, guards last admin |
+| `prepare_account_deletion(user_id)` | service role | Hand off slots / guard last admin before auth user deletion |
+
+## HTTP routes (`apps/web/app/api`)
+
+| Route | Auth | Body → Response |
+|---|---|---|
+| `POST /api/account/delete` | bearer or cookie | `{ confirm: "DELETE" }` → `{ ok }` · 409 `LAST_ADMIN` |
+| `POST /api/moderation/report` | bearer or cookie | `{ reportedUserId, reason, details? }` → `{ ok }` (emails church admins + support) |
+| `POST /api/notifications/dispatch` | church admin, or `Bearer $CRON_SECRET` | `{ lookaheadHours?, userId? }` → `{ dispatched, emailsSent, emailFailures, pushSent }` |
+| `POST /api/geocode` | signed in | `{ address }` → `{ latitude, longitude }` (Nominatim) |
+| `POST /api/checkout` | public | plan + cycle → Stripe Checkout URL (needs `STRIPE_*`) |
+| `POST /api/demo-request` | public (honeypot) | lead form → `{ ok }` |

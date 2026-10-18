@@ -161,7 +161,7 @@ export default function PeopleInviteHubPage() {
                   <button
                     type="button"
                     onClick={handleCopyLink}
-                    className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium transition-all duration-150 ${
+                    className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium transition duration-150 ${
                       copied
                         ? "border-green-200 bg-green-50 text-green-700"
                         : "border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-primary)] hover:bg-[var(--surface)]"

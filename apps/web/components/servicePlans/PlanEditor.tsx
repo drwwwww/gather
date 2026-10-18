@@ -304,7 +304,7 @@ export default function PlanEditor({
                   <textarea
                     className="textarea textarea-bordered w-full mt-1"
                     rows={3}
-                    placeholder="Optional step notes..."
+                    placeholder="Optional step notes…"
                     value={item.notes}
                     onChange={(event) => handleItemChange(item.id, { notes: event.target.value })}
                   />

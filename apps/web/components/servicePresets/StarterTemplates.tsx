@@ -14,7 +14,7 @@ export default function StarterTemplates({ onSelect }: { onSelect: (template: Pr
             key={template.id}
             type="button"
             onClick={() => onSelect(template)}
-            className="group flex flex-col items-start gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 text-left transition-all duration-150 hover:border-amber-300 hover:bg-amber-50 motion-safe:hover:-translate-y-0.5 active:translate-y-0"
+            className="group flex flex-col items-start gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 text-left transition duration-150 hover:border-amber-300 hover:bg-amber-50 motion-safe:hover:-translate-y-0.5 active:translate-y-0"
           >
             <p className="text-sm font-semibold text-[var(--text-primary)] transition-colors group-hover:text-amber-800">
               {template.name}

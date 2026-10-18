@@ -67,7 +67,7 @@ export default function PresetCard({
 
   return (
     <>
-      <div className={`overflow-hidden rounded-2xl border bg-[var(--surface)] transition-all duration-200 ${isExpanded ? "border-amber-300 shadow-md" : "border-[var(--border)] hover:border-[var(--outline-variant)]"}`}>
+      <div className={`overflow-hidden rounded-2xl border bg-[var(--surface)] transition duration-200 ${isExpanded ? "border-amber-300 shadow-md" : "border-[var(--border)] hover:border-[var(--outline-variant)]"}`}>
         {/* Row header */}
         <div className="flex items-center gap-3 px-5 py-4">
           {/* Default indicator */}
@@ -107,6 +107,9 @@ export default function PresetCard({
                 setMenuAnchor({ top: r.bottom + 6, right: window.innerWidth - r.right });
                 setMenuOpen((o) => !o);
               }}
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+              aria-label="Preset options"
               className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-2)] hover:text-[var(--text-primary)]"
             >
               <MoreHorizontal className="h-4 w-4" />

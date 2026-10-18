@@ -161,6 +161,7 @@ export default function MemberFilters({
           type="text"
           className="input input-bordered w-full"
           placeholder="Search name or email"
+          aria-label="Search members by name or email"
           value={searchTerm}
           onChange={(e) => onSearchChange(e.target.value)}
         />
