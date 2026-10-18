@@ -32,7 +32,9 @@
         "NSPhotoLibraryUsageDescription": "Gather uses your photo library so you can add a profile photo.",
         "NSCameraUsageDescription": "Gather uses your camera so you can take a profile photo.",
         "NSLocationWhenInUseUsageDescription": "Gather uses your location to show events at churches near you.",
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCalendarsUsageDescription": "Gather adds church events you choose to your calendar.",
+        "NSCalendarsWriteOnlyAccessUsageDescription": "Gather adds church events you choose to your calendar."
       },
       "privacyManifests": {
         "NSPrivacyTracking": false,
@@ -184,6 +186,13 @@
         "expo-location",
         {
           "locationWhenInUsePermission": "Gather uses your location to show events at churches near you."
+        }
+      ],
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "Gather adds church events you choose to your calendar.",
+          "remindersPermission": false
         }
       ],
       [

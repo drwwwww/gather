@@ -11,6 +11,8 @@ export type EventFormValues = {
   title: string;
   description: string;
   location: string;
+  /** Street address; empty means the church address. */
+  address: string;
   audience: string;
   startDate: string;
   startTime: string;
@@ -25,6 +27,8 @@ type EventFormProps = {
   timezoneLabel: string;
   isEditing: boolean;
   churchId: string;
+  /** Shown as the default when the event has no address of its own. */
+  churchAddress?: string;
   onChange: (patch: Partial<EventFormValues>) => void;
   onSubmit: () => void;
   onCancelEdit: () => void;
@@ -237,7 +241,7 @@ function AudienceSelect({ value, onChange, disabled }: { value: string; onChange
 }
 
 // ── main form ─────────────────────────────────────────────────────────────────
-export default function EventForm({ values, timezoneLabel, isEditing, churchId, onChange, onSubmit, onCancelEdit, onTemplateSelect, error }: EventFormProps) {
+export default function EventForm({ values, timezoneLabel, isEditing, churchId, churchAddress = "", onChange, onSubmit, onCancelEdit, onTemplateSelect, error }: EventFormProps) {
   const canSubmit = Boolean(values.title.trim()) && Boolean(values.startDate) && (values.allDay || Boolean(values.startTime));
 
   return (
@@ -278,16 +282,41 @@ export default function EventForm({ values, timezoneLabel, isEditing, churchId, 
         </div>
       </div>
 
-      {/* Location */}
+      {/* Where: venue (room/building) + street address. An event without its
+          own address shows the church address everywhere it appears. */}
       <div className="space-y-1.5">
-        <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Location <span className="font-normal normal-case text-[var(--text-muted)]">(optional)</span></label>
-        <div className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2.5">
+        <label htmlFor="event-venue" className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Venue <span className="font-normal normal-case text-[var(--text-muted)]">(optional)</span></label>
+        <div className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2.5 transition-colors focus-within:border-amber-300">
           <MapPin className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
-          <input type="text" placeholder="Where is this?" value={values.location}
+          <input id="event-venue" type="text" placeholder="Fellowship Hall, Sanctuary, Riverside Park…" value={values.location}
             onChange={e => onChange({ location: e.target.value })}
             className="flex-1 bg-transparent text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none"
           />
         </div>
+      </div>
+
+      <div className="space-y-1.5">
+        <div className="flex items-baseline justify-between gap-2">
+          <label htmlFor="event-address" className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Address</label>
+          {values.address.trim() && churchAddress ? (
+            <button type="button" onClick={() => onChange({ address: "" })}
+              className="text-xs font-medium text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]">
+              Use church address
+            </button>
+          ) : null}
+        </div>
+        <input id="event-address" type="text" autoComplete="street-address"
+          placeholder={churchAddress || "Street, city, state"} value={values.address}
+          onChange={e => onChange({ address: e.target.value })}
+          className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2.5 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-100"
+        />
+        <p className="text-xs text-[var(--text-muted)]">
+          {values.address.trim()
+            ? "Members will get directions to this address."
+            : churchAddress
+              ? "Leave blank to use your church address. Change it for off-site events."
+              : "Add your church address in Account settings, or enter one here."}
+        </p>
       </div>
 
       {/* Description */}

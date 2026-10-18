@@ -25,6 +25,7 @@ export default function EventsPage() {
     title: "",
     description: "",
     location: "",
+    address: "",
     audience: "ALL",
     startDate: "",
     startTime: "",
@@ -34,6 +35,7 @@ export default function EventsPage() {
     imageUrl: null,
   });
   const [churchId, setChurchId] = useState<string>("");
+  const [churchAddress, setChurchAddress] = useState<string>("");
   const [activeTab, setActiveTab] = useState<EventListTab>("UPCOMING");
   const [events, setEvents] = useState<EventItem[]>([]);
   const [allRsvps, setAllRsvps] = useState<EventRsvp[]>([]);
@@ -56,6 +58,7 @@ export default function EventsPage() {
 
     setTimezoneLabel(context.church.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone);
     setChurchId(context.profile.church_id);
+    setChurchAddress(context.church.address?.trim() || "");
 
     const { data: eventsData, error: eventsError } = await supabase
       .from("events")
@@ -189,6 +192,7 @@ export default function EventsPage() {
       end_at: endAtValue,
       audience: formValues.audience as EventItem["audience"],
       location: formValues.location.trim() || null,
+      address: formValues.address.trim() || null,
       description: formValues.description.trim() || null,
       ...(formValues.imageUrl ? { image_url: formValues.imageUrl } as any : {}),
     };
@@ -221,6 +225,7 @@ export default function EventsPage() {
       title: event.title,
       description: event.description || "",
       location: event.location || "",
+      address: event.address || "",
       audience: event.audience,
       startDate: toDateInput(event.start_at),
       startTime: toTimeInput(event.start_at),
@@ -237,6 +242,7 @@ export default function EventsPage() {
       title: `${event.title} (copy)`,
       description: event.description || "",
       location: event.location || "",
+      address: event.address || "",
       audience: event.audience,
       startDate: toDateInput(event.start_at),
       startTime: toTimeInput(event.start_at),
@@ -280,6 +286,7 @@ export default function EventsPage() {
       title: "",
       description: "",
       location: "",
+      address: "",
       audience: "ALL",
       startDate: "",
       startTime: "",
@@ -392,6 +399,7 @@ export default function EventsPage() {
               timezoneLabel={timezoneLabel}
               isEditing={!!selectedEventId}
               churchId={churchId}
+              churchAddress={churchAddress}
               onChange={(patch) => setFormValues((prev) => ({ ...prev, ...patch }))}
               onSubmit={() => { void handleCreateOrUpdate(); setComposerOpen(false); }}
               onCancelEdit={() => { setComposerOpen(false); resetForm(); }}

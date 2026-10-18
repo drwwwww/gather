@@ -67,7 +67,7 @@ export default function EventsList({
 
   const rawList = activeTab === "UPCOMING" ? upcoming : activeTab === "PAST" ? past : cancelled;
   const list = search.trim()
-    ? rawList.filter(e => `${e.title} ${e.location ?? ""}`.toLowerCase().includes(search.toLowerCase()))
+    ? rawList.filter(e => `${e.title} ${e.location ?? ""} ${e.address ?? ""}`.toLowerCase().includes(search.toLowerCase()))
     : rawList;
 
   const TABS: { value: EventListTab; label: string; count: number }[] = [
@@ -175,10 +175,12 @@ export default function EventsList({
                   </div>
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-[var(--text-muted)]">
                     <span>{dateRange}</span>
-                    {event.location && (
-                      <span className="flex items-center gap-1">
+                    {(event.location || event.address) && (
+                      <span className="flex min-w-0 items-center gap-1">
                         <MapPin className="h-3 w-3 shrink-0" />
-                        {event.location}
+                        <span className="truncate">
+                          {[event.location, event.address].filter(Boolean).join(" · ")}
+                        </span>
                       </span>
                     )}
                     <span className="flex items-center gap-1">

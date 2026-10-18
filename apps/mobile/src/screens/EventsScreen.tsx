@@ -9,7 +9,6 @@ import {
   StyleSheet,
   RefreshControl,
   Animated,
-  Share,
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import * as Location from "expo-location";
@@ -19,45 +18,37 @@ import { RiseIn, Shimmer, usePressScale } from "../components/ds/motion";
 import { eventFallback } from "../lib/churchImagery";
 import { distanceMiles, formatDistance } from "../lib/geo";
 import { supabase } from "../supabase";
+import { eventWhen, eventPhase, eventAddress, shareEvent, loadSavedEvents, setEventSaved } from "../lib/events";
 import { useAuth } from "../context/AuthContext";
 
 type EventRow = {
   id: string;
   title: string;
   location: string | null;
+  address: string | null;
   start_at: string;
   end_at: string | null;
   image_url: string | null;
+  /** Resolved for display: the event's address, else its church's. */
+  displayAddress?: string | null;
   churchName?: string;
   distanceMi?: number | null;
 };
 
-type FilterKey = "upcoming" | "week" | "month" | "past";
+type Rsvp = { going: number; mine: "GOING" | "MAYBE" | "NO" | null };
+
+type FilterKey = "upcoming" | "week" | "month" | "saved" | "past";
 type Tab = "mine" | "nearby";
 
 const FILTERS: { key: FilterKey; label: string }[] = [
   { key: "upcoming", label: "All upcoming" },
   { key: "week", label: "This week" },
   { key: "month", label: "This month" },
+  { key: "saved", label: "Saved" },
   { key: "past", label: "Past" },
 ];
 
 
-
-function dayLine(iso: string): string {
-  try {
-    const d = new Date(iso);
-    const day = d.toLocaleString(undefined, { weekday: "short", day: "numeric", month: "short" });
-    const time = d.toLocaleString(undefined, { hour: "numeric", minute: "2-digit" });
-    return `${day} • ${time}`;
-  } catch {
-    return iso;
-  }
-}
-function isSoon(iso: string): boolean {
-  const h = (new Date(iso).getTime() - Date.now()) / 3600000;
-  return h >= 0 && h < 72;
-}
 
 export default function EventsScreen({ navigation }: any) {
   const { user, profile } = useAuth();
@@ -65,7 +56,8 @@ export default function EventsScreen({ navigation }: any) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<FilterKey>("upcoming");
-  const [saved, setSaved] = useState<Record<string, boolean>>({});
+  const [saved, setSaved] = useState<Set<string>>(new Set());
+  const [rsvps, setRsvps] = useState<Record<string, Rsvp>>({});
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState<Tab>("mine");
 
@@ -86,17 +78,39 @@ export default function EventsScreen({ navigation }: any) {
     const to = new Date();
     to.setDate(to.getDate() + 365);
 
-    const { data, error } = await supabase
-      .from("events")
-      .select("id, title, location, start_at, end_at, image_url")
-      .eq("church_id", profile.church_id)
-      .eq("is_cancelled", false)
-      .gte("start_at", from.toISOString())
-      .lt("start_at", to.toISOString())
-      .order("start_at", { ascending: true })
-      .limit(400);
+    const [{ data, error }, { data: churchRow }, savedSet] = await Promise.all([
+      supabase
+        .from("events")
+        .select("id, title, location, address, start_at, end_at, image_url")
+        .eq("church_id", profile.church_id)
+        .eq("is_cancelled", false)
+        .gte("start_at", from.toISOString())
+        .lt("start_at", to.toISOString())
+        .order("start_at", { ascending: true })
+        .limit(400),
+      supabase.from("churches").select("address").eq("id", profile.church_id).maybeSingle(),
+      loadSavedEvents(user.id),
+    ]);
+    setSaved(savedSet);
 
-    if (!error) setEvents((data ?? []) as EventRow[]);
+    if (!error) {
+      const churchAddress = (churchRow as { address: string | null } | null)?.address ?? null;
+      const rows = ((data ?? []) as EventRow[]).map((e) => ({ ...e, displayAddress: eventAddress(e, churchAddress) }));
+      setEvents(rows);
+
+      // Who's going (your church only — RSVPs are church-scoped).
+      const ids = rows.filter((e) => eventPhase(e) !== "ended").map((e) => e.id);
+      if (ids.length) {
+        const { data: r } = await supabase.from("event_rsvps").select("event_id, user_id, status").in("event_id", ids);
+        const map: Record<string, Rsvp> = {};
+        for (const row of (r ?? []) as { event_id: string; user_id: string; status: Rsvp["mine"] }[]) {
+          const m = (map[row.event_id] ??= { going: 0, mine: null });
+          if (row.status === "GOING") m.going++;
+          if (row.user_id === user.id) m.mine = row.status;
+        }
+        setRsvps(map);
+      }
+    }
     setLoading(false);
     setRefreshing(false);
   }, [user?.id, profile?.church_id]);
@@ -128,11 +142,11 @@ export default function EventsScreen({ navigation }: any) {
 
     const { data: churchesData } = await supabase
       .from("churches")
-      .select("id, name, latitude, longitude")
+      .select("id, name, address, latitude, longitude")
       .eq("discoverable", true)
       .neq("id", profile.church_id);
 
-    const churches = (churchesData ?? []) as { id: string; name: string; latitude: number | null; longitude: number | null }[];
+    const churches = (churchesData ?? []) as { id: string; name: string; address: string | null; latitude: number | null; longitude: number | null }[];
     if (!churches.length) {
       setNearbyEvents([]);
       setNearbyLoading(false);
@@ -150,11 +164,12 @@ export default function EventsScreen({ navigation }: any) {
       );
     }
     const churchName = new Map(churches.map((c) => [c.id, c.name]));
+    const churchAddr = new Map(churches.map((c) => [c.id, c.address]));
 
     const nowIso = new Date().toISOString();
     const { data: eventsData } = await supabase
       .from("events")
-      .select("id, title, location, start_at, end_at, image_url, church_id")
+      .select("id, title, location, address, start_at, end_at, image_url, church_id")
       .in("church_id", churches.map((c) => c.id))
       .eq("is_cancelled", false)
       .eq("audience", "ALL")
@@ -165,6 +180,7 @@ export default function EventsScreen({ navigation }: any) {
     const rows = ((eventsData ?? []) as (EventRow & { church_id: string })[]).map((e) => ({
       ...e,
       churchName: churchName.get(e.church_id),
+      displayAddress: eventAddress(e, churchAddr.get(e.church_id)),
       distanceMi: churchDistance.get(e.church_id) ?? null,
     }));
 
@@ -188,10 +204,12 @@ export default function EventsScreen({ navigation }: any) {
   const visible = useMemo(() => {
     const source = tab === "mine" ? events : nearbyEvents;
     const now = Date.now();
-    const upcoming = source.filter((e) => new Date(e.start_at).getTime() >= now);
+    // "Upcoming" keeps events that are still happening, not just ones that haven't started.
+    const upcoming = source.filter((e) => eventPhase(e, now) !== "ended");
     let base: EventRow[];
     if (filter === "upcoming") base = upcoming;
-    else if (filter === "past") base = source.filter((e) => new Date(e.start_at).getTime() < now).reverse();
+    else if (filter === "saved") base = upcoming.filter((e) => saved.has(e.id));
+    else if (filter === "past") base = source.filter((e) => eventPhase(e, now) === "ended").reverse();
     else {
       const horizon = new Date();
       horizon.setDate(horizon.getDate() + (filter === "week" ? 7 : 31));
@@ -203,18 +221,20 @@ export default function EventsScreen({ navigation }: any) {
       (e) =>
         e.title.toLowerCase().includes(q) ||
         (e.location ?? "").toLowerCase().includes(q) ||
+        (e.displayAddress ?? "").toLowerCase().includes(q) ||
         (e.churchName ?? "").toLowerCase().includes(q)
     );
-  }, [events, nearbyEvents, tab, filter, search]);
+  }, [events, nearbyEvents, tab, filter, search, saved]);
 
-  const onShare = async (e: EventRow) => {
-    try {
-      await Share.share({
-        message: `${e.title}\n${dayLine(e.start_at)}${e.location ? `\n${e.location}` : ""}`,
-      });
-    } catch {
-      /* user dismissed the sheet — nothing to recover from */
-    }
+  const toggleSaved = async (id: string) => {
+    if (!user?.id) return;
+    const next = !saved.has(id);
+    setSaved((prev) => {
+      const s = new Set(prev);
+      if (next) s.add(id); else s.delete(id);
+      return s;
+    });
+    await setEventSaved(user.id, id, next);
   };
 
   return (
@@ -314,6 +334,8 @@ export default function EventsScreen({ navigation }: any) {
                 ? "No nearby events yet"
                 : filter === "past"
                 ? "No past events"
+                : filter === "saved"
+                ? "Nothing saved yet"
                 : "Nothing on the calendar"}
             </Text>
             <Text style={styles.emptyBody}>
@@ -323,6 +345,8 @@ export default function EventsScreen({ navigation }: any) {
                 ? "No other churches nearby have public events posted right now."
                 : filter === "past"
                 ? "Events your church has already held will appear here."
+                : filter === "saved"
+                ? "Tap the bookmark on any event to keep it here."
                 : "When your church schedules something, you'll find it here first."}
             </Text>
           </View>
@@ -331,9 +355,10 @@ export default function EventsScreen({ navigation }: any) {
             <RiseIn key={e.id} index={Math.min(i, 6)}>
               <EventCard
                 event={e}
-                saved={!!saved[e.id]}
-                onToggleSave={() => setSaved((s) => ({ ...s, [e.id]: !s[e.id] }))}
-                onShare={() => void onShare(e)}
+                rsvp={tab === "mine" ? rsvps[e.id] : undefined}
+                saved={saved.has(e.id)}
+                onToggleSave={() => void toggleSaved(e.id)}
+                onShare={() => void shareEvent(e, e.displayAddress ?? null)}
                 onPress={() => navigation.navigate("EventDetail", { eventId: e.id })}
               />
             </RiseIn>
@@ -346,24 +371,34 @@ export default function EventsScreen({ navigation }: any) {
 
 function EventCard({
   event,
+  rsvp,
   saved,
   onToggleSave,
   onShare,
   onPress,
 }: {
   event: EventRow;
+  rsvp?: Rsvp;
   saved: boolean;
   onToggleSave: () => void;
   onShare: () => void;
   onPress: () => void;
 }) {
   const press = usePressScale(0.985);
-  const soon = isSoon(event.start_at);
+  const phase = eventPhase(event);
+  const { dateLine, timeLine } = eventWhen(event, true);
+  const venue = event.location?.trim();
 
   return (
     <View style={styles.cardWrap}>
       <Animated.View style={press.style}>
-        <Pressable onPress={onPress} onPressIn={press.onPressIn} onPressOut={press.onPressOut}>
+        <Pressable
+          onPress={onPress}
+          onPressIn={press.onPressIn}
+          onPressOut={press.onPressOut}
+          accessibilityRole="button"
+          accessibilityLabel={`${event.title}, ${dateLine}, ${timeLine}`}
+        >
           <View style={styles.media}>
             <Image
               source={event.image_url ? { uri: event.image_url } : eventFallback(event.id)}
@@ -374,10 +409,12 @@ function EventCard({
               colors={["rgba(24,12,2,0.30)", "rgba(24,12,2,0.05)"]}
               style={StyleSheet.absoluteFill}
             />
-            {soon ? (
-              <View style={styles.soonBadge}>
-                <Icon name="clock" size={11} color={palette.ink} />
-                <Text style={styles.soonTxt}>Starting soon</Text>
+            {phase === "now" || phase === "soon" ? (
+              <View style={[styles.soonBadge, phase === "now" && styles.nowBadge]}>
+                <Icon name="clock" size={11} color={phase === "now" ? palette.onDark : palette.ink} />
+                <Text style={[styles.soonTxt, phase === "now" && { color: palette.onDark }]}>
+                  {phase === "now" ? "Happening now" : "Starting soon"}
+                </Text>
               </View>
             ) : null}
             {event.churchName ? (
@@ -393,37 +430,62 @@ function EventCard({
       </Animated.View>
 
       <View style={styles.metaRow}>
-        <Pressable style={{ flex: 1, minWidth: 0 }} onPress={onPress}>
+        <Pressable style={{ flex: 1, minWidth: 0 }} onPress={onPress} accessible={false}>
           <Text style={styles.title} numberOfLines={2}>
             {event.title}
           </Text>
-          <Text style={styles.when} numberOfLines={1}>
-            {dayLine(event.start_at)}
-          </Text>
-          <Text style={styles.where} numberOfLines={1}>
-            {event.location?.trim() || "Location to be confirmed"}
-          </Text>
-          <View style={styles.freeRow}>
-            <Text style={styles.free}>Free</Text>
-            <Text style={styles.freeSub}>· All welcome</Text>
+          {/* Date and time each get a full line — a single line truncated long time ranges. */}
+          <View style={styles.infoLine}>
+            <Icon name="calendar" size={14} color={palette.inkSoft} />
+            <Text style={styles.when}>{dateLine}</Text>
           </View>
+          <View style={styles.infoLine}>
+            <Icon name="clock" size={14} color={palette.inkSoft} />
+            <Text style={styles.when}>{timeLine}</Text>
+          </View>
+          {venue || event.displayAddress ? (
+            <View style={[styles.infoLine, { alignItems: "flex-start" }]}>
+              <View style={{ paddingTop: 2 }}>
+                <Icon name="mapPin" size={14} color={palette.inkMuted} />
+              </View>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                {venue ? <Text style={styles.venue} numberOfLines={1}>{venue}</Text> : null}
+                {event.displayAddress ? (
+                  <Text style={styles.where} numberOfLines={2}>{event.displayAddress}</Text>
+                ) : null}
+              </View>
+            </View>
+          ) : null}
+          {rsvp && (rsvp.mine === "GOING" || rsvp.going > 0) ? (
+            <View style={styles.goingRow}>
+              {rsvp.mine === "GOING" ? (
+                <View style={styles.youGoing}>
+                  <Icon name="check" size={12} color={palette.amberInk} />
+                  <Text style={styles.youGoingTxt}>You're going</Text>
+                </View>
+              ) : null}
+              {rsvp.going > 0 ? (
+                <Text style={styles.goingTxt}>
+                  {rsvp.going} {rsvp.going === 1 ? "person" : "people"} going
+                </Text>
+              ) : null}
+            </View>
+          ) : null}
         </Pressable>
 
         <View style={styles.iconCol}>
-          <Pressable onPress={onShare} hitSlop={8} style={styles.iconBtn} accessibilityLabel="Share event">
+          <Pressable onPress={onShare} hitSlop={6} style={styles.iconBtn} accessibilityRole="button" accessibilityLabel="Share event">
             <Icon name="link" size={19} color={palette.inkSoft} />
           </Pressable>
           <Pressable
             onPress={onToggleSave}
-            hitSlop={8}
+            hitSlop={6}
             style={styles.iconBtn}
+            accessibilityRole="button"
             accessibilityLabel={saved ? "Remove from saved" : "Save event"}
+            aria-selected={saved}
           >
-            <Icon
-              name={saved ? "checkCircle" : "add"}
-              size={20}
-              color={saved ? palette.amberDeep : palette.inkSoft}
-            />
+            <Icon name={saved ? "bookmarkFilled" : "bookmark"} size={20} color={saved ? palette.amberInk : palette.inkSoft} />
           </Pressable>
         </View>
       </View>
@@ -520,17 +582,25 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
   },
   soonTxt: { fontFamily: font.bold, fontSize: 11, color: palette.ink },
+  nowBadge: { backgroundColor: palette.ink },
 
   metaRow: { flexDirection: "row", alignItems: "flex-start", gap: 12, marginTop: 12 },
   title: { fontFamily: font.bold, fontSize: 17.5, lineHeight: 23, color: palette.ink, letterSpacing: -0.3 },
-  when: { fontFamily: font.semibold, fontSize: 13.5, color: palette.inkSoft, marginTop: 5 },
-  where: { fontFamily: font.regular, fontSize: 13, color: palette.inkMuted, marginTop: 2 },
-  freeRow: { flexDirection: "row", alignItems: "baseline", gap: 5, marginTop: 7 },
-  free: { fontFamily: font.bold, fontSize: 14, color: palette.ink },
-  freeSub: { fontFamily: font.regular, fontSize: 12.5, color: palette.inkMuted },
+  infoLine: { flexDirection: "row", alignItems: "center", gap: 7, marginTop: 6 },
+  when: { flex: 1, fontFamily: font.semibold, fontSize: 13.5, lineHeight: 18, color: palette.inkSoft },
+  venue: { fontFamily: font.medium, fontSize: 13, lineHeight: 18, color: palette.ink },
+  where: { fontFamily: font.regular, fontSize: 13, lineHeight: 18, color: palette.inkMuted },
+  goingRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 8, marginTop: 9 },
+  youGoing: {
+    flexDirection: "row", alignItems: "center", gap: 4,
+    backgroundColor: palette.amberSofter, borderRadius: radius.chip, paddingHorizontal: 8, paddingVertical: 3,
+  },
+  youGoingTxt: { fontFamily: font.semibold, fontSize: 12, color: palette.amberInk },
+  goingTxt: { fontFamily: font.medium, fontSize: 12.5, color: palette.inkMuted, fontVariant: ["tabular-nums"] },
 
-  iconCol: { gap: 10, paddingTop: 2 },
-  iconBtn: { width: 34, height: 34, alignItems: "center", justifyContent: "center" },
+  iconCol: { gap: 4, paddingTop: 0 },
+  // 44pt targets (HIG) without growing the visible glyph.
+  iconBtn: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
 
   empty: { alignItems: "center", paddingHorizontal: 40, paddingTop: 60 },
   emptyGlyph: {

@@ -1,38 +1,74 @@
-import { useCallback, useMemo, useState } from "react";
-import { View, Text, Image, ScrollView, Pressable, StyleSheet } from "react-native";
+import { useCallback, useState } from "react";
+import { View, Text, Image, ScrollView, Pressable, StyleSheet, Platform } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
-import { Icon } from "../components/ui/Icon";
+import * as Haptics from "expo-haptics";
+import { Icon, type AppIconName } from "../components/ui/Icon";
 import {
-  Screen, AppBar, Txt, Card, Pill, Eyebrow, Loader, StatGrid,
-  palette, font, radius, shadow, space, type,
+  Screen, AppBar, Txt, Card, Pill, Eyebrow, Loader,
+  palette, font, radius, space, type,
 } from "../components/ds";
 import { eventFallback } from "../lib/churchImagery";
+import { eventWhen, eventPhase, eventAddress, openDirections, addToCalendar, shareEvent } from "../lib/events";
 import { supabase } from "../supabase";
 import { useAuth } from "../context/AuthContext";
 
 type RsvpStatus = "GOING" | "MAYBE" | "NO";
 type EventRow = {
-  id: string; title: string; description: string | null; location: string | null;
+  id: string; title: string; description: string | null; location: string | null; address: string | null;
   start_at: string; end_at: string | null; is_cancelled: boolean; image_url: string | null;
   church_id: string;
 };
 
-const RSVP_OPTIONS: { key: RsvpStatus; label: string; icon: any }[] = [
+const RSVP_OPTIONS: { key: RsvpStatus; label: string; icon: AppIconName }[] = [
   { key: "GOING", label: "Going", icon: "checkCircle" },
   { key: "MAYBE", label: "Maybe", icon: "calendar" },
   { key: "NO", label: "Can't go", icon: "close" },
 ];
 
+/** One labelled line of event info — full width, so nothing is ever truncated. */
+function InfoRow({ icon, label, children, last }: { icon: AppIconName; label: string; children: React.ReactNode; last?: boolean }) {
+  return (
+    <View style={[styles.infoRow, !last && styles.infoRowDivider]} accessible accessibilityLabel={label}>
+      <View style={styles.infoIcon}>
+        <Icon name={icon} size={18} color={palette.amberInk} />
+      </View>
+      <View style={{ flex: 1, minWidth: 0 }}>{children}</View>
+    </View>
+  );
+}
+
+function ActionButton({ icon, label, spoken, onPress, disabled }: { icon: AppIconName; label: string; spoken?: string; onPress: () => void; disabled?: boolean }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={spoken ?? label}
+      android_ripple={{ color: "rgba(30,26,38,0.08)" }}
+      style={({ pressed }: { pressed: boolean }) => [
+        styles.action,
+        Platform.OS === "ios" && pressed && { opacity: 0.6 },
+        disabled && { opacity: 0.4 },
+      ]}
+    >
+      <Icon name={icon} size={20} color={palette.ink} />
+      <Text style={styles.actionTxt} numberOfLines={1} maxFontSizeMultiplier={1.3}>{label}</Text>
+    </Pressable>
+  );
+}
+
 export default function EventDetailScreen({ navigation, route }: any) {
   const eventId = route.params?.eventId as string | undefined;
   const { user, profile } = useAuth();
   const [event, setEvent] = useState<EventRow | null>(null);
-  const [hostChurchName, setHostChurchName] = useState<string | null>(null);
+  const [church, setChurch] = useState<{ name: string; address: string | null } | null>(null);
+  const [isOwnChurch, setIsOwnChurch] = useState(true);
   const [status, setStatus] = useState<RsvpStatus | null>(null);
   const [rsvpCounts, setRsvpCounts] = useState<{ going: number; maybe: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const client = supabase;
@@ -40,24 +76,25 @@ export default function EventDetailScreen({ navigation, route }: any) {
     setLoading(true); setError(null);
     const { data: ev, error: evErr } = await client
       .from("events")
-      .select("id, title, description, location, start_at, end_at, is_cancelled, image_url, church_id")
+      .select("id, title, description, location, address, start_at, end_at, is_cancelled, image_url, church_id")
       .eq("id", eventId)
       .maybeSingle();
     if (evErr || !ev) { setEvent(null); setLoading(false); return; }
     const row = ev as EventRow;
     setEvent(row);
 
-    const isOwnChurch = row.church_id === profile?.church_id;
-    if (!isOwnChurch) {
-      const { data: churchRow } = await client.from("churches").select("name").eq("id", row.church_id).maybeSingle();
-      setHostChurchName((churchRow as { name: string } | null)?.name ?? null);
-      // RSVPs are scoped to your own church's events (see rsvps_self_insert
-      // RLS policy) — a nearby church's event is view-only.
+    const own = row.church_id === profile?.church_id;
+    setIsOwnChurch(own);
+    const { data: churchRow } = await client.from("churches").select("name, address").eq("id", row.church_id).maybeSingle();
+    setChurch((churchRow as { name: string; address: string | null } | null) ?? null);
+
+    if (!own) {
+      // RSVPs are scoped to your own church's events (rsvps_self_insert RLS) —
+      // a nearby church's event is view-only.
       setRsvpCounts(null);
       setLoading(false);
       return;
     }
-    setHostChurchName(null);
 
     const [rsvpRes, goingRes, maybeRes] = await Promise.all([
       client.from("event_rsvps").select("status").eq("event_id", eventId).eq("user_id", user.id).maybeSingle(),
@@ -73,27 +110,31 @@ export default function EventDetailScreen({ navigation, route }: any) {
 
   const handleRsvp = async (nextStatus: RsvpStatus) => {
     if (!supabase || !user?.id || !eventId) return;
+    const prev = status;
     setSaving(true); setError(null);
+    setStatus(nextStatus);
     const { error: upsertError } = await supabase.from("event_rsvps").upsert(
-      { event_id: eventId, user_id: user.id, status: nextStatus },
+      { event_id: eventId, user_id: user.id, status: nextStatus } as any,
       { onConflict: "event_id,user_id" }
     );
-    if (upsertError) { setError(upsertError.message); setSaving(false); return; }
-    setStatus(nextStatus); setSaving(false);
+    setSaving(false);
+    if (upsertError) {
+      setStatus(prev);
+      setError("Couldn't save your RSVP. Try again.");
+      return;
+    }
+    Haptics.selectionAsync().catch(() => {});
+    // Keep the counts honest without a reload.
+    setRsvpCounts((c) => {
+      if (!c) return c;
+      const next = { ...c };
+      if (prev === "GOING") next.going--;
+      if (prev === "MAYBE") next.maybe--;
+      if (nextStatus === "GOING") next.going++;
+      if (nextStatus === "MAYBE") next.maybe++;
+      return next;
+    });
   };
-
-  const parts = useMemo(() => {
-    if (!event) return { dateStr: "", timeStr: "" };
-    try {
-      const start = new Date(event.start_at);
-      const dateStr = start.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
-      const startTime = start.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
-      const timeStr = event.end_at
-        ? `${startTime}–${new Date(event.end_at).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}`
-        : startTime;
-      return { dateStr, timeStr };
-    } catch { return { dateStr: event.start_at, timeStr: "" }; }
-  }, [event]);
 
   if (loading) {
     return <Screen><AppBar onBack={() => navigation.goBack()} /><Loader /></Screen>;
@@ -109,86 +150,124 @@ export default function EventDetailScreen({ navigation, route }: any) {
     );
   }
 
-  const stats: { icon: any; label: string; value: string }[] = [
-    { icon: "calendar", label: "Date", value: parts.dateStr.replace(/^\w+, /, "") },
-    { icon: "clock", label: "Time", value: parts.timeStr || "—" },
-  ];
-  if (rsvpCounts && rsvpCounts.going > 0) stats.push({ icon: "checkCircle", label: "Going", value: String(rsvpCounts.going) });
-  else if (event.location?.trim()) stats.push({ icon: "mapPin", label: "Where", value: event.location });
+  const { dateLine, timeLine } = eventWhen(event);
+  const phase = eventPhase(event);
+  const address = eventAddress(event, church?.address);
+  const venue = event.location?.trim() || null;
+  const ended = phase === "ended";
+
+  const onCalendar = async () => {
+    setNotice(null);
+    try {
+      const ok = await addToCalendar(event, address);
+      if (!ok) setNotice("Add to calendar works in the Gather app on your phone.");
+    } catch {
+      setNotice("Couldn't open your calendar. Try again.");
+    }
+  };
 
   return (
     <Screen>
       <AppBar onBack={() => navigation.goBack()} />
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 60 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: space.xxl }}>
         <Image
           source={event.image_url ? { uri: event.image_url } : eventFallback(event.id)}
           style={styles.hero}
           resizeMode="cover"
+          accessibilityIgnoresInvertColors
         />
         <View style={{ paddingHorizontal: space.gutter, paddingTop: 18 }}>
-          {event.is_cancelled ? <View style={{ marginBottom: 12 }}><Pill label="Cancelled" tone="danger" /></View> : null}
-          <Eyebrow>{hostChurchName ? `Event · ${hostChurchName}` : "Event"}</Eyebrow>
-          <Text style={styles.title}>{event.title}</Text>
-        {event.location?.trim() ? (
-          <View style={styles.locRow}>
-            <Icon name="mapPin" size={15} color={palette.amber} />
-            <Text style={styles.locTxt}>{event.location}</Text>
+          <View style={styles.pillRow}>
+            {event.is_cancelled ? <Pill label="Cancelled" tone="danger" />
+              : phase === "now" ? <Pill label="Happening now" tone="success" />
+              : ended ? <Pill label="Ended" tone="neutral" />
+              : null}
           </View>
-        ) : null}
+          <Eyebrow>{!isOwnChurch && church ? `Event · ${church.name}` : "Event"}</Eyebrow>
+          <Text style={styles.title} accessibilityRole="header">{event.title}</Text>
+          {rsvpCounts && (rsvpCounts.going > 0 || rsvpCounts.maybe > 0) ? (
+            <Text style={styles.attendance}>
+              {rsvpCounts.going} going{rsvpCounts.maybe > 0 ? ` · ${rsvpCounts.maybe} maybe` : ""}
+            </Text>
+          ) : null}
 
-        {/* Stat card */}
-        <Card elevation="md" style={{ paddingVertical: 6, paddingHorizontal: 18, marginTop: 18 }}>
-          <StatGrid items={stats} columns={stats.length >= 3 ? 3 : 2} />
-        </Card>
-
-        {/* Description */}
-        {event.description ? (
-          <Card elevation="sm" style={{ padding: 18, marginTop: 16 }}>
-            <Txt variant="bodyLg" color="inkSoft" style={{ lineHeight: 24 }}>{event.description}</Txt>
+          {/* When & where — each on its own full-width row */}
+          <Card elevation="md" padded={false} style={{ marginTop: 18, overflow: "hidden" }}>
+            <InfoRow icon="calendar" label={`Date: ${dateLine}`}>
+              <Text style={styles.infoPrimary}>{dateLine}</Text>
+            </InfoRow>
+            <InfoRow icon="clock" label={`Time: ${timeLine}`} last={!venue && !address}>
+              <Text style={styles.infoPrimary}>{timeLine}</Text>
+            </InfoRow>
+            {venue || address ? (
+              <InfoRow icon="mapPin" label={`Location: ${[venue, address].filter(Boolean).join(", ")}`} last>
+                {venue ? <Text style={styles.infoPrimary}>{venue}</Text> : null}
+                {address ? <Text selectable style={venue ? styles.infoSecondary : styles.infoPrimary}>{address}</Text> : null}
+              </InfoRow>
+            ) : null}
           </Card>
-        ) : null}
 
-        {/* RSVP — only for events at your own church; a nearby church's
-            event is discovery-only, since RSVPs write into that church's
-            own attendance data. */}
-        {hostChurchName ? (
-          <View style={{ marginTop: 22 }}>
-            <Card elevation="sm" style={{ padding: 16, flexDirection: "row", alignItems: "center", gap: 12 }}>
+          {/* Actions */}
+          <View style={styles.actions}>
+            {address ? <ActionButton icon="directions" label="Directions" onPress={() => void openDirections(address, venue ?? church?.name)} /> : null}
+            <ActionButton icon="calendarPlus" label="Calendar" spoken="Add to calendar" onPress={() => void onCalendar()} disabled={ended || event.is_cancelled} />
+            <ActionButton icon="share" label="Share" onPress={() => void shareEvent(event, address)} />
+          </View>
+          {notice ? <Text style={styles.notice}>{notice}</Text> : null}
+
+          {event.description ? (
+            <View style={{ marginTop: 22 }}>
+              <View style={{ marginBottom: 8 }}><Eyebrow>About</Eyebrow></View>
+              <Txt variant="bodyLg" color="inkSoft" style={{ lineHeight: 24 }}>{event.description}</Txt>
+            </View>
+          ) : null}
+
+          {/* RSVP — your own church only; a nearby church's event is discovery-only. */}
+          {!isOwnChurch && church ? (
+            <Card elevation="sm" style={{ padding: 16, flexDirection: "row", alignItems: "flex-start", gap: 12, marginTop: 22 }}>
               <Icon name="church" size={20} color={palette.amberDeep} />
-              <Txt variant="body" color="inkSoft" style={{ flex: 1 }}>
-                Hosted by {hostChurchName}. Visit their site or contact them to attend.
-              </Txt>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.hostName}>Hosted by {church.name}</Text>
+                {church.address ? <Text selectable style={styles.hostAddr}>{church.address}</Text> : null}
+                <Text style={styles.hostNote}>RSVPs go to the host church — contact them to attend.</Text>
+              </View>
             </Card>
-          </View>
-        ) : (
-          <View style={{ marginTop: 22, marginBottom: 8 }}>
-            <View style={{ marginBottom: 8 }}><Eyebrow>Your RSVP</Eyebrow></View>
-            {error ? <Text style={styles.errorTxt}>{error}</Text> : null}
-            <Card elevation="sm" padded={false} style={{ overflow: "hidden" }}>
-              {RSVP_OPTIONS.map((opt, i) => {
-                const selected = status === opt.key;
-                const tint = opt.key === "NO" ? palette.danger : palette.amberDeep;
-                return (
-                  <Pressable
-                    key={opt.key}
-                    onPress={() => void handleRsvp(opt.key)}
-                    disabled={saving || event.is_cancelled}
-                    style={[
-                      styles.rsvpRow,
-                      i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: palette.line },
-                      selected && { backgroundColor: opt.key === "NO" ? palette.dangerSoft : palette.amberSofter },
-                      (saving || event.is_cancelled) && { opacity: 0.55 },
-                    ]}
-                  >
-                    <Icon name={opt.icon} size={20} color={selected ? tint : palette.inkMuted} />
-                    <Text style={[styles.rsvpLabel, selected && { color: tint }]}>{opt.label}</Text>
-                    {selected ? <Icon name="check" size={18} color={tint} /> : null}
-                  </Pressable>
-                );
-              })}
-            </Card>
-          </View>
-        )}
+          ) : (
+            <View style={{ marginTop: 26 }}>
+              <View style={{ marginBottom: 8 }}><Eyebrow>Your RSVP</Eyebrow></View>
+              {ended || event.is_cancelled ? (
+                <Text style={styles.closed}>{event.is_cancelled ? "This event was cancelled." : "This event has ended."}</Text>
+              ) : (
+                <>
+                  {error ? <Text style={styles.errorTxt}>{error}</Text> : null}
+                  <Card elevation="sm" padded={false} style={{ overflow: "hidden" }}>
+                    {RSVP_OPTIONS.map((opt, i) => {
+                      const selected = status === opt.key;
+                      const tint = opt.key === "NO" ? palette.danger : palette.amberInk;
+                      return (
+                        <Pressable
+                          key={opt.key}
+                          onPress={() => void handleRsvp(opt.key)}
+                          disabled={saving}
+                          accessibilityRole="radio"
+                          aria-checked={selected}
+                          style={[
+                            styles.rsvpRow,
+                            i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: palette.line },
+                            selected && { backgroundColor: opt.key === "NO" ? palette.dangerSoft : palette.amberSofter },
+                          ]}
+                        >
+                          <Icon name={opt.icon} size={20} color={selected ? tint : palette.inkMuted} />
+                          <Text style={[styles.rsvpLabel, selected && { color: tint }]}>{opt.label}</Text>
+                          {selected ? <Icon name="check" size={18} color={tint} /> : null}
+                        </Pressable>
+                      );
+                    })}
+                  </Card>
+                </>
+              )}
+            </View>
+          )}
         </View>
       </ScrollView>
     </Screen>
@@ -197,10 +276,34 @@ export default function EventDetailScreen({ navigation, route }: any) {
 
 const styles = StyleSheet.create({
   hero: { width: "100%", height: 220, backgroundColor: palette.sunken },
+  pillRow: { flexDirection: "row", gap: 8, marginBottom: 10 },
   title: { ...type.h1, color: palette.ink, marginTop: 8 },
-  locRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 8 },
-  locTxt: { fontFamily: font.regular, fontSize: 14, color: palette.inkSoft, flex: 1 },
-  errorTxt: { fontFamily: font.regular, fontSize: 12, color: palette.danger, marginBottom: 8 },
-  rsvpRow: { flexDirection: "row", alignItems: "center", gap: 14, paddingHorizontal: 18, paddingVertical: 16 },
+  attendance: { fontFamily: font.medium, fontSize: 14, color: palette.inkSoft, marginTop: 6, fontVariant: ["tabular-nums"] },
+
+  infoRow: { flexDirection: "row", alignItems: "flex-start", gap: 14, paddingHorizontal: 16, paddingVertical: 14 },
+  infoRowDivider: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: palette.line },
+  infoIcon: {
+    width: 34, height: 34, borderRadius: radius.chip, backgroundColor: palette.amberSofter,
+    alignItems: "center", justifyContent: "center",
+  },
+  infoPrimary: { fontFamily: font.semibold, fontSize: 15, lineHeight: 21, color: palette.ink, paddingTop: 6 },
+  infoSecondary: { fontFamily: font.regular, fontSize: 14, lineHeight: 20, color: palette.inkSoft, marginTop: 2 },
+
+  actions: { flexDirection: "row", gap: 10, marginTop: 14 },
+  action: {
+    flex: 1, minHeight: 64, borderRadius: radius.lg, backgroundColor: palette.surface,
+    alignItems: "center", justifyContent: "center", gap: 6, paddingHorizontal: 6, overflow: "hidden",
+    borderWidth: StyleSheet.hairlineWidth, borderColor: palette.line,
+  },
+  actionTxt: { fontFamily: font.semibold, fontSize: 12.5, color: palette.ink },
+  notice: { fontFamily: font.regular, fontSize: 13, color: palette.inkSoft, marginTop: 10 },
+
+  hostName: { fontFamily: font.semibold, fontSize: 15, color: palette.ink },
+  hostAddr: { fontFamily: font.regular, fontSize: 14, lineHeight: 20, color: palette.inkSoft, marginTop: 2 },
+  hostNote: { fontFamily: font.regular, fontSize: 13, lineHeight: 19, color: palette.inkMuted, marginTop: 6 },
+
+  closed: { fontFamily: font.medium, fontSize: 14, color: palette.inkSoft },
+  errorTxt: { fontFamily: font.regular, fontSize: 13, color: palette.dangerInk, marginBottom: 8 },
+  rsvpRow: { flexDirection: "row", alignItems: "center", gap: 14, paddingHorizontal: 18, minHeight: 56 },
   rsvpLabel: { fontFamily: font.bold, fontSize: 16, color: palette.ink, flex: 1 },
 });

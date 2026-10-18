@@ -92,6 +92,9 @@ importers:
       expo:
         specifier: ^57.0.20
         version: 57.0.20(@babel/core@7.28.6)(@expo/dom-webview@57.0.1)(@expo/metro-runtime@57.0.15)(react-dom@19.2.3(react@19.2.3))(react-native-web@0.21.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react-native@0.86.3(@babel/core@7.28.6)(@react-native-community/cli@13.6.9)(@react-native/metro-config@0.84.1(@babel/core@7.28.6))(@types/react@19.2.18)(react@19.2.3))(react@19.2.3)(typescript@6.0.3)
+      expo-calendar:
+        specifier: ~57.0.5
+        version: 57.0.5(expo@57.0.20(@babel/core@7.28.6)(@expo/dom-webview@57.0.1)(@expo/metro-runtime@57.0.15)(react-dom@19.2.3(react@19.2.3))(react-native-web@0.21.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react-native@0.86.3(@babel/core@7.28.6)(@react-native-community/cli@13.6.9)(@react-native/metro-config@0.84.1(@babel/core@7.28.6))(@types/react@19.2.18)(react@19.2.3))(react@19.2.3)(typescript@6.0.3))(react-native@0.86.3(@babel/core@7.28.6)(@react-native-community/cli@13.6.9)(@react-native/metro-config@0.84.1(@babel/core@7.28.6))(@types/react@19.2.18)(react@19.2.3))
       expo-device:
         specifier: ~57.0.1
         version: 57.0.1(expo@57.0.20(@babel/core@7.28.6)(@expo/dom-webview@57.0.1)(@expo/metro-runtime@57.0.15)(react-dom@19.2.3(react@19.2.3))(react-native-web@0.21.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react-native@0.86.3(@babel/core@7.28.6)(@react-native-community/cli@13.6.9)(@react-native/metro-config@0.84.1(@babel/core@7.28.6))(@types/react@19.2.18)(react@19.2.3))(react@19.2.3)(typescript@6.0.3))
@@ -2610,6 +2613,12 @@ packages:
     peerDependencies:
       expo: '*'
       react: '*'
+      react-native: '*'
+
+  expo-calendar@57.0.5:
+    resolution: {integrity: sha512-0qGJq8kIU7JmtMouKZhA89UOoAcCmOqKmPzTl+PxeKo1a9CIVbXu1w9H+XIhmmRzoSfnGXx/l5UpIiOE5eyJjA==}
+    peerDependencies:
+      expo: '*'
       react-native: '*'
 
   expo-constants@57.0.17:
@@ -7564,6 +7573,11 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
       - typescript
+
+  expo-calendar@57.0.5(expo@57.0.20(@babel/core@7.28.6)(@expo/dom-webview@57.0.1)(@expo/metro-runtime@57.0.15)(react-dom@19.2.3(react@19.2.3))(react-native-web@0.21.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react-native@0.86.3(@babel/core@7.28.6)(@react-native-community/cli@13.6.9)(@react-native/metro-config@0.84.1(@babel/core@7.28.6))(@types/react@19.2.18)(react@19.2.3))(react@19.2.3)(typescript@6.0.3))(react-native@0.86.3(@babel/core@7.28.6)(@react-native-community/cli@13.6.9)(@react-native/metro-config@0.84.1(@babel/core@7.28.6))(@types/react@19.2.18)(react@19.2.3)):
+    dependencies:
+      expo: 57.0.20(@babel/core@7.28.6)(@expo/dom-webview@57.0.1)(@expo/metro-runtime@57.0.15)(react-dom@19.2.3(react@19.2.3))(react-native-web@0.21.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react-native@0.86.3(@babel/core@7.28.6)(@react-native-community/cli@13.6.9)(@react-native/metro-config@0.84.1(@babel/core@7.28.6))(@types/react@19.2.18)(react@19.2.3))(react@19.2.3)(typescript@6.0.3)
+      react-native: 0.86.3(@babel/core@7.28.6)(@react-native-community/cli@13.6.9)(@react-native/metro-config@0.84.1(@babel/core@7.28.6))(@types/react@19.2.18)(react@19.2.3)
 
   expo-constants@57.0.17(expo@57.0.20(@babel/core@7.28.6)(@expo/dom-webview@57.0.1)(@expo/metro-runtime@57.0.15)(react-dom@19.2.3(react@19.2.3))(react-native-web@0.21.2(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react-native@0.86.3(@babel/core@7.28.6)(@react-native-community/cli@13.6.9)(@react-native/metro-config@0.84.1(@babel/core@7.28.6))(@types/react@19.2.18)(react@19.2.3))(react@19.2.3)(typescript@6.0.3))(react-native@0.86.3(@babel/core@7.28.6)(@react-native-community/cli@13.6.9)(@react-native/metro-config@0.84.1(@babel/core@7.28.6))(@types/react@19.2.18)(react@19.2.3)):
     dependencies:

@@ -121,6 +121,8 @@ export type Database = {
           title: string;
           description: string | null;
           location: string | null;
+          address: string | null;
+          image_url: string | null;
           start_at: string;
           end_at: string | null;
           audience: Audience;
@@ -134,6 +136,8 @@ export type Database = {
           title: string;
           description?: string | null;
           location?: string | null;
+          address?: string | null;
+          image_url?: string | null;
           start_at: string;
           end_at?: string | null;
           audience: Audience;
@@ -145,6 +149,8 @@ export type Database = {
           title?: string;
           description?: string | null;
           location?: string | null;
+          address?: string | null;
+          image_url?: string | null;
           start_at?: string;
           end_at?: string | null;
           audience?: Audience;
