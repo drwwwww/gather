@@ -318,6 +318,15 @@ export default function AnnouncementsPage() {
     setComposerOpen(true);
   };
 
+  // Dashboard quick actions link here with ?new=1 — open the composer straight away.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("new") === "1") {
+      openComposer();
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const openEdit = (a: Announcement) => {
     handleEdit(a);
     setComposerOpen(true);

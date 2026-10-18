@@ -12,6 +12,7 @@ type NotificationRow = { id: string; type: string; payload: Record<string, unkno
 
 function titleFor(n: NotificationRow): string {
   if (n.type === "SERVICE_RECAP") return (n.payload as { title?: string })?.title ?? "Thank you for serving";
+  if (n.type === "ASSIGNMENT_DECLINED") return `${(n.payload as { volunteer_name?: string })?.volunteer_name ?? "A volunteer"} can't make it`;
   if (n.type === "SERVE_REQUEST") {
     const p = n.payload as { requester_name?: string };
     return `${p?.requester_name?.trim() || "A member"} wants to serve`;
@@ -24,6 +25,10 @@ function titleFor(n: NotificationRow): string {
 }
 function detailFor(n: NotificationRow): string {
   if (n.type === "SERVICE_RECAP") return (n.payload as { message?: string })?.message ?? "";
+  if (n.type === "ASSIGNMENT_DECLINED") {
+    const p = n.payload as { label?: string; backup_promoted?: boolean };
+    return [p?.label, p?.backup_promoted ? "Backup stepped in" : "Needs someone"].filter(Boolean).join(" · ");
+  }
   if (n.type === "SERVE_REQUEST") {
     const p = n.payload as { role_names?: string[]; note?: string | null };
     const roles = p?.role_names && p.role_names.length > 0 ? p.role_names.join(", ") : null;

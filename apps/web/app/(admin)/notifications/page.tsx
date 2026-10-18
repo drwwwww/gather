@@ -34,6 +34,15 @@ function renderMeta(notification: NotificationRow): { title: string; tone: ToneK
       detail: detailParts.length > 0 ? detailParts.join(" · ") : "No specific role picked — say hello on the People page."
     };
   }
+  if (notification.type === "ASSIGNMENT_DECLINED") {
+    const payload = notification.payload as { volunteer_name?: string; label?: string; scheduled_date?: string; was_confirmed?: boolean; backup_promoted?: boolean } | null;
+    const when = payload?.scheduled_date ? formatShortDate(payload.scheduled_date) : "";
+    return {
+      title: `${payload?.volunteer_name ?? "A volunteer"} can't make it`,
+      tone: payload?.backup_promoted ? "warning" : "error",
+      detail: [payload?.label, when, payload?.was_confirmed ? "had confirmed" : null, payload?.backup_promoted ? "backup stepped in" : "needs someone"].filter(Boolean).join(" · "),
+    };
+  }
   if (notification.type === "SERVICE_RECAP") {
     const payload = notification.payload as { title?: string; message?: string } | null;
     return { title: payload?.title ?? "Thank you for serving", tone: "success", detail: payload?.message };

@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
@@ -18,16 +18,37 @@ function avatarFromUserMetadata(meta: unknown): string | null {
   return typeof url === "string" && url.length > 0 ? url : null;
 }
 
-const NAV_MAIN = [
-  { href: "/admin",                  label: "Dashboard",       icon: LayoutDashboard },
-  { href: "/people",                 label: "People",          icon: Users           },
-  { href: "/live",                   label: "Sunday Live",     icon: Radio           },
-  { href: "/volunteers",             label: "Volunteers",      icon: CalendarCheck   },
-  { href: "/insights",               label: "Team Health",     icon: HeartPulse      },
-  { href: "/admin/service-plans",    label: "Service Plans",   icon: ClipboardList   },
-  { href: "/admin/service-presets",  label: "Service Presets", icon: Layers          },
-  { href: "/announcements",          label: "Announcements",   icon: Megaphone       },
-  { href: "/events",                 label: "Events",          icon: Calendar        },
+/** Grouped by the job an admin is doing — nine flat links were hard to scan. */
+const NAV_GROUPS = [
+  {
+    label: null,
+    items: [
+      { href: "/admin",                 label: "Dashboard",       icon: LayoutDashboard },
+      { href: "/live",                  label: "Sunday Live",     icon: Radio           },
+    ],
+  },
+  {
+    label: "Sundays",
+    items: [
+      { href: "/volunteers",            label: "Volunteers",      icon: CalendarCheck   },
+      { href: "/admin/service-plans",   label: "Service Plans",   icon: ClipboardList   },
+      { href: "/admin/service-presets", label: "Service Presets", icon: Layers          },
+    ],
+  },
+  {
+    label: "People",
+    items: [
+      { href: "/people",                label: "People",          icon: Users           },
+      { href: "/insights",              label: "Team Health",     icon: HeartPulse      },
+    ],
+  },
+  {
+    label: "Communication",
+    items: [
+      { href: "/announcements",         label: "Announcements",   icon: Megaphone       },
+      { href: "/events",                label: "Events",          icon: Calendar        },
+    ],
+  },
 ];
 
 function NavItem({
@@ -38,7 +59,7 @@ function NavItem({
   return (
     <Link
       href={href}
-      className={`group relative flex h-9 items-center gap-3 rounded-xl px-3 text-sm font-medium no-underline transition-colors duration-150 ${
+      className={`sidebar-item group relative flex h-8 items-center gap-3 rounded-xl px-3 text-sm font-medium no-underline transition-colors duration-150 ${
         isActive
           ? "bg-amber-50 text-amber-800"
           : "text-[var(--text-secondary)] hover:bg-[var(--surface-2)] hover:text-[var(--text-primary)]"
@@ -66,6 +87,11 @@ export default function AdminShell({ children }: { children: ReactNode }) {
   const [notificationScope, setNotificationScope] = useState<{ userId: string; churchId: string } | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const [shortcutLabel, setShortcutLabel] = useState("Ctrl K");
+  useEffect(() => {
+    if (/Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent)) setShortcutLabel("⌘K");
+  }, []);
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
@@ -132,6 +158,21 @@ export default function AdminShell({ children }: { children: ReactNode }) {
   }, [notificationScope]);
 
 
+  // ⌘K / Ctrl+K or "/" jumps to search from anywhere (not while typing in a field).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const typing = !!target && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName));
+      if ((e.key === "k" && (e.metaKey || e.ctrlKey)) || (e.key === "/" && !typing)) {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
   const isActive = (href: string) =>
     href === "/admin" ? pathname === href : pathname?.startsWith(href) ?? false;
 
@@ -159,14 +200,21 @@ export default function AdminShell({ children }: { children: ReactNode }) {
           </div>
 
           {/* Main nav */}
-          <nav aria-label="Main navigation" className="flex-1 overflow-y-auto px-2 py-3">
-            <ul className="space-y-0.5 list-none p-0 m-0">
-              {NAV_MAIN.map(({ href, label, icon }) => (
-                <li key={href} className="list-none">
-                  <NavItem href={href} label={label} icon={icon} isActive={isActive(href)} />
-                </li>
-              ))}
-            </ul>
+          <nav aria-label="Main navigation" className="sidebar-nav min-h-0 flex-1 overflow-y-auto px-2 py-2.5">
+            {NAV_GROUPS.map((group, gi) => (
+              <div key={group.label ?? gi} className={gi > 0 ? "sidebar-group mt-3" : ""}>
+                {group.label && (
+                  <p className="sidebar-label mb-0.5 px-3 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">{group.label}</p>
+                )}
+                <ul className="space-y-0.5 list-none p-0 m-0">
+                  {group.items.map(({ href, label, icon }) => (
+                    <li key={href} className="list-none">
+                      <NavItem href={href} label={label} icon={icon} isActive={isActive(href)} />
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
           </nav>
 
           {/* Bottom nav: notifications + settings */}
@@ -227,13 +275,16 @@ export default function AdminShell({ children }: { children: ReactNode }) {
               <div className="relative flex h-9 max-w-sm items-center overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 focus-within:border-amber-300 focus-within:ring-2 focus-within:ring-amber-100 transition">
                 <Search className="mr-2 h-4 w-4 shrink-0 text-[var(--text-muted)]" aria-hidden />
                 <input
+                  ref={searchInputRef}
                   type="search"
                   className="h-full min-w-0 flex-1 border-0 bg-transparent p-0 text-sm text-[var(--text-primary)] outline-none ring-0 placeholder:text-[var(--text-muted)] focus:ring-0"
                   placeholder="Search members, events, or plans…"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   aria-label="Search"
+                  aria-keyshortcuts="Control+K Meta+K /"
                 />
+                <kbd className="ml-2 hidden shrink-0 rounded-md border border-[var(--border)] bg-[var(--surface)] px-1.5 py-0.5 font-['Rubik',sans-serif] text-[10px] font-medium text-[var(--text-muted)] sm:inline">{shortcutLabel}</kbd>
               </div>
             </form>
 

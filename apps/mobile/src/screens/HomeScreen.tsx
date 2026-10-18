@@ -191,10 +191,12 @@ export default function HomeScreen({ navigation }: any) {
       client.from("churches").select("name").eq("id", churchId).maybeSingle(),
     ]);
 
-    setUnreadCount(notifRes.count ?? 0);
-    setEvents((eventsRes.data as EventPreview[]) ?? []);
-    setAnnouncements((announcementsRes.data as AnnouncementPreview[]) ?? []);
-    setChurchName((churchRes.data as { name: string } | null)?.name ?? null);
+    // A failed request (flaky network, token refresh) keeps what's on screen
+    // rather than blanking Home into "nothing on the calendar".
+    if (!notifRes.error) setUnreadCount(notifRes.count ?? 0);
+    if (!eventsRes.error) setEvents((eventsRes.data as EventPreview[]) ?? []);
+    if (!announcementsRes.error) setAnnouncements((announcementsRes.data as AnnouncementPreview[]) ?? []);
+    if (!churchRes.error && churchRes.data) setChurchName((churchRes.data as { name: string }).name);
 
     // Serving assignments awaiting a reply — the action-first block, in the
     // spirit of Fiverr's "My custom offers".
@@ -203,13 +205,14 @@ export default function HomeScreen({ navigation }: any) {
       const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(
         today.getDate()
       ).padStart(2, "0")}`;
-      const { data: plansData } = await client
+      const { data: plansData, error: plansError } = await client
         .from("service_plans")
         .select("id, service_date, start_time, service_time_id")
         .eq("church_id", churchId)
         .gte("service_date", todayStr)
         .order("service_date", { ascending: true })
         .limit(20);
+      if (plansError) { setLoading(false); setRefreshing(false); return; }
       const plans = (plansData ?? []) as { id: string; service_date: string; start_time: string | null; service_time_id: string | null }[];
       const planById = new Map(plans.map((p) => [p.id, p]));
       const planIds = plans.map((p) => p.id);

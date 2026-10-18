@@ -16,7 +16,7 @@ Gather exists to give churches their time back. Church leaders spend too many ho
 |---|---|
 | Web admin | Feature-complete for v1 (dashboard, people, volunteers, **Sunday Live**, **Team Health**, service plans/presets with **Gather AI fill** (Congregation/Network only), announcements, events with repeat/announce/delete + RSVP export, account with plan/billing + data export, reports). UI-protocol audit done. |
 | Mobile | All member + service-team flows live: home, news, events (address, directions, native calendar, saved, nearby churches), bulletin with check-in / run service, Serve schedule with backups, profile photos, report/block, account deletion, tour. Phone-only (`supportsTablet: false`). |
-| Backend | 46 migrations; daily reminder cron (Vercel); scheduling and privilege rules enforced by triggers/RPCs; security audit and scheduling audit both done and verified live. |
+| Backend | 47 migrations; daily reminder cron (Vercel); scheduling and privilege rules enforced by triggers/RPCs; security audit and scheduling audit both done and verified live. |
 | Legal / privacy | Privacy, Terms, DPA, Delete-account pages live; store privacy answers drafted. Not attorney-reviewed. |
 | Store readiness | Icon flattened, privacy manifest, export compliance, deletion, report/block all done. **Next:** test on real iPhone + Android, first `eas build` → TestFlight (no Mac needed), screenshots, listing, submit. Guide: `docs/launch/app-store-and-google-play.md`. |
 | Not started / deferred | Stripe products/keys/webhook in the Stripe dashboard (code is done), SMS provider for phone sign-in, data-caching layer, dark mode, Android device testing, LLC + D-U-N-S. |
@@ -67,7 +67,7 @@ Linear (density + keyboard-first hierarchy), Notion (calm whitespace + typograph
 
 ### Specific rules:
 - **Amber is sacred** — `#f59e0b` / `--primary` is used only for brand, active states, and primary CTAs. Never sprinkled decoratively.
-- **Flat over gradients** — solid color surfaces; the one exception is the dashboard hero strip which uses a subtle warm mesh.
+- **Flat over gradients** — solid color surfaces; the exceptions are the dashboard hero strip (subtle warm mesh) and the **Gather AI button** (`.ai-btn` in `globals.css`: ink core inside a rotating multi-color conic ring via an animated `@property --ai-angle`, a glow that drifts through the ring's colors, shimmering label, twinkling star; all motion off under `prefers-reduced-motion`). Keep that treatment exclusive to AI so it stays special.
 - **Rubik** at 300–700 weight. Never a different font.
 - **Radius is soft** — `rounded-xl` (12px) on cards/buttons, never perfectly square or pill-shaped for utility UI.
 - **No native form controls** in styled contexts — every `<select>`, `<input[type=date]>`, `<input[type=time]>` gets replaced with a custom component. Use `components/ui/SelectMenu.tsx` — searchable, keyboard-navigable, portalled to `document.body` (so no ancestor `overflow: hidden` can clip it; a card container's `overflow-hidden` clipped an early version). Now used everywhere — the last native `<select>`s (live `AssignmentsTable`) were migrated, and three dead components that held the rest (`AssignmentsTable.v1`, `PresetEditor`, `ServiceTimeSelector`) were deleted.
@@ -115,7 +115,7 @@ gather/
 │   ├── ui/           # @gather/ui — placeholder (no source yet)
 │   └── config/       # Shared ESLint + TS base config
 ├── supabase/
-│   └── migrations/   # 46 SQL migrations (up-only)
+│   └── migrations/   # 47 SQL migrations (up-only)
 └── design-handoff/   # HTML/markdown dossiers from design system
 ```
 
@@ -198,7 +198,7 @@ All mutations flow through RLS-protected tables. SECURITY DEFINER helpers bypass
 | Function | What it does |
 |---|---|
 | `bootstrap_church(name, slug, timezone)` | Creates church + sets profile to ADMIN |
-| `respond_assignment(source, id, response)` | Primary: CONFIRMED/DECLINED (decline promotes backup). Backup: DECLINED steps down, CONFIRMED is an ack. Past services refused. |
+| `respond_assignment(source, id, response)` | Primary: CONFIRMED/DECLINED, changeable until the service date (decline promotes backup; every primary decline notifies church admins as `ASSIGNMENT_DECLINED`, 0047). Backup: DECLINED steps down, CONFIRMED is an ack. Past services refused. |
 | `check_in_to_plan(plan_id)` | Volunteer check-in, service day only (church tz) |
 | `set_plan_item_status(item_id, status)` | Admin-only run of show: PLANNED/DONE/SKIPPED |
 | `admin_remove_member_from_church(user_id)` | Nulls church_id, releases upcoming slots (`release_future_assignments`), guards last admin |
@@ -321,7 +321,7 @@ Active item: amber left rail (`w-1`, `--primary`) + `--primary-soft` background.
 
 ### Service Plans (`components/servicePlans/`)
 
-`ServicePlanHeader`, `ServicePlanRoleSlotsSection`, `ServicePlanStepsEditor`, `PlanEditor`, `PrintablePlan`, `GenerateFromPresetButton`, `CopyLastPlanButton`
+`ServicePlanHeader`, `ServicePlanRoleSlotsSection`, `ServicePlanStepsEditor` (compact `runOfShow/StepRow` rows — used by both the Service Plans page and the `[planId]` editor; the old card-style `PlanEditor`/`ServicePlanStepRow` were removed), `PrintablePlan`, `GenerateFromPresetButton`, `CopyLastPlanButton`
 
 `ServicePlanRoleSlotsSection` was reworked from ~400px stacked cards per slot to single 44px rows (`[status ▾] [assigned ▾] [backup ▾] [note] [×]`), with the whole section collapsible, unused roles hidden behind a disclosure, and per-role coverage counts. Uses `SelectMenu` throughout — the native `<select>`s it used to have were the reason status changes silently reset an assignment; that's now fixed too (assigning someone only advances a slot still marked `OPEN`, never downgrades a `CONFIRMED` one).
 
@@ -463,6 +463,14 @@ Rebuilt (not a reskin) around three references: **Home** blends Monzo (grouped w
   - **Data export:** Account → Export your data (`/api/export`, runs as the admin so RLS bounds it; includes phones, never push tokens). Marketing lists roster health + export as Congregation+, but both are on every plan for now — a product decision, not gated in code.
   - **RSVPs:** attendee dialog rebuilt (Going/Maybe/Not going tabs, avatars, CSV).
 - **Mobile backgrounds: warm paper + Home glow + Dawn sign-in** — the lavender "Aurora" wash and cool lilac neutrals (bg #FAF8FE, sunken #F1EEF8, purple-tinted shadows) are gone: `palette` now sits on the same warm hue as the web (bg #F6F4EF, sunken #EFEBE3, line #E6E1D7, ink #1F1B14, warm brown shadows). `Screen` is flat; `<Screen glow>` adds the morning-light wash (`gradient.glow`) — **Home only**. Sign-in and sign-up use `components/app/DawnLayout.tsx`: amber sunrise (`gradient.dawn`) with the mark + wordmark in dark brown (#3A2600, never white on amber), form in a cream bottom sheet; the CTA pill text is dark brown too. Mockups that led here: `design-handoff/mobile-backgrounds.html`.
+- **Functional + navigation pass (migration 0047)** —
+  - **Volunteers can change their answer (mobile Serve):** confirmed rows show "Can't make it anymore?" (native `Alert` with a destructive option — `window.confirm` on web, where RN's `Alert` is a no-op — plus a warning haptic); declined rows they still hold show "I can make it after all". Backup rows never get these (they mirror the primary's status). Admins get an `ASSIGNMENT_DECLINED` notification (web + mobile render it) saying whether the backup stepped in.
+  - **Plan tab (mobile) has a service picker:** the next 8 services as chips; opens on the next one the person serves in (else the next one). Previously it showed only the earliest upcoming plan, so one stray plan hid Sunday's bulletin.
+  - **No more plans on blank days (web):** Service Plans and Volunteers open on the next service day (`nextServiceDate` in `lib/format.ts`), new plans get `service_time_id` + start time from the matching service time (`serviceTimeForDate`), and creating a plan on a day with no service asks first. A stray "Sunday Morning Order" plan dated Sat Oct 17 (no time, no roles) came from exactly this.
+  - **Resilience:** Home keeps what's on screen when a refresh request fails instead of blanking to "nothing on the calendar". The offline banner is hidden from screen readers while online (it was always in the a11y tree) and no longer claims "showing saved data" (nothing is cached).
+  - **Web navigation:** sidebar grouped (Dashboard, Sunday Live · Sundays · People · Communication); `Ctrl K` / `⌘K` / `/` focuses search (hint shown in the field); `AdminHeader` takes `back={{ href, label }}` (plan editor → Service plans); dashboard quick actions open the composers (`/announcements?new=1`, `/events?new=1`); hero links to Sunday Live; the admin's name in the greeting is no longer amber (decorative amber). "Fill with AI" is on the plan editor, the Service Plans page, and the Volunteers Assignments header (→ plan with `?ai=1`).
+  - **Serving vs backup is always labeled:** `SelectMenu` takes `prefix` (muted "SERVING"/"BACKUP" inside the trigger) and `emptyText` ("Choose someone" / "Optional"); used on role slots and run-of-show steps. A step's backup row stays open whenever a backup is set.
+  - **Buttons:** `.btn-primary`/`.btn-secondary`/`.btn-ghost` are colour-only — always pair with `.btn` (or use `components/ui/button.tsx`). Disabled primary is neutral grey, not faded amber.
 - **Docs** — `docs/launch/app-store-and-google-play.md` (Apple as Individual → LLC conversion/transfer → Google Play), `docs/launch/store-privacy-answers.md`, `docs/security/incident-response.md`.
 ---
 

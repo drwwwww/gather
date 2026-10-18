@@ -1248,3 +1248,102 @@
     animation: none !important;
   }
 }
+
+/* ── Gather AI button ─────────────────────────────────────────────────────────
+   The one deliberate exception to "flat over gradients": AI is a premium
+   moment, so it gets a living ring. Ink core keeps it from competing with
+   amber primary CTAs; motion stops under prefers-reduced-motion. */
+@property --ai-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.ai-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px 0 12px;
+  border-radius: 12px;
+  /* Ink core (padding-box) over a rotating conic ring (border-box). */
+  border: 2px solid transparent;
+  background:
+    linear-gradient(135deg, rgba(36, 30, 21, 0.9) 0%, rgba(24, 20, 14, 0.94) 55%, rgba(38, 30, 20, 0.9) 100%) padding-box,
+    conic-gradient(from var(--ai-angle), #f59e0b, #fb7185, #a78bfa, #38bdf8, #34d399, #f59e0b) padding-box,
+    conic-gradient(from var(--ai-angle), #f59e0b, #fb7185, #a78bfa, #38bdf8, #34d399, #f59e0b) border-box;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  animation: ai-spin 3.2s linear infinite, ai-glow 6s ease-in-out infinite;
+  transition: transform 180ms ease, filter 220ms ease;
+}
+
+.ai-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.12) saturate(1.15);
+}
+.ai-btn:active {
+  transform: scale(0.98);
+}
+.ai-btn:disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.ai-btn-label {
+  background: linear-gradient(100deg, #ffffff 0%, #ffffff 38%, #fde68a 50%, #ffffff 62%, #ffffff 100%);
+  background-size: 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: ai-shimmer 3.2s ease-in-out infinite;
+}
+
+.ai-btn-star {
+  color: #fbbf24;
+  filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.7));
+  animation: ai-twinkle 2.4s ease-in-out infinite;
+}
+
+@keyframes ai-spin {
+  to { --ai-angle: 360deg; }
+}
+/* The aura drifts through the ring's colors. */
+@keyframes ai-glow {
+  0%, 100% { box-shadow: 0 6px 22px -4px rgba(245, 158, 11, 0.7), 0 0 0 1px rgba(245, 158, 11, 0.08); }
+  33% { box-shadow: 0 6px 22px -4px rgba(251, 113, 133, 0.65), 0 0 0 1px rgba(251, 113, 133, 0.08); }
+  66% { box-shadow: 0 6px 22px -4px rgba(167, 139, 250, 0.65), 0 0 0 1px rgba(167, 139, 250, 0.08); }
+}
+@keyframes ai-shimmer {
+  0% { background-position: 100% 0; }
+  60%, 100% { background-position: -50% 0; }
+}
+@keyframes ai-twinkle {
+  0%, 100% { transform: scale(1) rotate(0deg); opacity: 1; }
+  50% { transform: scale(1.18) rotate(18deg); opacity: 0.85; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-btn, .ai-btn-label, .ai-btn-star { animation: none; }
+  .ai-btn { box-shadow: 0 4px 18px -4px rgba(245, 158, 11, 0.5); }
+  .ai-btn-label { color: #fff; background: none; }
+}
+
+/* Sidebar never shows a scrollbar: rows tighten on short windows, and if a
+   tiny window still can't fit everything it scrolls without a visible bar. */
+.sidebar-nav {
+  scrollbar-width: none;
+}
+.sidebar-nav::-webkit-scrollbar {
+  display: none;
+}
+@media (max-height: 700px) {
+  .sidebar-item { height: 1.75rem; }
+  .sidebar-group { margin-top: 0.5rem; }
+  .sidebar-label { margin-bottom: 0; }
+}

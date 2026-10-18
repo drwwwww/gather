@@ -3,7 +3,7 @@ import { ChevronDown, ChevronRight, List } from "lucide-react";
 import StepList from "../runOfShow/StepList";
 import type { RunOfShowStep, StepMemberOption } from "../runOfShow/StepRow";
 import StepEditorToolbar from "../runOfShow/StepEditorToolbar";
-import { type PlanItemDraft } from "./ServicePlanStepRow";
+import type { PlanItemDraft } from "../../lib/db/servicePlans";
 
 export default function ServicePlanStepsEditor({
   items,

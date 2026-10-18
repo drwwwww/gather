@@ -209,3 +209,28 @@ export function formatDurationMinutes(totalMinutes?: number | null) {
 export function localDateString(value: Date = new Date()): string {
   return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`;
 }
+
+type ServiceDay = { id: string; name: string; day_of_week: number; start_time: string | null };
+
+/** Today if it's a service day, otherwise the next one. Pages open here, not on a blank Saturday. */
+export function nextServiceDate(serviceTimes: { day_of_week: number }[], from: Date = new Date()): string {
+  const days = new Set(serviceTimes.map((t) => t.day_of_week));
+  if (days.size === 0) return localDateString(from);
+  const d = new Date(from);
+  for (let i = 0; i < 7; i++) {
+    if (days.has(d.getDay())) return localDateString(d);
+    d.setDate(d.getDate() + 1);
+  }
+  return localDateString(from);
+}
+
+/** The service time a new plan on `ymd` belongs to (matching start time first), or null on a non-service day. */
+export function serviceTimeForDate<T extends ServiceDay>(serviceTimes: T[], ymd: string, startTime?: string | null): T | null {
+  const dow = new Date(`${ymd}T12:00:00`).getDay();
+  const onDay = serviceTimes
+    .filter((t) => t.day_of_week === dow)
+    .sort((a, b) => (a.start_time ?? "").localeCompare(b.start_time ?? ""));
+  if (onDay.length === 0) return null;
+  const hhmm = (v: string | null | undefined) => (v ?? "").slice(0, 5);
+  return (startTime && onDay.find((t) => hhmm(t.start_time) === hhmm(startTime))) || onDay[0];
+}

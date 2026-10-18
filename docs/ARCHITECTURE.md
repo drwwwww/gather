@@ -12,7 +12,7 @@ One Supabase backend, three surfaces:
 | Admin portal (`/admin`, `/people`, `/volunteers`, `/events`, …) | Next.js 14 App Router, Tailwind + DaisyUI under custom tokens | Church admins |
 | Mobile app | Expo SDK 57 / React Native 0.86 / React Navigation 7 | Members, service team, admins |
 
-Monorepo (pnpm + Turborepo): `apps/web`, `apps/mobile`, `packages/lib` (shared types/schemas/Supabase factory), `packages/config`, `supabase/migrations` (46 up-only migrations).
+Monorepo (pnpm + Turborepo): `apps/web`, `apps/mobile`, `packages/lib` (shared types/schemas/Supabase factory), `packages/config`, `supabase/migrations` (47 up-only migrations).
 
 ## Data & security
 

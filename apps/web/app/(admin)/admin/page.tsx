@@ -271,7 +271,7 @@ export default function AdminEntryPage() {
             )}
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-[var(--text-primary)] sm:text-3xl">
-            {greeting(hour)}, <span className="text-amber-500">{greet}</span>.
+            {greeting(hour)}, {greet}.
           </h1>
           <p className="mt-1 text-sm text-[var(--text-muted)]">
             {hour < 12 ? "Here's what needs your attention today." : hour < 17 ? "Here's where things stand this afternoon." : "Here's a summary of your community."}
@@ -373,6 +373,10 @@ export default function AdminEntryPage() {
                 View full plan
                 <ChevronRight className="h-4 w-4" />
               </Link>
+              <Link href="/live"
+                className="inline-flex items-center gap-2 rounded-xl border border-amber-300 bg-white/60 px-4 py-2 text-sm font-semibold text-amber-800 no-underline transition hover:bg-white hover:-translate-y-px active:translate-y-0">
+                Sunday Live
+              </Link>
               <Link href="/volunteers"
                 className="inline-flex items-center gap-2 rounded-xl border border-amber-300 bg-white/60 px-4 py-2 text-sm font-semibold text-amber-800 no-underline transition hover:bg-white hover:-translate-y-px active:translate-y-0">
                 Volunteers
@@ -387,8 +391,8 @@ export default function AdminEntryPage() {
         <p className="mb-3 text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Quick actions</p>
         <div className="flex flex-wrap gap-2">
           {[
-            { href: "/announcements", icon: Megaphone,  label: "New announcement" },
-            { href: "/events",        icon: Calendar,    label: "New event"         },
+            { href: "/announcements?new=1", icon: Megaphone,  label: "New announcement" },
+            { href: "/events?new=1",        icon: Calendar,    label: "New event"         },
             { href: "/people/invite", icon: Users,       label: "Invite someone"    },
             { href: "/volunteers",    icon: Bell,        label: "Manage volunteers" },
           ].map(({ href, icon: Icon, label }) => (

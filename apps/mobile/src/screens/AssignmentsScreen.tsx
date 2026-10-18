@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
-import { View, Text, ScrollView, Pressable, RefreshControl, StyleSheet } from "react-native";
+import { View, Text, ScrollView, Pressable, RefreshControl, StyleSheet, Alert, Platform } from "react-native";
+import * as Haptics from "expo-haptics";
 import { useFocusEffect } from "@react-navigation/native";
 import { Icon } from "../components/ui/Icon";
 import {
@@ -223,6 +224,33 @@ export default function AssignmentsScreen() {
     setSavingKey(null);
   };
 
+  /** Changing a "yes" is a real event for the team — ask first, natively. */
+  const changeToDecline = (a: AssignmentRow) => {
+    const body = `You'll be taken off ${a.titleLine} for ${formatDateLabel(a.scheduled_date)}. Your backup steps in if there is one; otherwise your admin sees the gap.`;
+    // react-native-web's Alert is a no-op — the browser preview needs a real prompt.
+    if (Platform.OS === "web") {
+      if (window.confirm(`Can't make it?
+
+${body}`)) void respondToAssignment(a, "DECLINED");
+      return;
+    }
+    Alert.alert(
+      "Can't make it?",
+      body,
+      [
+        { text: "Keep me on", style: "cancel" },
+        {
+          text: "I can't make it",
+          style: "destructive",
+          onPress: () => {
+            if (Platform.OS !== "web") void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+            void respondToAssignment(a, "DECLINED");
+          },
+        },
+      ]
+    );
+  };
+
   const grouped = assignments.reduce<{ date: string; rows: AssignmentRow[] }[]>((acc, row) => {
     const last = acc[acc.length - 1];
     if (last && last.date === row.scheduled_date) last.rows.push(row);
@@ -318,6 +346,33 @@ export default function AssignmentsScreen() {
                                 </Pressable>
                               </View>
                             </>
+                          ) : !a.isBackup && a.status === "CONFIRMED" ? (
+                            <>
+                              <View style={styles.divider} />
+                              <Pressable
+                                onPress={() => changeToDecline(a)}
+                                disabled={!!savingKey}
+                                accessibilityRole="button"
+                                accessibilityLabel={`Can't make it to ${a.titleLine}`}
+                                style={({ pressed }: { pressed: boolean }) => [styles.stepDown, { opacity: savingKey ? 0.55 : pressed ? 0.7 : 1 }]}
+                              >
+                                <Text style={styles.changeTxt}>{saving ? "Saving…" : "Can't make it anymore?"}</Text>
+                              </Pressable>
+                            </>
+                          ) : !a.isBackup && a.status === "DECLINED" ? (
+                            <>
+                              <View style={styles.divider} />
+                              <Text style={styles.backupNote}>You said you can't make it. Plans changed?</Text>
+                              <Pressable
+                                onPress={() => void respondToAssignment(a, "CONFIRMED")}
+                                disabled={!!savingKey}
+                                accessibilityRole="button"
+                                accessibilityLabel={`I can make it to ${a.titleLine} after all`}
+                                style={({ pressed }: { pressed: boolean }) => [styles.stepDown, { opacity: savingKey ? 0.55 : pressed ? 0.7 : 1 }]}
+                              >
+                                <Text style={styles.rejoinTxt}>{saving ? "Saving…" : "I can make it after all"}</Text>
+                              </Pressable>
+                            </>
                           ) : a.isBackup ? (
                             <>
                               <View style={styles.divider} />
@@ -361,6 +416,8 @@ const styles = StyleSheet.create({
   backupNote: { fontFamily: font.regular, fontSize: 13, lineHeight: 19, color: palette.inkSoft },
   stepDown: { alignSelf: "flex-start", minHeight: 44, justifyContent: "center", marginTop: 4 },
   stepDownTxt: { fontFamily: font.semibold, fontSize: 14, color: palette.dangerInk },
+  changeTxt: { fontFamily: font.semibold, fontSize: 14, color: palette.inkSoft },
+  rejoinTxt: { fontFamily: font.semibold, fontSize: 14, color: palette.amberInk },
   statusCard: { backgroundColor: palette.surface, borderRadius: radius.xl, padding: 18, flexDirection: "row", alignItems: "center", gap: 14, marginBottom: 24, ...shadow.md },
   statusHl: { fontFamily: font.bold, fontSize: 17, color: palette.ink, letterSpacing: -0.2 },
   statusBd: { fontFamily: font.regular, fontSize: 13, color: palette.inkSoft, marginTop: 2 },

@@ -208,12 +208,14 @@ export async function createPlanRow({
   presetId,
   title,
   startTime,
+  serviceTimeId,
 }: {
   churchId: string;
   serviceDate: string;
   presetId?: string | null;
   title?: string;
   startTime?: string | null;
+  serviceTimeId?: string | null;
 }) {
   if (!supabase) return null;
   const { data, error } = await supabase
@@ -224,6 +226,7 @@ export async function createPlanRow({
       preset_id: presetId ?? null,
       title: title ?? "Service Plan",
       start_time: startTime ?? null,
+      service_time_id: serviceTimeId ?? null,
     })
     .select("*")
     .single();

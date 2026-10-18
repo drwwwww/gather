@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { View, Text, ScrollView, RefreshControl, Pressable, Linking, StyleSheet } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useFocusEffect } from "@react-navigation/native";
@@ -13,7 +13,7 @@ import { WEB_URL } from "../lib/webApi";
 
 type AssignmentChip = { key: string; label: string; role: "Primary" | "Backup" | "Part" };
 /** `start_time` lives directly on the plan (migration 0027) — service_time_id is legacy and often null. */
-type PlanRow = { id: string; title: string; service_date: string; start_time: string | null };
+type PlanRow = { id: string; title: string; service_date: string; start_time: string | null; service_time_id?: string | null };
 /** `status` = execution state (PLANNED/DONE/SKIPPED); `assignment_status` = confirm/decline state — the two are unrelated. */
 type PlanItemRow = { id: string; title: string; duration_minutes: number | null; notes: string; status: string; assigned_user_id: string | null; backup_user_id: string | null; assignment_status: string | null; checked_in_at: string | null };
 type RoleSlotRow = { id: string; role_id: string; assigned_user_id: string | null; backup_user_id: string | null; status: string; checked_in_at: string | null };
@@ -76,6 +76,9 @@ export default function ServicePlanScreen() {
   const [live, setLive] = useState(false);
 
   const [churchTz, setChurchTz] = useState<string>("America/New_York");
+  /** Upcoming services to switch between — one stray plan must never hide Sunday's bulletin. */
+  const [upcoming, setUpcoming] = useState<(PlanRow & { label: string })[]>([]);
+  const selectedIdRef = useRef<string | null>(null);
 
   // Running the service is an admin job; volunteers only check themselves in.
   const canRunService = profile?.role === "ADMIN";
@@ -136,17 +139,46 @@ export default function ServicePlanScreen() {
     // "Today" in the church's timezone — a UTC date would drop Sunday's plan
     // on Sunday evening in the US.
     const today = todayInTimeZone(tz);
-    const { data: planData, error: planError } = await supabase
+    const { data: listData, error: planError } = await supabase
       .from("service_plans")
-      .select("id, title, service_date, start_time")
+      .select("id, title, service_date, start_time, service_time_id")
       .eq("church_id", profile.church_id)
       .gte("service_date", today)
       .order("service_date", { ascending: true })
       .order("start_time", { ascending: true })
-      .limit(1)
-      .maybeSingle();
-    if (planError || !planData) { setPlan(null); setItems([]); setRoleSlots([]); setLoading(false); setRefreshing(false); return; }
-    setPlan(planData as PlanRow);
+      .limit(8);
+    const list = (listData ?? []) as PlanRow[];
+    if (planError || list.length === 0) { setPlan(null); setUpcoming([]); setItems([]); setRoleSlots([]); setLoading(false); setRefreshing(false); return; }
+
+    const timeIds = [...new Set(list.map((p) => p.service_time_id).filter((id): id is string => !!id))];
+    const { data: timeRows } = timeIds.length
+      ? await supabase.from("service_times").select("id, name").in("id", timeIds)
+      : { data: [] as { id: string; name: string }[] };
+    const timeName = new Map(((timeRows ?? []) as { id: string; name: string }[]).map((t) => [t.id, t.name]));
+    setUpcoming(list.map((p) => ({
+      ...p,
+      label: [
+        new Date(p.service_date + "T00:00:00").toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" }),
+        p.start_time ? formatStartTime(p.start_time) : null,
+        p.service_time_id ? timeName.get(p.service_time_id) : null,
+      ].filter(Boolean).join(" · "),
+    })));
+
+    // Keep the service the person picked; otherwise open the next one they serve in.
+    let planData = list.find((p) => p.id === selectedIdRef.current) ?? null;
+    if (!planData && myUserId) {
+      const ids = list.map((p) => p.id);
+      const mine = `assigned_user_id.eq.${myUserId},backup_user_id.eq.${myUserId}`;
+      const [ms, mi] = await Promise.all([
+        supabase.from("service_plan_role_slots").select("plan_id").in("plan_id", ids).or(mine),
+        supabase.from("service_plan_items").select("plan_id").in("plan_id", ids).or(mine),
+      ]);
+      const servingIn = new Set([...(ms.data ?? []), ...(mi.data ?? [])].map((r: any) => r.plan_id));
+      planData = list.find((p) => servingIn.has(p.id)) ?? null;
+    }
+    planData ??= list[0];
+    selectedIdRef.current = planData.id;
+    setPlan(planData);
     const [itemRes, slotRes, roleRes, peersRes] = await Promise.all([
       supabase.from("service_plan_items").select("id, title, duration_minutes, notes, status, assigned_user_id, backup_user_id, assignment_status, checked_in_at").eq("plan_id", planData.id).order("position"),
       supabase.from("service_plan_role_slots").select("id, role_id, assigned_user_id, backup_user_id, status, checked_in_at").eq("plan_id", planData.id).order("sort_order"),
@@ -160,7 +192,15 @@ export default function ServicePlanScreen() {
     if (!peersRes.error && peersRes.data) for (const row of peersRes.data as ProfilePeer[]) peerMap[row.id] = row;
     setPeers(peerMap);
     setLoading(false); setRefreshing(false);
-  }, [profile?.church_id]);
+  }, [profile?.church_id, myUserId]);
+
+  const selectPlan = (id: string) => {
+    if (id === plan?.id) return;
+    Haptics.selectionAsync().catch(() => {});
+    selectedIdRef.current = id;
+    setLoading(true);
+    void load();
+  };
 
   useFocusEffect(useCallback(() => { setLoading(true); void load(); }, [load]));
 
@@ -221,9 +261,34 @@ export default function ServicePlanScreen() {
           <EmptyState icon="servicePlan" title="No upcoming bulletin" body="Your church hasn't published a plan for a future service yet." />
         ) : (
           <View>
+            {upcoming.length > 1 ? (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.pickerRow}
+                style={{ marginHorizontal: -space.gutter, marginBottom: space.md }}
+                accessibilityRole="tablist"
+              >
+                {upcoming.map((p) => {
+                  const active = p.id === plan.id;
+                  return (
+                    <Pressable
+                      key={p.id}
+                      onPress={() => selectPlan(p.id)}
+                      accessibilityRole="tab"
+                      aria-selected={active}
+                      accessibilityLabel={p.label}
+                      style={({ pressed }: { pressed: boolean }) => [styles.pickerChip, active && styles.pickerChipActive, pressed && !active && { opacity: 0.8 }]}
+                    >
+                      <Text style={[styles.pickerTxt, active && styles.pickerTxtActive]} numberOfLines={1}>{p.label}</Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            ) : null}
             {/* Hero card */}
             <View style={styles.hero}>
-              <Eyebrow>Current bulletin</Eyebrow>
+              <Eyebrow>{plan.id === upcoming[0]?.id ? "Next bulletin" : "Bulletin"}</Eyebrow>
               <Text style={styles.heroTitle}>{planTitle}</Text>
               <Text style={styles.heroMeta}>{dateLine}</Text>
               <View style={styles.statWrap}><StatGrid items={heroStats} columns={3} /></View>
@@ -432,6 +497,11 @@ export default function ServicePlanScreen() {
 
 const styles = StyleSheet.create({
   header: { height: 56, paddingHorizontal: space.gutter, justifyContent: "center" },
+  pickerRow: { gap: space.sm, paddingHorizontal: space.gutter },
+  pickerChip: { minHeight: 36, justifyContent: "center", paddingHorizontal: 14, borderRadius: radius.pill, backgroundColor: palette.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: palette.line },
+  pickerChipActive: { backgroundColor: palette.ink, borderColor: palette.ink },
+  pickerTxt: { fontFamily: font.medium, fontSize: 13, color: palette.inkSoft },
+  pickerTxtActive: { color: palette.onDark },
   headerTitle: { fontFamily: font.bold, fontSize: 22, color: palette.ink, letterSpacing: -0.4 },
   errorBox: { padding: 16, borderRadius: radius.md, backgroundColor: palette.dangerSoft },
   errorTxt: { fontFamily: font.regular, fontSize: 14, color: palette.dangerInk },

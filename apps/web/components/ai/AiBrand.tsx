@@ -19,14 +19,14 @@ export function AiBadge({ label = "AI", className = "" }: { label?: string; clas
   );
 }
 
-const AI_BUTTON_CLASS =
-  "group inline-flex h-9 items-center gap-1.5 rounded-xl bg-[#1f1b14] px-3 text-xs font-semibold text-white no-underline transition hover:-translate-y-0.5 hover:bg-[#2c261c] disabled:pointer-events-none disabled:opacity-50";
+/** Animated gradient ring + aura + shimmer — styles live in globals.css (`.ai-btn`). */
+const AI_BUTTON_CLASS = "ai-btn";
 
 export function AiLink({ href, children }: { href: string; children: ReactNode }) {
   return (
     <Link href={href} className={AI_BUTTON_CLASS}>
-      <Sparkles className="h-3.5 w-3.5 text-amber-400 transition-transform group-hover:rotate-12" aria-hidden />
-      {children}
+      <Sparkles className="ai-btn-star h-3.5 w-3.5" aria-hidden />
+      <span className="ai-btn-label">{children}</span>
     </Link>
   );
 }
@@ -42,8 +42,8 @@ export function AiButton({
       {...props}
       className={`${AI_BUTTON_CLASS} ${className}`}
     >
-      <Sparkles className="h-3.5 w-3.5 text-amber-400 transition-transform group-hover:rotate-12" aria-hidden />
-      {children}
+      <Sparkles className="ai-btn-star h-3.5 w-3.5" aria-hidden />
+      <span className="ai-btn-label">{children}</span>
     </button>
   );
 }

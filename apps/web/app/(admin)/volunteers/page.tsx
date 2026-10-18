@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import AdminHeader from "../../../components/admin/AdminHeader";
 import { getCurrentContext, indexProfilesById, listProfilesByChurch } from "../../../lib/supabaseData";
 import { supabase } from "../../../lib/supabaseClient";
-import { formatShortWeekdayDateTime } from "../../../lib/format";
+import { formatShortWeekdayDateTime, nextServiceDate } from "../../../lib/format";
 import NextServiceReadinessStrip from "../../../components/volunteers/NextServiceReadinessStrip";
 import AssignmentsTable from "../../../components/volunteers/AssignmentsTable";
 import type { BulletinSlotRow, BulletinItemRow } from "../../../components/volunteers/AssignmentsTable";
@@ -86,6 +86,7 @@ export default function VolunteersPage() {
   const [bulletinLoading, setBulletinLoading] = useState(false);
   const router = useRouter();
   const { aiEnabled } = useChurchPlan();
+  const initialDateSetRef = useRef(false);
 
   const profilesById = useMemo(() => indexProfilesById(profiles), [profiles]);
 
@@ -253,6 +254,15 @@ export default function VolunteersPage() {
       }))
     );
     setProfiles(profilesResult ?? []);
+    // First load: jump from "today" to the next service day so the bulletin isn't an empty Saturday.
+    if (!initialDateSetRef.current) {
+      initialDateSetRef.current = true;
+      const next = nextServiceDate(context.serviceTimes);
+      if (next !== serviceDate) {
+        setServiceDate(next);
+        setDateStripStart(addDaysYmd(next, -3));
+      }
+    }
     setPlanDates(
       new Set(((plansResult.data ?? []) as { service_date: string }[]).map((p) => p.service_date))
     );

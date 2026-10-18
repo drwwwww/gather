@@ -29,6 +29,11 @@ export default function OfflineBanner() {
 
   return (
     <Animated.View
+      // Invisible while online — keep it out of VoiceOver/TalkBack until it matters.
+      accessibilityElementsHidden={!offline}
+      importantForAccessibility={offline ? "yes" : "no-hide-descendants"}
+      aria-hidden={!offline}
+      accessibilityLiveRegion="polite"
       pointerEvents="none"
       style={[
         styles.wrap,
@@ -39,7 +44,7 @@ export default function OfflineBanner() {
         },
       ]}
     >
-      <Text style={styles.txt}>You're offline — showing saved data</Text>
+      <Text style={styles.txt}>You're offline. Pull to refresh once you're back.</Text>
     </Animated.View>
   );
 }

@@ -38,6 +38,8 @@ export default function SelectMenu({
   buttonClassName = "",
   ariaLabel,
   disabled = false,
+  prefix,
+  emptyText,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -49,6 +51,10 @@ export default function SelectMenu({
   buttonClassName?: string;
   ariaLabel?: string;
   disabled?: boolean;
+  /** Muted label inside the trigger ("Serving", "Backup") so side-by-side menus are never ambiguous. */
+  prefix?: string;
+  /** Shown (muted) when value is "" — e.g. "Choose someone" vs "Optional". */
+  emptyText?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -246,12 +252,19 @@ export default function SelectMenu({
         className={`flex ${h} w-full items-center justify-between gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2.5 ${text} text-[var(--text-primary)] transition-colors hover:border-[var(--outline-variant)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-soft)] disabled:opacity-50 ${buttonClassName}`}
       >
         <span className="flex min-w-0 items-center gap-1.5">
+          {prefix && (
+            <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">{prefix}</span>
+          )}
           {selected?.tone && (
             <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${TONE_DOT[selected.tone]}`} aria-hidden />
           )}
-          <span className={`truncate ${selected ? "" : "text-[var(--text-muted)]"}`}>
-            {selected?.label ?? placeholder}
-          </span>
+          {value === "" && emptyText ? (
+            <span className="truncate italic text-[var(--text-muted)]">{emptyText}</span>
+          ) : (
+            <span className={`truncate ${selected ? "" : "text-[var(--text-muted)]"}`}>
+              {selected?.label ?? placeholder}
+            </span>
+          )}
         </span>
         <ChevronDown
           className={`h-3.5 w-3.5 shrink-0 opacity-40 transition-transform duration-150 ${open ? "rotate-180" : ""}`}

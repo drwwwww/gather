@@ -16,8 +16,11 @@ import GenerateFromPresetButton from "../../../../components/servicePlans/Genera
 import { PageGrid, PageGridFull, PageGridRowTwoOne } from "../../../../components/layout/PageGrid";
 import RolesCard from "../../../../components/volunteers/RolesCard";
 import { getCurrentContext } from "../../../../lib/supabaseData";
-import { formatFriendlyLocalDate, localDateString } from "../../../../lib/format";
+import { formatFriendlyLocalDate, localDateString, nextServiceDate, serviceTimeForDate } from "../../../../lib/format";
 import { useToast } from "../../../../lib/toast";
+import { useChurchPlan } from "../../../../lib/plan";
+import { AiButton } from "../../../../components/ai/AiBrand";
+import AiFillDialog from "../../../../components/ai/AiFillDialog";
 import {
   createPlanRow,
   fetchAllPlansForDate,
@@ -69,12 +72,15 @@ export default function ServicePlansPage() {
   const [roles, setRoles] = useState<RoleRow[]>([]);
   const [planTitle, setPlanTitle] = useState("");
   const [churchId, setChurchId] = useState<string | null>(null);
+  const [serviceTimes, setServiceTimes] = useState<{ id: string; name: string; day_of_week: number; start_time: string | null }[]>([]);
   const [status, setStatus] = useState<PageState>("loading");
   const [loadingPlan, setLoadingPlan] = useState(false);
   const [loadingPresets, setLoadingPresets] = useState(false);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [focusItemId, setFocusItemId] = useState<string | null>(null);
   const [roleSlotDrafts, setRoleSlotDrafts] = useState<PlanRoleSlotDraft[]>([]);
+  const { aiEnabled } = useChurchPlan();
+  const [aiOpen, setAiOpen] = useState(false);
   const [members, setMembers] = useState<{ id: string; full_name: string | null; email: string | null }[]>([]);
   // Role management
   const [newRoleName, setNewRoleName] = useState("");
@@ -233,10 +239,14 @@ export default function ServicePlansPage() {
         return;
       }
       setChurchId(context.profile.church_id);
+      setServiceTimes(context.serviceTimes as any);
+      // Open on the next service day, not today — a plan made on a blank Saturday has no service to belong to.
+      const startDate = nextServiceDate(context.serviceTimes);
+      if (startDate !== serviceDate) setServiceDate(startDate);
       await Promise.all([
         loadRoles(context.profile.church_id),
-        loadPresets(context.profile.church_id, serviceDate),
-        loadPlan(context.profile.church_id, serviceDate),
+        loadPresets(context.profile.church_id, startDate),
+        loadPlan(context.profile.church_id, startDate),
       ]);
       setStatus("ready");
     };
@@ -331,17 +341,32 @@ export default function ServicePlansPage() {
     await persistPlan(plan.id, { notify: true });
   }, [plan, persistPlan]);
 
+  /** Which service a new plan on this date belongs to; asks first if no service meets that day. */
+  const resolveNewPlanService = (startTime?: string | null): { ok: boolean; serviceTimeId: string | null; startTime: string | null } => {
+    const match = serviceTimeForDate(serviceTimes, serviceDate, startTime);
+    if (!match && serviceTimes.length > 0) {
+      const day = new Date(`${serviceDate}T12:00:00`).toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" });
+      if (!window.confirm(`${day} isn't one of your service days. Create a plan for it anyway?`)) {
+        return { ok: false, serviceTimeId: null, startTime: null };
+      }
+    }
+    return { ok: true, serviceTimeId: match?.id ?? null, startTime: startTime || match?.start_time?.slice(0, 5) || null };
+  };
+
   const handleGenerateFromPreset = async () => {
     if (!churchId || !selectedPresetId) return;
     try {
       let activePlan = plan;
       if (!activePlan) {
         const preset = presets.find((item) => item.id === selectedPresetId);
+        const svc = resolveNewPlanService(planStartTime);
+        if (!svc.ok) return;
         activePlan = await createPlanRow({
           churchId, serviceDate,
           presetId: selectedPresetId,
           title: preset?.name || "Service Plan",
-          startTime: planStartTime || null,
+          startTime: svc.startTime,
+          serviceTimeId: svc.serviceTimeId,
         });
         if (!activePlan) return;
       } else {
@@ -370,11 +395,14 @@ export default function ServicePlansPage() {
       const previousItems = await fetchPlanItems(previousPlan.id);
       let activePlan = plan;
       if (!activePlan) {
+        const svc = resolveNewPlanService(planStartTime);
+        if (!svc.ok) return;
         activePlan = await createPlanRow({
           churchId, serviceDate,
           presetId: previousPlan.preset_id,
           title: previousPlan.title || "Service Plan",
-          startTime: planStartTime || null,
+          startTime: svc.startTime,
+          serviceTimeId: svc.serviceTimeId,
         });
         if (!activePlan) return;
       }
@@ -410,7 +438,9 @@ export default function ServicePlansPage() {
   const handleAddSecondService = async (startTime: string) => {
     if (!churchId) return;
     try {
-      const newPlan = await createPlanRow({ churchId, serviceDate, startTime, title: "Service Plan" });
+      const svc = resolveNewPlanService(startTime);
+      if (!svc.ok) return;
+      const newPlan = await createPlanRow({ churchId, serviceDate, startTime: svc.startTime, serviceTimeId: svc.serviceTimeId, title: "Service Plan" });
       if (!newPlan) return;
       await loadPlan(churchId, serviceDate, newPlan.id);
     } catch (err) {
@@ -635,7 +665,27 @@ export default function ServicePlansPage() {
               onRemoveSlot={(id) =>
                 setRoleSlotDrafts((prev) => reindexPlanRoleSlots(prev.filter((s) => s.id !== id), roles))
               }
+              headerAction={aiEnabled && roleSlotDrafts.length > 0 ? <AiButton onClick={() => setAiOpen(true)}>Fill with AI</AiButton> : null}
             />
+            {aiEnabled && plan && churchId && (
+              <AiFillDialog
+                open={aiOpen}
+                onClose={() => setAiOpen(false)}
+                planId={plan.id}
+                planDate={plan.service_date}
+                churchId={churchId}
+                slots={roleSlotDrafts}
+                roleNameById={Object.fromEntries(roles.map((r) => [r.id, r.name]))}
+                onApply={(picks) =>
+                  setRoleSlotDrafts((prev) =>
+                    prev.map((s) => {
+                      const pick = picks.find((x) => x.slotId === s.id);
+                      return pick && !s.assigned_user_id ? { ...s, assigned_user_id: pick.userId, status: "ASSIGNED" } : s;
+                    })
+                  )
+                }
+              />
+            )}
 
             <ServicePlanStepsEditor
               items={planItems}

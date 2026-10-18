@@ -59,7 +59,7 @@ export default function ServicePlanRoleSlotsSection({
 
   const memberOptions = useMemo<SelectOption[]>(
     () => [
-      { value: "", label: "Unassigned" },
+      { value: "", label: "No one" },
       ...members.map((m) =>
         awayIds?.has(m.id)
           ? { value: m.id, label: memberLabel(m), hint: "Away", tone: "warning" as const }
@@ -67,6 +67,11 @@ export default function ServicePlanRoleSlotsSection({
       ),
     ],
     [members, awayIds]
+  );
+
+  const backupOptions = useMemo<SelectOption[]>(
+    () => [{ value: "", label: "No backup" }, ...memberOptions.slice(1)],
+    [memberOptions]
   );
 
   const slotsByRole = useMemo(() => {
@@ -127,7 +132,7 @@ export default function ServicePlanRoleSlotsSection({
             </span>
             {sectionOpen && (
               <span className="mt-0.5 block text-xs text-[var(--text-muted)]">
-                Set how many people each role needs, then assign them.
+                Pick who&apos;s serving. An optional backup steps in if they decline.
               </span>
             )}
           </span>
@@ -246,8 +251,9 @@ export default function ServicePlanRoleSlotsSection({
                               size="sm"
                               searchable
                               className="min-w-0 flex-1"
-                              ariaLabel="Assigned person"
-                              placeholder="Unassigned"
+                              ariaLabel="Serving"
+                              prefix="Serving"
+                              emptyText="Choose someone"
                               value={slot.assigned_user_id ?? ""}
                               options={memberOptions}
                               onChange={(v) =>
@@ -270,10 +276,11 @@ export default function ServicePlanRoleSlotsSection({
                               size="sm"
                               searchable
                               className="hidden min-w-0 flex-1 sm:block"
-                              ariaLabel="Backup"
-                              placeholder="No backup"
+                              ariaLabel="Backup (optional)"
+                              prefix="Backup"
+                              emptyText="Optional"
                               value={slot.backup_user_id ?? ""}
-                              options={memberOptions}
+                              options={backupOptions}
                               onChange={(v) => onChange(slot.id, { backup_user_id: v || null })}
                             />
                             <button

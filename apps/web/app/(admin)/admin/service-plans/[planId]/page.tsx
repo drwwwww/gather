@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import AdminHeader from "../../../../../components/admin/AdminHeader";
 import PageLoader from "../../../../../components/ui/PageLoader";
-import PlanEditor from "../../../../../components/servicePlans/PlanEditor";
+import ServicePlanStepsEditor from "../../../../../components/servicePlans/ServicePlanStepsEditor";
 import ServicePlanRoleSlotsSection from "../../../../../components/servicePlans/ServicePlanRoleSlotsSection";
 import { PageGrid, PageGridFull } from "../../../../../components/layout/PageGrid";
 import { getCurrentContext } from "../../../../../lib/supabaseData";
@@ -180,12 +180,12 @@ export default function ServicePlanEditorPage() {
     };
   }, [plan?.church_id, plan?.service_date]);
 
-  const handleAddItem = () => {
+  const handleAddItem = (title = "") => {
     setItems((prev) => [
       ...prev,
       {
         id: createLocalId(),
-        title: "",
+        title,
         duration_minutes: null,
         notes: "",
         owner_role_id: null,
@@ -196,9 +196,6 @@ export default function ServicePlanEditorPage() {
     ]);
   };
 
-  const handleDeleteItem = (id: string) => {
-    setItems((prev) => prev.filter((item) => item.id !== id));
-  };
 
   const handleSave = useCallback(async () => {
     if (!supabase || !plan || !planId) return;
@@ -305,11 +302,27 @@ export default function ServicePlanEditorPage() {
     <PageGrid>
       <PageGridFull className="animate-fade-in-up">
         <AdminHeader
+          back={{ href: "/admin/service-plans", label: "Service plans" }}
           title={title}
           subtitle="Adjust this service plan without changing the preset."
         />
       </PageGridFull>
       <PageGridFull className="animate-fade-in-up [animation-delay:100ms] opacity-0 space-y-6">
+        <div className="stitch-section-card">
+          <label htmlFor="plan-title" className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
+            Title
+          </label>
+          <input
+            id="plan-title"
+            value={plan?.title ?? ""}
+            onChange={(e) => setPlan((prev) => (prev ? { ...prev, title: e.target.value } : prev))}
+            className="mt-1.5 h-10 w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-amber-300 focus:ring-2 focus:ring-amber-100"
+          />
+          <p className="mt-1.5 text-xs text-[var(--text-muted)]">
+            {presetName ? `Based on preset: ${presetName} · ` : ""}
+            {error ? <span className="text-red-600">{error}</span> : saving ? "Saving…" : lastSaved ? `Saved ${lastSaved.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}` : "Changes save automatically"}
+          </p>
+        </div>
         <ServicePlanRoleSlotsSection
           slots={roleSlotDrafts}
           roles={roles}
@@ -354,19 +367,13 @@ export default function ServicePlanEditorPage() {
             }
           />
         )}
-        <PlanEditor
-          planTitle={plan?.title ?? ""}
-          basedOnPresetName={presetName}
+        <ServicePlanStepsEditor
           items={items}
           members={members}
-          onTitleChange={(value) => setPlan((prev) => (prev ? { ...prev, title: value } : prev))}
+          savingState={error ? "error" : saving ? "saving" : lastSaved ? "saved" : "idle"}
           onItemsChange={setItems}
-          onAddItem={handleAddItem}
-          onDeleteItem={handleDeleteItem}
-          onSave={handleSave}
-          saving={saving}
-          lastSaved={lastSaved}
-          error={error}
+          onAddStep={() => handleAddItem("New step")}
+          onAddQuickStep={(title) => handleAddItem(title)}
         />
       </PageGridFull>
     </PageGrid>

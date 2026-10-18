@@ -381,6 +381,15 @@ export default function EventsPage() {
   const cancelledCount = useMemo(() => events.filter(e => e.is_cancelled).length, [events]);
 
   const openCreate = () => { resetForm(); setComposerOpen(true); };
+
+  // Dashboard quick actions link here with ?new=1 — open the composer straight away.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("new") === "1") {
+      openCreate();
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const openEdit = (event: EventItem) => { handleSelectEvent(event); setComposerOpen(true); };
 
   return (

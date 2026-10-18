@@ -69,10 +69,11 @@ export default function StepRow({
   onMove: (direction: "up" | "down") => void;
 }) {
   const [detailOpen, setDetailOpen] = useState(false);
-  const showDetail = detailOpen || !!step.notes;
+  // A step with a backup keeps that row open — who covers a part should never be hidden.
+  const showDetail = detailOpen || !!step.notes || !!step.backup_user_id;
 
   const memberOptions: SelectOption[] = [
-    { value: "", label: "Unassigned" },
+    { value: "", label: "No one" },
     ...members.map((m) => ({ value: m.id, label: memberLabel(m) })),
   ];
 
@@ -130,9 +131,10 @@ export default function StepRow({
           <SelectMenu
             size="sm"
             searchable
-            className="hidden w-[140px] shrink-0 md:block"
-            ariaLabel="Assigned person"
-            placeholder="Unassigned"
+            className="hidden w-[190px] shrink-0 md:block"
+            ariaLabel="Serving"
+            prefix="Serving"
+            emptyText="Choose someone"
             value={step.assigned_user_id ?? ""}
             options={memberOptions}
             onChange={(v) => onUpdate({ assigned_user_id: v || null })}
@@ -174,7 +176,8 @@ export default function StepRow({
 
         <button
           type="button"
-          aria-label="Toggle step details"
+          aria-label="Backup and notes"
+          title="Backup and notes"
           onClick={(e) => { e.stopPropagation(); setDetailOpen((o) => !o); }}
           className={clsx(
             "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border transition-colors",
@@ -202,11 +205,14 @@ export default function StepRow({
             <SelectMenu
               size="sm"
               searchable
-              className="w-full shrink-0 sm:w-[160px]"
-              ariaLabel="Backup"
-              placeholder="No backup"
+              className="w-full shrink-0 sm:w-[220px]"
+              ariaLabel="Backup (optional)"
+              prefix="Backup"
+              emptyText="Optional"
               value={step.backup_user_id ?? ""}
-              options={memberOptions.filter((o) => o.value !== step.assigned_user_id)}
+              options={memberOptions
+                .filter((o) => o.value !== step.assigned_user_id)
+                .map((o) => (o.value === "" ? { ...o, label: "No backup" } : o))}
               onChange={(v) => onUpdate({ backup_user_id: v || null })}
             />
           )}
