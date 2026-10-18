@@ -6,6 +6,7 @@ import { Users, Calendar, RefreshCw, ClipboardList, ChevronDown, Trash2, StickyN
 import { Button } from "../ui/button";
 import SelectMenu from "../ui/SelectMenu";
 import PersonAvatar from "../ui/avatar";
+import { AiLink } from "../ai/AiBrand";
 
 type ProfileRow = { id: string; full_name: string | null; email: string | null; role: string; disabled: boolean; avatar_url?: string | null };
 type AssignmentStatus = "OPEN" | "ASSIGNED" | "CONFIRMED" | "DECLINED";
@@ -44,6 +45,8 @@ type AssignmentsTableProps = {
   onRefresh?: () => void;
   bulletinPlanTitle?: string | null;
   bulletinPlanHref?: string | null;
+  /** Gather AI (Congregation/Network only): opens the plan with the fill dialog. */
+  aiFillHref?: string | null;
   bulletinSlots?: BulletinSlotRow[];
   onBulletinSlotUpdate?: (slotId: string, patch: {
     assigned_user_id?: string | null;
@@ -195,7 +198,7 @@ function AssigneeCell({
 export default function AssignmentsTable({
   profiles, showOpenOnly, showPendingOnly, showDeclinedOnly, searchTerm,
   onToggleOpenOnly, onTogglePendingOnly, onToggleDeclinedOnly, onSearchChange,
-  onGenerateSchedule, onCopyLast, bulletinPlanTitle = null, bulletinPlanHref = null,
+  onGenerateSchedule, onCopyLast, bulletinPlanTitle = null, bulletinPlanHref = null, aiFillHref = null,
   bulletinSlots = [], onBulletinSlotUpdate, onBulletinSlotDelete,
   bulletinItems = [], onBulletinItemUpdate, onRefresh,
 }: AssignmentsTableProps) {
@@ -403,6 +406,7 @@ export default function AssignmentsTable({
           </div>
         </div>
         <div className="flex items-center gap-3">
+          {aiFillHref && <AiLink href={aiFillHref}>Fill with AI</AiLink>}
           {bulletinPlanHref && (
             <Link href={bulletinPlanHref} className="text-sm font-semibold text-amber-500 transition-colors hover:text-amber-700 no-underline">
               View plan

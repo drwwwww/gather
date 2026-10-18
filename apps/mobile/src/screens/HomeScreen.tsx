@@ -295,7 +295,7 @@ export default function HomeScreen({ navigation }: any) {
   const tileW = useMemo(() => Math.min(168, (width - space.gutter * 2 - 12) / 2.25), [width]);
 
   return (
-    <Screen>
+    <Screen glow>
       {/* ── Header: identity left, actions grouped right (Monzo) ── */}
       <View style={styles.topRow}>
         <Pressable onPress={() => navigation.navigate("ProfileMenu")} style={styles.identity}>

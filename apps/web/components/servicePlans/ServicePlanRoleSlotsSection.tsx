@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { ChevronDown, ChevronRight, Minus, Plus, StickyNote, X, AlertTriangle } from "lucide-react";
 import type { AssignmentStatus } from "@gather/lib";
 import type { Database } from "@gather/lib";
@@ -32,6 +32,8 @@ export default function ServicePlanRoleSlotsSection({
   onChange,
   onAdjustRoleCount,
   onRemoveSlot,
+  awayIds,
+  headerAction,
 }: {
   slots: PlanRoleSlotDraft[];
   roles: RoleRow[];
@@ -39,6 +41,10 @@ export default function ServicePlanRoleSlotsSection({
   onChange: (id: string, patch: Partial<PlanRoleSlotDraft>) => void;
   onAdjustRoleCount: (roleId: string, delta: number) => void;
   onRemoveSlot: (id: string) => void;
+  /** People marked away on this service's date — flagged in the pickers. */
+  awayIds?: Set<string>;
+  /** Extra control in the header (Gather AI fill). */
+  headerAction?: ReactNode;
 }) {
   const [sectionOpen, setSectionOpen] = useState(true);
   const [expandedRoles, setExpandedRoles] = useState<Set<string>>(new Set());
@@ -54,9 +60,13 @@ export default function ServicePlanRoleSlotsSection({
   const memberOptions = useMemo<SelectOption[]>(
     () => [
       { value: "", label: "Unassigned" },
-      ...members.map((m) => ({ value: m.id, label: memberLabel(m) })),
+      ...members.map((m) =>
+        awayIds?.has(m.id)
+          ? { value: m.id, label: memberLabel(m), hint: "Away", tone: "warning" as const }
+          : { value: m.id, label: memberLabel(m) }
+      ),
     ],
-    [members]
+    [members, awayIds]
   );
 
   const slotsByRole = useMemo(() => {
@@ -122,6 +132,8 @@ export default function ServicePlanRoleSlotsSection({
             )}
           </span>
         </button>
+        <div className="flex flex-wrap items-center gap-2">
+        {headerAction}
         {totals.total > 0 && (
           <div className="flex items-center gap-1.5 text-[11px] font-medium">
             <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-emerald-700">
@@ -139,6 +151,7 @@ export default function ServicePlanRoleSlotsSection({
             )}
           </div>
         )}
+        </div>
       </div>
 
       {!sectionOpen ? null : !roles.length ? (

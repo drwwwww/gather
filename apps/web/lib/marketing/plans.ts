@@ -44,6 +44,7 @@ export const PLANS: Plan[] = [
     featured: true,
     highlights: [
       "Everything in Parish",
+      "Gather AI: fill open roles in one click",
       "Unlimited ministry teams and roles",
       "Service presets and templates",
       "Backup assignments and auto-promotion",
@@ -60,6 +61,7 @@ export const PLANS: Plan[] = [
     memberCap: "Unlimited members",
     highlights: [
       "Everything in Congregation",
+      "Gather AI across every campus",
       "Multiple campuses",
       "Cross-campus volunteer sharing",
       "Advanced permissions",
@@ -96,6 +98,7 @@ export const COMPARISON: { group: string; rows: { label: string; values: [string
       { label: "Backup assignments", values: ["—", "Included", "Included"] },
       { label: "Auto-promote backup on decline", values: ["—", "Included", "Included"] },
       { label: "Serving history and roster health", values: ["—", "Included", "Included"] },
+      { label: "Gather AI schedule fill", values: ["—", "Included", "Included"] },
     ],
   },
   {

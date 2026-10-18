@@ -4,7 +4,7 @@ _Last updated: October 2026. Column-level detail is in CLAUDE.md → Database Sc
 
 ## Tables (all RLS-protected, church-scoped)
 
-`churches` · `profiles` · `profile_private` · `service_times` · `volunteer_roles` · `service_presets` / `service_preset_items` · `service_plans` · `service_plan_role_slots` · `service_plan_items` · `announcements` · `events` (`location` = venue, `address` = street address) · `event_rsvps` · `notification_log` · `serve_requests` · `content_reports` · `user_blocks`
+`churches` · `profiles` · `profile_private` · `service_times` · `volunteer_roles` · `service_presets` / `service_preset_items` · `service_plans` · `service_plan_role_slots` · `service_plan_items` · `announcements` · `events` (`location` = venue, `address` = street address) · `event_rsvps` · `notification_log` · `serve_requests` · `content_reports` · `user_blocks` · `volunteer_unavailability`
 
 (`volunteer_assignments` was dropped in migration 0024.)
 
@@ -25,7 +25,12 @@ _Last updated: October 2026. Column-level detail is in CLAUDE.md → Database Sc
 |---|---|---|
 | `POST /api/account/delete` | bearer or cookie | `{ confirm: "DELETE" }` → `{ ok }` · 409 `LAST_ADMIN` |
 | `POST /api/moderation/report` | bearer or cookie | `{ reportedUserId, reason, details? }` → `{ ok }` (emails church admins + support) |
-| `POST /api/notifications/dispatch` | church admin, or `Bearer $CRON_SECRET` | `{ lookaheadHours?, userId? }` → `{ dispatched, emailsSent, emailFailures, pushSent }` |
+| `POST`/`GET /api/notifications/dispatch` | church admin, or `Bearer $CRON_SECRET` (Vercel Cron, daily) | `{ lookaheadHours?, userId? }` → `{ dispatched, emailsSent, emailFailures, pushSent }` |
+| `POST /api/notifications/recap` | church admin | `{ planId }` → `{ sentTo, emailsSent, pushSent }` · 409 if already sent |
+| `GET /api/export` | church admin | full church data as a JSON download |
+| `POST /api/stripe/webhook` | Stripe signature | checkout.session.completed, customer.subscription.* → `churches.plan` |
+| `POST /api/billing/portal` | church admin | → `{ url }` (Stripe customer portal) |
+| `POST /api/billing/link` | church admin | `{ sessionId }` → `{ plan }` (claims a pre-signup checkout) |
 | `POST /api/geocode` | signed in | `{ address }` → `{ latitude, longitude }` (Nominatim) |
-| `POST /api/checkout` | public | plan + cycle → Stripe Checkout URL (needs `STRIPE_*`) |
+| `POST /api/checkout` | public, or admin (ties to their church) | plan + cycle → Stripe Checkout URL (needs `STRIPE_*`) |
 | `POST /api/demo-request` | public (honeypot) | lead form → `{ ok }` |

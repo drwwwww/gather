@@ -1,13 +1,11 @@
 import { useState } from "react";
-import {
-  View, Text, TextInput, Pressable,
-  KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Linking,
-} from "react-native";
+import { View, Text, TextInput, Pressable, StyleSheet, Linking } from "react-native";
 import { Icon } from "../components/ui/Icon";
 import {
-  Screen, Txt, Button, BrandMark, OnboardingProgress,
+  Txt, Button, OnboardingProgress,
   palette, font, radius,
 } from "../components/ds";
+import DawnLayout from "../components/app/DawnLayout";
 import { supabase } from "../supabase";
 import { toE164, PHONE_AUTH_ENABLED } from "../lib/phone";
 import { LEGAL } from "../lib/webApi";
@@ -89,16 +87,7 @@ export default function SignUpScreen({ navigation }: any) {
   };
 
   return (
-    <Screen edges={["top", "bottom"]}>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
-        <ScrollView
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ paddingHorizontal: 28, paddingTop: 12, paddingBottom: 40, flexGrow: 1, justifyContent: "center" }}
-          showsVerticalScrollIndicator={false}
-        >
+    <DawnLayout tagline="Join your church on Gather">
           {success ? (
             <View style={{ alignItems: "center" }}>
               <View style={styles.successBadge}>
@@ -118,12 +107,10 @@ export default function SignUpScreen({ navigation }: any) {
             <View>
               <OnboardingProgress step={1} total={4} label="Create account" />
 
-              {/* Brand */}
               <View style={styles.brand}>
-                <BrandMark size={60} rounding={20} glow style={{ marginBottom: 16 }} />
-                <Txt variant="h1">Join Gather</Txt>
-                <Txt variant="body" color="inkMuted" center style={{ marginTop: 4 }}>
-                  Create your church member account.
+                <Txt variant="h2">Create your account</Txt>
+                <Txt variant="body" color="inkSoft" style={{ marginTop: 4 }}>
+                  Then join your church with its code.
                 </Txt>
               </View>
 
@@ -209,14 +196,12 @@ export default function SignUpScreen({ navigation }: any) {
               </View>
             </View>
           )}
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </Screen>
+    </DawnLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  brand: { alignItems: "center", marginBottom: 28 },
+  brand: { marginTop: 14, marginBottom: 20 },
   modeToggle: {
     flexDirection: "row",
     backgroundColor: palette.sunken,
@@ -262,5 +247,5 @@ const styles = StyleSheet.create({
   consent: { fontFamily: font.regular, fontSize: 12, lineHeight: 18, color: palette.inkSoft, textAlign: "center", marginTop: 14 },
   consentLink: { fontFamily: font.semibold, color: palette.amberInk, textDecorationLine: "underline" },
   footer: { flexDirection: "row", justifyContent: "center", alignItems: "center", marginTop: 24 },
-  footerLink: { fontFamily: font.bold, fontSize: 15, color: palette.amber },
+  footerLink: { fontFamily: font.bold, fontSize: 15, color: palette.amberInk },
 });

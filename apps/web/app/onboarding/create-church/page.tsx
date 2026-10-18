@@ -475,6 +475,16 @@ export default function CreateChurchOnboardingPage() {
       if (address.trim()) {
         await supabase.from("churches").update({ address: address.trim() }).eq("id", churchId);
       }
+
+      // Paid on /pricing before signing up: attach that subscription to the new church.
+      const sessionId = new URLSearchParams(window.location.search).get("session_id");
+      if (sessionId) {
+        await fetch("/api/billing/link", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionId }),
+        }).catch(() => null);
+      }
     }
 
     setLoading(false);

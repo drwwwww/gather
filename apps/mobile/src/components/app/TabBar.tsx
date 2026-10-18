@@ -91,7 +91,7 @@ const TabItem = ({ tab, isFocused, onPress }: { tab: TabDef; isFocused: boolean;
           // Ripple bounded to the pill, as in Material 3, rather than the whole column.
           <Pressable
             onPress={onPress}
-            android_ripple={{ color: "rgba(30,26,38,0.12)", borderless: false }}
+            android_ripple={{ color: "rgba(31,27,20,0.12)", borderless: false }}
             style={styles.rippleTarget}
             importantForAccessibility="no-hide-descendants"
           />

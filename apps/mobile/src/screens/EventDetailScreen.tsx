@@ -44,7 +44,7 @@ function ActionButton({ icon, label, spoken, onPress, disabled }: { icon: AppIco
       disabled={disabled}
       accessibilityRole="button"
       accessibilityLabel={spoken ?? label}
-      android_ripple={{ color: "rgba(30,26,38,0.08)" }}
+      android_ripple={{ color: "rgba(31,27,20,0.08)" }}
       style={({ pressed }: { pressed: boolean }) => [
         styles.action,
         Platform.OS === "ios" && pressed && { opacity: 0.6 },

@@ -12,6 +12,7 @@ import ChurchSettingsCard from "../../../components/account/ChurchSettingsCard";
 import TeamOverviewCard from "../../../components/account/TeamOverviewCard";
 import PlanCard from "../../../components/account/PlanCard";
 import DeleteAccountCard from "../../../components/account/DeleteAccountCard";
+import DataExportCard from "../../../components/account/DataExportCard";
 import WorshipDaysCard from "../../../components/account/WorshipDaysCard";
 import ServiceTimesCard, { type ServiceTimeItem } from "../../../components/account/ServiceTimesCard";
 import { formatTimezoneLabel, getTimezoneOptions } from "../../../lib/format";
@@ -346,7 +347,15 @@ export default function AccountPage() {
             />
           </PageGridFull>
 
-          {/* Row 4: Danger zone — kept last and visually separate */}
+          {/* Row 4: Plan + data */}
+          <PageGridFull className="animate-fade-in-up [animation-delay:160ms]">
+            <div className="grid gap-5 lg:grid-cols-[2fr_1fr]">
+              <PlanCard />
+              <DataExportCard />
+            </div>
+          </PageGridFull>
+
+          {/* Row 5: Danger zone — kept last and visually separate */}
           <PageGridFull className="animate-fade-in-up [animation-delay:180ms]">
             <div className="max-w-2xl">
               <DeleteAccountCard />

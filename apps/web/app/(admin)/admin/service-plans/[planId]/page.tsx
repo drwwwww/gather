@@ -8,6 +8,9 @@ import PlanEditor from "../../../../../components/servicePlans/PlanEditor";
 import ServicePlanRoleSlotsSection from "../../../../../components/servicePlans/ServicePlanRoleSlotsSection";
 import { PageGrid, PageGridFull } from "../../../../../components/layout/PageGrid";
 import { getCurrentContext } from "../../../../../lib/supabaseData";
+import { useChurchPlan } from "../../../../../lib/plan";
+import { AiButton } from "../../../../../components/ai/AiBrand";
+import AiFillDialog from "../../../../../components/ai/AiFillDialog";
 import { supabase } from "../../../../../lib/supabaseClient";
 import {
   fetchPlanRoleSlots,
@@ -50,6 +53,17 @@ export default function ServicePlanEditorPage() {
   const hasLoadedRef = useRef(false);
   const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const router = useRouter();
+  const { aiEnabled } = useChurchPlan();
+  const [aiOpen, setAiOpen] = useState(false);
+  const [awayIds, setAwayIds] = useState<Set<string>>(new Set());
+
+  // Volunteers → "Fill with AI" lands here with ?ai=1.
+  useEffect(() => {
+    if (aiEnabled && status === "ready" && new URLSearchParams(window.location.search).get("ai") === "1") {
+      setAiOpen(true);
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }, [aiEnabled, status]);
 
   const title = useMemo(() => plan?.title || "Service Plan", [plan]);
 
@@ -151,11 +165,20 @@ export default function ServicePlanEditorPage() {
       if (!cancelled && !error && data) {
         setMembers(data);
       }
+      if (plan.service_date) {
+        const { data: away } = await (supabase as any)
+          .from("volunteer_unavailability")
+          .select("user_id")
+          .eq("church_id", plan.church_id)
+          .lte("start_date", plan.service_date)
+          .gte("end_date", plan.service_date);
+        if (!cancelled) setAwayIds(new Set((away ?? []).map((a: { user_id: string }) => a.user_id)));
+      }
     })();
     return () => {
       cancelled = true;
     };
-  }, [plan?.church_id]);
+  }, [plan?.church_id, plan?.service_date]);
 
   const handleAddItem = () => {
     setItems((prev) => [
@@ -305,7 +328,32 @@ export default function ServicePlanEditorPage() {
           onRemoveSlot={(id) =>
             setRoleSlotDrafts((prev) => reindexPlanRoleSlots(prev.filter((s) => s.id !== id), roles))
           }
+          awayIds={awayIds}
+          headerAction={
+            aiEnabled && roleSlotDrafts.length > 0 ? (
+              <AiButton onClick={() => setAiOpen(true)}>Fill with AI</AiButton>
+            ) : null
+          }
         />
+        {aiEnabled && plan && (
+          <AiFillDialog
+            open={aiOpen}
+            onClose={() => setAiOpen(false)}
+            planId={plan.id}
+            planDate={plan.service_date}
+            churchId={plan.church_id}
+            slots={roleSlotDrafts}
+            roleNameById={Object.fromEntries(roles.map((r) => [r.id, r.name]))}
+            onApply={(picks) =>
+              setRoleSlotDrafts((prev) =>
+                prev.map((s) => {
+                  const pick = picks.find((p) => p.slotId === s.id);
+                  return pick && !s.assigned_user_id ? { ...s, assigned_user_id: pick.userId, status: "ASSIGNED" } : s;
+                })
+              )
+            }
+          />
+        )}
         <PlanEditor
           planTitle={plan?.title ?? ""}
           basedOnPresetName={presetName}

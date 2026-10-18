@@ -63,24 +63,35 @@ export function Txt({
   );
 }
 
-/* ───────────────────────────────────────────── Screen (ambient gradient) */
+/* ───────────────────────────────────────────── Screen (warm paper) */
 
+/**
+ * Flat warm-paper ground. `glow` adds Home's morning light — a soft amber
+ * wash behind the greeting that fades out before the first card. Use it on
+ * Home only, so it stays Home's signature.
+ */
 export function Screen({
   children,
   edges = ["top"],
+  glow = false,
 }: {
   children: React.ReactNode;
   edges?: Edge[];
+  glow?: boolean;
 }) {
   return (
     <View style={{ flex: 1, backgroundColor: palette.bg }}>
       <StatusBar barStyle="dark-content" />
-      <LinearGradient
-        colors={gradient.ambient}
-        start={{ x: 0.1, y: 0 }}
-        end={{ x: 0.9, y: 0.6 }}
-        style={StyleSheet.absoluteFill}
-      />
+      {glow && (
+        <LinearGradient
+          pointerEvents="none"
+          colors={gradient.glow}
+          locations={[0, 0.45, 1]}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={styles.glow}
+        />
+      )}
       <SafeAreaView style={{ flex: 1 }} edges={edges}>
         {children}
       </SafeAreaView>
@@ -901,6 +912,7 @@ export function Divider({ inset = 0 }: { inset?: number }) {
 }
 
 const styles = StyleSheet.create({
+  glow: { position: "absolute", top: 0, left: 0, right: 0, height: 340 },
   progressTrack: { height: 6, borderRadius: 3, backgroundColor: palette.sunken, overflow: "hidden" },
   progressFill: { height: 6, borderRadius: 3, backgroundColor: palette.amber },
   progressLabel: { fontFamily: font.semibold, fontSize: 12, color: palette.inkMuted, marginTop: 8, letterSpacing: 0.2 },

@@ -7,6 +7,7 @@ import {
   palette, font, gradient, radius, shadow, space,
 } from "../components/ds";
 import ConfirmCelebration, { type CelebrationStat } from "../components/app/ConfirmCelebration";
+import AwayDatesCard from "../components/app/AwayDatesCard";
 import { supabase } from "../supabase";
 import { useAuth } from "../context/AuthContext";
 
@@ -247,7 +248,12 @@ export default function AssignmentsScreen() {
         {loading ? (
           <Loader />
         ) : assignments.length === 0 ? (
-          <EmptyState icon="schedule" title="No upcoming assignments" body="Your volunteer schedule and bulletin roles will show up here." />
+          <>
+            {user?.id && profile?.church_id ? (
+              <AwayDatesCard churchId={profile.church_id} userId={user.id} scheduledDates={new Set()} />
+            ) : null}
+            <EmptyState icon="schedule" title="No upcoming assignments" body="Your volunteer schedule and bulletin roles will show up here." />
+          </>
         ) : (
           <>
             {pendingCount > 0 ? (
@@ -264,6 +270,14 @@ export default function AssignmentsScreen() {
                 <Text style={styles.allDoneTxt}>All assignments confirmed</Text>
               </View>
             )}
+
+            {user?.id && profile?.church_id ? (
+              <AwayDatesCard
+                churchId={profile.church_id}
+                userId={user.id}
+                scheduledDates={new Set(assignments.filter((a) => !a.isBackup && a.status !== "DECLINED").map((a) => a.scheduled_date))}
+              />
+            ) : null}
 
             <View style={{ gap: 28 }}>
               {grouped.map(({ date, rows }) => (

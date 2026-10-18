@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { sendEmail } from "@gather/lib";
 import { createSupabaseAdminClient } from "../../../../lib/supabaseAdmin";
 import { getRequestUser } from "../../../../lib/apiAuth";
+import { escapeHtml, sendExpoPushNotifications } from "../../../../lib/push";
 
 type ProfileRow = {
   id: string;
@@ -38,28 +39,6 @@ type DispatchRow = {
   pushBody: string;
 };
 
-async function sendExpoPushNotifications(
-  messages: { to: string; title: string; body: string; data?: Record<string, unknown> }[]
-): Promise<number> {
-  if (messages.length === 0) return 0;
-  let sent = 0;
-  // Expo's push API accepts up to 100 messages per request.
-  for (let i = 0; i < messages.length; i += 100) {
-    const chunk = messages.slice(i, i + 100);
-    try {
-      const res = await fetch("https://exp.host/--/api/v2/push/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify(chunk),
-      });
-      if (res.ok) sent += chunk.length;
-    } catch (err) {
-      console.error("[notifications/dispatch] push send failed", err);
-    }
-  }
-  return sent;
-}
-
 /**
  * Callers: a church admin from the web app (scoped to their own church), or a
  * scheduled job sending `Authorization: Bearer $CRON_SECRET` (all churches).
@@ -83,6 +62,15 @@ async function resolveScope(request: Request): Promise<{ churchId: string | null
 }
 
 export async function POST(request: Request) {
+  return dispatch(request);
+}
+
+/** Vercel Cron (see vercel.json) calls GET with `Authorization: Bearer $CRON_SECRET`. */
+export async function GET(request: Request) {
+  return dispatch(request);
+}
+
+async function dispatch(request: Request) {
   const scope = await resolveScope(request);
   if (!scope) {
     return NextResponse.json({ error: "Only church admins can send reminders." }, { status: 401 });
@@ -318,12 +306,4 @@ export async function POST(request: Request) {
   const pushSent = await sendExpoPushNotifications(pushMessages);
 
   return NextResponse.json({ dispatched, emailsSent, emailFailures, pushSent });
-}
-
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
 }

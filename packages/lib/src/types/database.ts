@@ -1,4 +1,5 @@
 export type Role = "ADMIN" | "SERVICE" | "MEMBER";
+export type ChurchPlan = "parish" | "congregation" | "network";
 export type Audience = "ALL" | "MEMBER" | "SERVICE" | "ADMIN" | "MINISTRY";
 export type AssignmentStatus = "OPEN" | "ASSIGNED" | "CONFIRMED" | "DECLINED";
 export type RsvpStatus = "GOING" | "MAYBE" | "NO";
@@ -8,7 +9,7 @@ export type Database = {
   public: {
     Tables: {
       churches: {
-        Row: { id: string; name: string; slug: string; timezone: string; address: string | null; created_at: string; worship_days: number[] | null };
+        Row: { id: string; name: string; slug: string; timezone: string; address: string | null; created_at: string; worship_days: number[] | null; plan: ChurchPlan; plan_status: string; stripe_customer_id: string | null; stripe_subscription_id: string | null; plan_renews_at: string | null };
         Insert: { id?: string; name: string; slug: string; timezone: string; address?: string | null; created_at?: string; worship_days?: number[] | null };
         Update: { name?: string; slug?: string; timezone?: string; address?: string | null; worship_days?: number[] | null };
       };
@@ -168,6 +169,11 @@ export type Database = {
         Insert: { id?: string; church_id: string; user_id?: string | null; type: string; payload: Record<string, unknown>; sent_at?: string | null; read_at?: string | null };
         Update: { sent_at?: string | null; read_at?: string | null };
       };
+      volunteer_unavailability: {
+        Row: { id: string; church_id: string; user_id: string; start_date: string; end_date: string; note: string | null; created_at: string };
+        Insert: { id?: string; church_id: string; user_id: string; start_date: string; end_date: string; note?: string | null; created_at?: string };
+        Update: { start_date?: string; end_date?: string; note?: string | null };
+      };
       serve_requests: {
         Row: {
           id: string;
@@ -254,6 +260,7 @@ export type Database = {
           title: string;
           created_at: string;
           start_time: string | null;
+          recap_sent_at: string | null;
         };
         Insert: {
           id?: string;

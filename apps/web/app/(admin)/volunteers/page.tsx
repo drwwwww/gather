@@ -15,6 +15,7 @@ import type { BulletinSlotRow, BulletinItemRow } from "../../../components/volun
 import PendingResponsesCard from "../../../components/volunteers/PendingResponsesCard";
 import DeclinedCard from "../../../components/volunteers/DeclinedCard";
 import ScheduleBuilder from "../../../components/volunteers/ScheduleBuilder";
+import { useChurchPlan } from "../../../lib/plan";
 import { PageGrid, PageGridFull, PageGridRowTwoOne } from "../../../components/layout/PageGrid";
 import type { Database, AssignmentStatus } from "@gather/lib";
 type ServicePlanRoleSlotRow = Database["public"]["Tables"]["service_plan_role_slots"]["Row"];
@@ -84,6 +85,7 @@ export default function VolunteersPage() {
   const [bulletinItems, setBulletinItems] = useState<BulletinItemRow[]>([]);
   const [bulletinLoading, setBulletinLoading] = useState(false);
   const router = useRouter();
+  const { aiEnabled } = useChurchPlan();
 
   const profilesById = useMemo(() => indexProfilesById(profiles), [profiles]);
 
@@ -924,6 +926,7 @@ export default function VolunteersPage() {
                   onCopyLast={handleCopyLastService}
                   bulletinPlanTitle={bulletinPlanTitle}
                   bulletinPlanHref={bulletinPlanId ? `/admin/service-plans/${bulletinPlanId}` : null}
+                  aiFillHref={aiEnabled && bulletinPlanId && bulletinSlots.some((s) => !s.assigned_user_id) ? `/admin/service-plans/${bulletinPlanId}?ai=1` : null}
                   bulletinSlots={bulletinSlots}
                   onBulletinSlotUpdate={handleBulletinSlotUpdate}
                   onBulletinSlotDelete={handleBulletinSlotDelete}

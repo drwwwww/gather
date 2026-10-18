@@ -6,7 +6,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Search, LayoutDashboard, Users, CalendarCheck, ClipboardList,
-  Layers, Megaphone, Calendar, Bell, Settings, LogOut,
+  Layers, Megaphone, Calendar, Bell, Settings, LogOut, Radio, HeartPulse,
 } from "lucide-react";
 import { supabase } from "../../lib/supabaseClient";
 import Avatar from "../ui/avatar";
@@ -21,7 +21,9 @@ function avatarFromUserMetadata(meta: unknown): string | null {
 const NAV_MAIN = [
   { href: "/admin",                  label: "Dashboard",       icon: LayoutDashboard },
   { href: "/people",                 label: "People",          icon: Users           },
+  { href: "/live",                   label: "Sunday Live",     icon: Radio           },
   { href: "/volunteers",             label: "Volunteers",      icon: CalendarCheck   },
+  { href: "/insights",               label: "Team Health",     icon: HeartPulse      },
   { href: "/admin/service-plans",    label: "Service Plans",   icon: ClipboardList   },
   { href: "/admin/service-presets",  label: "Service Presets", icon: Layers          },
   { href: "/announcements",          label: "Announcements",   icon: Megaphone       },

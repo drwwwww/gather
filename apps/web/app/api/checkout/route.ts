@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { getRequestUser } from "../../../lib/apiAuth";
+import { PRICE_ENV } from "../../../lib/stripeServer";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -8,19 +10,6 @@ const schema = z.object({
   plan: z.enum(["parish", "congregation", "network"]),
   cycle: z.enum(["monthly", "annual"]),
 });
-
-/**
- * Price IDs live in env rather than code so the same build works against test
- * and live Stripe keys. Create the products in Stripe, then set these.
- */
-const PRICE_ENV: Record<string, string> = {
-  "parish:monthly": "STRIPE_PRICE_PARISH_MONTHLY",
-  "parish:annual": "STRIPE_PRICE_PARISH_ANNUAL",
-  "congregation:monthly": "STRIPE_PRICE_CONGREGATION_MONTHLY",
-  "congregation:annual": "STRIPE_PRICE_CONGREGATION_ANNUAL",
-  "network:monthly": "STRIPE_PRICE_NETWORK_MONTHLY",
-  "network:annual": "STRIPE_PRICE_NETWORK_ANNUAL",
-};
 
 const TRIAL_DAYS = 30;
 
@@ -69,18 +58,47 @@ export async function POST(request: Request) {
 
   const origin = originOf(request);
 
+  // A signed-in admin is changing their church's plan: tie the subscription to
+  // the church so the webhook can apply it, and come back to Account.
+  type ChurchBillingRow = { id: string; stripe_customer_id: string | null; stripe_subscription_id: string | null };
+  let church = null as ChurchBillingRow | null;
+  let email: string | null = null;
+  const caller = await getRequestUser(request).catch(() => null);
+  if (caller) {
+    const { data: me } = await caller.supabase.from("profiles").select("church_id, role, email").eq("id", caller.user.id).maybeSingle();
+    const profile = me as { church_id: string | null; role: string; email: string | null } | null;
+    if (profile?.church_id && profile.role === "ADMIN") {
+      const { data } = await caller.supabase
+        .from("churches")
+        .select("id, stripe_customer_id, stripe_subscription_id")
+        .eq("id", profile.church_id)
+        .maybeSingle();
+      church = data as ChurchBillingRow | null;
+      email = profile.email;
+    }
+  }
+
   // Stripe's API is form-encoded. Calling it directly keeps the Stripe SDK out
   // of the bundle — this is the only endpoint we need.
   const form = new URLSearchParams();
   form.set("mode", "subscription");
   form.set("line_items[0][price]", priceId);
   form.set("line_items[0][quantity]", "1");
-  form.set("subscription_data[trial_period_days]", String(TRIAL_DAYS));
-  form.set("success_url", `${origin}/onboarding/create-church?checkout=success&session_id={CHECKOUT_SESSION_ID}`);
-  form.set("cancel_url", `${origin}/pricing?checkout=cancelled`);
+  if (!church?.stripe_subscription_id) form.set("subscription_data[trial_period_days]", String(TRIAL_DAYS));
+  if (church) {
+    form.set("success_url", `${origin}/account?billing=success`);
+    form.set("cancel_url", `${origin}/account?billing=cancelled`);
+    form.set("metadata[church_id]", church.id);
+    form.set("subscription_data[metadata][church_id]", church.id);
+    if (church.stripe_customer_id) form.set("customer", church.stripe_customer_id);
+    else if (email) form.set("customer_email", email);
+  } else {
+    form.set("success_url", `${origin}/onboarding/create-church?checkout=success&session_id={CHECKOUT_SESSION_ID}`);
+    form.set("cancel_url", `${origin}/pricing?checkout=cancelled`);
+  }
   form.set("allow_promotion_codes", "true");
   form.set("billing_address_collection", "auto");
-  form.set("client_reference_id", `${plan}:${cycle}`);
+  form.set("client_reference_id", church ? `church:${church.id}` : `${plan}:${cycle}`);
   form.set("metadata[plan]", plan);
   form.set("metadata[cycle]", cycle);
 

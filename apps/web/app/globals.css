@@ -326,6 +326,15 @@
   pointer-events: none;
 }
 
+/* Disabled primary goes neutral — faded amber reads as decoration, not "not yet". */
+.btn-primary:disabled,
+.btn-primary[aria-disabled="true"] {
+  opacity: 1;
+  background: var(--surface-2);
+  color: var(--text-muted);
+  box-shadow: none;
+}
+
 .btn:active {
   transform: scale(0.98);
 }

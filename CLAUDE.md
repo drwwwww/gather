@@ -14,12 +14,12 @@ Gather exists to give churches their time back. Church leaders spend too many ho
 
 | Area | State |
 |---|---|
-| Web admin | Feature-complete for v1 (dashboard, people, volunteers, service plans/presets, announcements, events with repeat/announce/delete, account, reports). UI-protocol audit done (see Engineering Decisions). |
+| Web admin | Feature-complete for v1 (dashboard, people, volunteers, **Sunday Live**, **Team Health**, service plans/presets with **Gather AI fill** (Congregation/Network only), announcements, events with repeat/announce/delete + RSVP export, account with plan/billing + data export, reports). UI-protocol audit done. |
 | Mobile | All member + service-team flows live: home, news, events (address, directions, native calendar, saved, nearby churches), bulletin with check-in / run service, Serve schedule with backups, profile photos, report/block, account deletion, tour. Phone-only (`supportsTablet: false`). |
-| Backend | 45 migrations; scheduling and privilege rules enforced by triggers/RPCs; security audit and scheduling audit both done and verified live. |
+| Backend | 46 migrations; daily reminder cron (Vercel); scheduling and privilege rules enforced by triggers/RPCs; security audit and scheduling audit both done and verified live. |
 | Legal / privacy | Privacy, Terms, DPA, Delete-account pages live; store privacy answers drafted. Not attorney-reviewed. |
 | Store readiness | Icon flattened, privacy manifest, export compliance, deletion, report/block all done. **Next:** test on real iPhone + Android, first `eas build` → TestFlight (no Mac needed), screenshots, listing, submit. Guide: `docs/launch/app-store-and-google-play.md`. |
-| Not started / deferred | Stripe live keys, SMS provider for phone sign-in, data-caching layer, dark mode, Android device testing, LLC + D-U-N-S. |
+| Not started / deferred | Stripe products/keys/webhook in the Stripe dashboard (code is done), SMS provider for phone sign-in, data-caching layer, dark mode, Android device testing, LLC + D-U-N-S. |
 
 ---
 
@@ -115,7 +115,7 @@ gather/
 │   ├── ui/           # @gather/ui — placeholder (no source yet)
 │   └── config/       # Shared ESLint + TS base config
 ├── supabase/
-│   └── migrations/   # 45 SQL migrations (up-only)
+│   └── migrations/   # 46 SQL migrations (up-only)
 └── design-handoff/   # HTML/markdown dossiers from design system
 ```
 
@@ -170,7 +170,7 @@ All mutations flow through RLS-protected tables. SECURITY DEFINER helpers bypass
 
 | Table | Key columns |
 |---|---|
-| `churches` | id, name, slug, timezone, address, `worship_days` (int[], migration 0027) |
+| `churches` | id, name, slug, timezone, address, `worship_days` (int[], migration 0027), `plan` (parish/congregation/network), `plan_status`, `stripe_customer_id`, `stripe_subscription_id`, `plan_renews_at` (0046 — only the service role can change these; `trg_guard_church_billing`) |
 | `profiles` | id (FK auth.users), church_id, full_name, email, role, disabled, `avatar_url`, `favorite_verse`, `ministry_interests` (text[]), `profile_completed_at` (migration 0032) |
 | `service_times` | church_id, name, day_of_week, start_time, timezone |
 | `volunteer_roles` | church_id, ministry_id?, name |
@@ -186,6 +186,7 @@ All mutations flow through RLS-protected tables. SECURITY DEFINER helpers bypass
 | `profile_private` | user_id, phone, expo_push_token — migration 0038; owner + same-church admins only (never put contact/device data on `profiles`, which the whole church can read) |
 | `content_reports` | church_id, reporter_id, reported_user_id, reason, details, resolved_at — migration 0038 |
 | `user_blocks` | blocker_id, blocked_id — migration 0038, self-only RLS |
+| `volunteer_unavailability` | church_id, user_id, start_date, end_date, note — migration 0046; volunteers set their own away days (mobile Serve), admins can set anyone's (Team Health) |
 | `serve_requests` | church_id, user_id, role_ids (uuid[]), role_names (text[]) — migration 0033, member-initiated "I'd like to serve" requests |
 
 > **Important:** `volunteer_assignments` was dropped in migration 0024. All scheduling now uses `service_plan_role_slots` and `service_plan_items`.
@@ -228,6 +229,8 @@ app/
 │   │   ├── page.tsx
 │   │   └── invite/page.tsx
 │   ├── volunteers/page.tsx
+│   ├── live/page.tsx      # Sunday Live — check-ins, gaps, run of show, thank-you recap
+│   ├── insights/page.tsx  # Team Health — stretched/steady/resting/new, away dates, serve requests, CSV
 │   └── admin/
 │       ├── page.tsx              # Dashboard
 │       ├── service-plans/
@@ -241,7 +244,11 @@ app/
 ├── onboarding/create-church/page.tsx
 ├── join/page.tsx
 └── api/
-    ├── notifications/dispatch/route.ts
+    ├── notifications/dispatch/route.ts   # POST (admin) or GET (Vercel Cron, Bearer CRON_SECRET)
+    ├── notifications/recap/route.ts      # post-service thank-you (admin, once per plan)
+    ├── stripe/webhook/route.ts           # keeps churches.plan in step with Stripe
+    ├── billing/portal/route.ts · billing/link/route.ts
+    ├── export/route.ts                   # full church JSON export (admin, RLS-scoped)
     ├── checkout/route.ts        # Stripe Checkout session — calls Stripe's REST API via fetch, no SDK dependency
     └── demo-request/route.ts    # Emails the internal inbox + a confirmation via Brevo
 ```
@@ -378,7 +385,7 @@ Rebuilt (not a reskin) around three references: **Home** blends Monzo (grouped w
 | Gap | Notes |
 |---|---|
 | `packages/ui` | Placeholder only — no shared component library |
-| Stripe billing | `/api/checkout` calls Stripe's REST API directly (no SDK), but needs real `STRIPE_SECRET_KEY` + `STRIPE_PRICE_*` env vars to actually complete a purchase — currently returns a friendly "not configured" error |
+| Stripe billing | Code complete (checkout tied to the church, webhook, customer portal, pre-signup purchase claimed in onboarding via `/api/billing/link`). Needs Stripe products + `STRIPE_SECRET_KEY`, `STRIPE_PRICE_*`, `STRIPE_WEBHOOK_SECRET` and the customer portal enabled in the Stripe dashboard. Until then checkout returns a friendly "not configured" error. |
 | No data-fetching/caching layer | Screens call Supabase directly with local `useState` (no React Query/SWR) — fine at current scale, but means duplicate fetches between screens and no stale-while-revalidate. Deliberately not migrated wholesale; touches every screen's fetch logic and isn't safe to do without per-screen device testing. Revisit as a scoped, incremental migration, not a single pass. |
 | Mobile ServicePlanScreen | Run-of-show *content* is edited on web only; mobile does check-in and run-service |
 | Web/mobile React version split | Web is pinned to React 18 (Next 14.2 doesn't officially support React 19); mobile runs React 19.2.3 (Expo 57 requires it). Kept apart via `pnpm.overrides`. Resolves itself once web moves to Next 15. |
@@ -445,12 +452,23 @@ Rebuilt (not a reskin) around three references: **Home** blends Monzo (grouped w
 - **Tab bar rebuilt to platform specs** — root cause of the "off" spacing was leftovers from the floating-bar era: `MainTabs` still set `tabBarStyle.position: "absolute"` + `sceneContainerStyle.paddingBottom: 88` (removed in React Navigation 7), the bar itself was absolute, and every tab screen hard-coded `paddingBottom: 130–132`. Now the custom bar sits in normal flow below the scenes (bottom-tabs 7 lays a non-absolute custom bar out after the scene), tab screens end with `space.xxl`, and the bar's bottom padding is exactly `insets.bottom`. Metrics per platform (`M` in `TabBar.tsx`): iOS HIG 49pt + inset, 25pt glyph, 10pt label 3pt above the bar edge, dim-to-0.5 on press, selection haptic iOS-only; Android Material 3 80dp, 24dp icon in a 64×32 active-indicator pill (scaleX-in), 12sp label, ripple bounded to the pill. Selected tabs use the filled glyph (`glyphActive`), idle the outline. Emits `tabPress` before navigating. Do not reintroduce absolute positioning or per-screen bottom padding guesses.
 - **Deleting a service time no longer deletes its plans (migration 0045)** — `service_plans.service_time_id` and `service_presets.service_time_id` were `ON DELETE CASCADE`, so removing a service time on Account silently wiped every plan (with assignments and answers) built on it. Both FKs are now `ON DELETE SET NULL`; plans keep their own `start_time` (backfilled where null). Account asks before removing a service time.
 - **Web admin UI-protocol audit (October 2026)** — runtime sweep of all 12 admin pages (no console errors, no native selects/date/time inputs) plus a static pass against Vercel's Web Interface Guidelines. Fixed: one global `:focus-visible` amber outline in `globals.css` `@layer base` (28 controls had `focus:outline-none` with no replacement — keep the global rule rather than re-adding per-component rings); `aria-label`s on icon-only buttons (member/preset menus with `aria-haspopup`/`aria-expanded`, Volunteers add-slot, events clear-search) and on search/invite inputs that only had placeholders; Account labels tied to inputs with `htmlFor`/`id`; the Discoverable switch labeled; `transition-all` → `transition` and `...` → `…` across admin surfaces; confirmations before deleting a role (shows how many upcoming services use it — deleting a role still removes its slots) and a service time. Deletes elsewhere already confirmed.
+- **Plans, Gather AI, and the "what's missing" pass (migration 0046)** —
+  - **Plan gating:** `churches.plan` is the source of truth; web reads it through `lib/plan.ts` (`useChurchPlan`, `planHasAi`). **Gather AI is Congregation + Network only — Parish never sees it** (no button, no upsell). AI branding = `components/ai/AiBrand.tsx` (ink pill + amber `Sparkles` star) — ink, not amber, so it never competes with primary CTAs.
+  - **Gather AI fill** (`lib/ai/autofill.ts`, `components/ai/AiFillDialog.tsx`, header button on the plan editor's roles section): v1 is a transparent ranking, not a model call — experience in the role, rest since last serve, load in the surrounding 2 weeks, recent declines, ministry interests; skips anyone away, already serving in the service, or a MEMBER with no interest/history. Every pick shows its reason; the admin reviews/skips, picks go into editor state and autosave persists them (status ASSIGNED — people still confirm). Model-backed suggestions should plug in behind the same `AutofillProposal` shape.
+  - **Sunday Live** (`/live`): today's plans (tabs if several) or the next one; checked-in vs scheduled, gaps, run-of-show progress with Done/Skip/Undo (`set_plan_item_status`), team list Here/Not yet/Pending, polls every 15s while visible. After the service: **Send thank-you recap** → `/api/notifications/recap` (notification_log `SERVICE_RECAP` + push + email; `service_plans.recap_sent_at` makes it once-only).
+  - **Team Health** (`/insights`): 90-day serving per person, 8-week sparkline, health = stretched (3+ of last 4 weeks) / steady / resting (60+ days) / new; away dates (admins add per service day); "Asked to serve" list from `serve_requests` (that flow already existed via `request_to_serve` — only the list view was missing); CSV export (`lib/csv.ts`, formula-injection safe).
+  - **Away dates:** `volunteer_unavailability`; mobile Serve has a "Can't make it?" day strip (`AwayDatesCard`, next 10 weeks of the church's service days, warns if already scheduled that day); plan editor pickers mark away people with an "Away" hint; AI fill skips them.
+  - **Reminders are automatic:** `vercel.json` cron hits `/api/notifications/dispatch` daily at 22:00 UTC (about 6 PM ET, the evening before); needs `CRON_SECRET` set in Vercel (Vercel sends it as the Bearer token).
+  - **Billing:** `PlanCard` shows plan/status/renewal and either plan choices (monthly/yearly → `/api/checkout`, which ties the subscription to the signed-in admin's church) or **Manage billing** (Stripe portal). `/api/stripe/webhook` verifies the signature by hand (`lib/stripeServer.ts`, no SDK) and maps the price id back to a plan.
+  - **Data export:** Account → Export your data (`/api/export`, runs as the admin so RLS bounds it; includes phones, never push tokens). Marketing lists roster health + export as Congregation+, but both are on every plan for now — a product decision, not gated in code.
+  - **RSVPs:** attendee dialog rebuilt (Going/Maybe/Not going tabs, avatars, CSV).
+- **Mobile backgrounds: warm paper + Home glow + Dawn sign-in** — the lavender "Aurora" wash and cool lilac neutrals (bg #FAF8FE, sunken #F1EEF8, purple-tinted shadows) are gone: `palette` now sits on the same warm hue as the web (bg #F6F4EF, sunken #EFEBE3, line #E6E1D7, ink #1F1B14, warm brown shadows). `Screen` is flat; `<Screen glow>` adds the morning-light wash (`gradient.glow`) — **Home only**. Sign-in and sign-up use `components/app/DawnLayout.tsx`: amber sunrise (`gradient.dawn`) with the mark + wordmark in dark brown (#3A2600, never white on amber), form in a cream bottom sheet; the CTA pill text is dark brown too. Mockups that led here: `design-handoff/mobile-backgrounds.html`.
 - **Docs** — `docs/launch/app-store-and-google-play.md` (Apple as Individual → LLC conversion/transfer → Google Play), `docs/launch/store-privacy-answers.md`, `docs/security/incident-response.md`.
 ---
 
 ## Environment Variables
 
-**Web** (`apps/web/.env.local`): `NEXT_PUBLIC_SUPABASE_URL` · `NEXT_PUBLIC_SUPABASE_ANON_KEY` · `SUPABASE_URL` · `SUPABASE_ANON_KEY` · `SUPABASE_SERVICE_ROLE_KEY` · `NEXT_PUBLIC_GATHER_IOS_APP_URL` · `NEXT_PUBLIC_GATHER_ANDROID_APP_URL` · `BREVO_API_KEY` · `BREVO_FROM_EMAIL` (must be `Name <email>` format — a bare email breaks Brevo's `parseFrom()`) · `NOTIFICATION_LOOKAHEAD_HOURS` · `SENTRY_AUTH_TOKEN` (source map upload; must be in `turbo.json`'s `build.passThroughEnv` or Vercel silently won't create a release) · `STRIPE_SECRET_KEY` · `STRIPE_PRICE_PARISH_MONTHLY` / `_ANNUAL`, `STRIPE_PRICE_CONGREGATION_MONTHLY` / `_ANNUAL`, `STRIPE_PRICE_NETWORK_MONTHLY` / `_ANNUAL` (checkout is a friendly no-op without these) · `DEMO_REQUEST_INBOX` (optional, defaults to `support@gatherministry.online`) · `NEXT_PUBLIC_SITE_URL` (optional, checkout success/cancel URLs fall back to the request's own origin)
+**Web** (`apps/web/.env.local`): `NEXT_PUBLIC_SUPABASE_URL` · `NEXT_PUBLIC_SUPABASE_ANON_KEY` · `SUPABASE_URL` · `SUPABASE_ANON_KEY` · `SUPABASE_SERVICE_ROLE_KEY` · `NEXT_PUBLIC_GATHER_IOS_APP_URL` · `NEXT_PUBLIC_GATHER_ANDROID_APP_URL` · `BREVO_API_KEY` · `BREVO_FROM_EMAIL` (must be `Name <email>` format — a bare email breaks Brevo's `parseFrom()`) · `NOTIFICATION_LOOKAHEAD_HOURS` · `SENTRY_AUTH_TOKEN` (source map upload; must be in `turbo.json`'s `build.passThroughEnv` or Vercel silently won't create a release) · `STRIPE_SECRET_KEY` · `STRIPE_PRICE_PARISH_MONTHLY` / `_ANNUAL`, `STRIPE_PRICE_CONGREGATION_MONTHLY` / `_ANNUAL`, `STRIPE_PRICE_NETWORK_MONTHLY` / `_ANNUAL` (checkout is a friendly no-op without these) · `STRIPE_WEBHOOK_SECRET` (webhook signing secret) · `CRON_SECRET` (Vercel Cron → reminder dispatch) · `DEMO_REQUEST_INBOX` (optional, defaults to `support@gatherministry.online`) · `NEXT_PUBLIC_SITE_URL` (optional, checkout success/cancel URLs fall back to the request's own origin)
 
 **Mobile** (`apps/mobile/.env`): `EXPO_PUBLIC_SUPABASE_URL` · `EXPO_PUBLIC_SUPABASE_ANON_KEY`
 

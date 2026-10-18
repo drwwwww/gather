@@ -1,13 +1,11 @@
 import { useState } from "react";
-import {
-  View, Text, TextInput, Pressable,
-  KeyboardAvoidingView, Platform, StyleSheet, Animated,
-} from "react-native";
+import { View, Text, TextInput, Pressable, StyleSheet, Animated } from "react-native";
 import { Icon } from "../components/ui/Icon";
 import {
-  Screen, GlassIconButton, LinearGradient,
-  palette, font, gradient, radius, shadow, space,
+  GlassIconButton, LinearGradient,
+  palette, font, gradient, radius, shadow,
 } from "../components/ds";
+import DawnLayout from "../components/app/DawnLayout";
 import { RiseIn, usePressScale } from "../components/ds/motion";
 import { supabase } from "../supabase";
 import { toE164, PHONE_AUTH_ENABLED } from "../lib/phone";
@@ -174,28 +172,25 @@ export default function SignInScreen({ navigation }: any) {
   };
 
   return (
-    <Screen edges={["top", "bottom"]}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <View style={styles.topRow}>
-          {step !== "identifier" ? (
-            <GlassIconButton icon="chevronLeft" onPress={back} accessibilityLabel="Back" />
-          ) : (
-            <View style={{ width: 44 }} />
-          )}
-        </View>
-
-        <View style={styles.inner}>
+    <DawnLayout
+      topLeft={step !== "identifier" ? <GlassIconButton icon="chevronLeft" onPress={back} accessibilityLabel="Back" /> : undefined}
+    >
+        <View>
           {step === "identifier" && (
             <RiseIn key="identifier">
               <Text style={styles.headline}>
-                {mode === "email"
-                  ? "Enter your email to sign in or create an account"
-                  : "Enter your phone to sign in or create an account"}
+                Welcome back
               </Text>
 
-              <View style={{ marginTop: 20 }}>
-                {PHONE_AUTH_ENABLED ? <ModeToggle mode={mode} onChange={setMode} /> : null}
-              </View>
+              <Text style={styles.subHeadline}>
+                {mode === "email" ? "Sign in with your email to see this week at church." : "Sign in with your phone to see this week at church."}
+              </Text>
+
+              {PHONE_AUTH_ENABLED ? (
+                <View style={{ marginTop: 18 }}>
+                  <ModeToggle mode={mode} onChange={setMode} />
+                </View>
+              ) : null}
 
               <View style={styles.fieldBlock}>
                 {mode === "email" ? (
@@ -215,11 +210,17 @@ export default function SignInScreen({ navigation }: any) {
                     autoFocus
                   />
                 )}
-                <Text style={styles.caption}>We'll check if you already have an account.</Text>
               </View>
 
               <View style={styles.ctaBlock}>
                 <PillButton label="Continue" onPress={goToPassword} disabled={!identifierValid} />
+              </View>
+
+              <View style={styles.footer}>
+                <Text style={styles.footerTxt}>New to Gather? </Text>
+                <Pressable onPress={() => navigation.replace("SignUp")} hitSlop={8} accessibilityRole="link">
+                  <Text style={styles.footerLink}>Create an account</Text>
+                </Pressable>
               </View>
             </RiseIn>
           )}
@@ -312,20 +313,16 @@ export default function SignInScreen({ navigation }: any) {
             </RiseIn>
           )}
         </View>
-      </KeyboardAvoidingView>
-    </Screen>
+    </DawnLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  topRow: { paddingHorizontal: space.gutter, paddingTop: 8, height: 56, justifyContent: "center" },
-  inner: { flex: 1, paddingHorizontal: 28, paddingTop: 24 },
-
   headline: {
     fontFamily: font.semibold,
-    fontSize: 34,
-    lineHeight: 40,
-    letterSpacing: -0.6,
+    fontSize: 24,
+    lineHeight: 30,
+    letterSpacing: -0.4,
     color: palette.ink,
   },
   subHeadline: {
@@ -346,15 +343,17 @@ const styles = StyleSheet.create({
   modeBtnTxt: { fontFamily: font.semibold, fontSize: 13, color: palette.inkMuted },
   modeBtnTxtActive: { color: palette.ink },
 
-  fieldBlock: { marginTop: 32 },
+  fieldBlock: { marginTop: 22 },
   bigInput: {
     fontFamily: font.regular,
     fontSize: 17,
     color: palette.ink,
-    backgroundColor: palette.sunken,
-    borderRadius: radius.lg,
-    paddingHorizontal: 20,
-    paddingVertical: 19,
+    backgroundColor: palette.surface,
+    borderWidth: 1,
+    borderColor: palette.line,
+    borderRadius: radius.md,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
   },
   rightSlot: { position: "absolute", right: 0, top: 0, bottom: 0, justifyContent: "center", paddingRight: 20 },
   showHide: { fontFamily: font.semibold, fontSize: 13, color: palette.inkSoft },
@@ -367,16 +366,16 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   forgotRow: { alignSelf: "flex-end", marginTop: 14 },
-  forgotTxt: { fontFamily: font.semibold, fontSize: 13, color: palette.amberDeep },
+  forgotTxt: { fontFamily: font.semibold, fontSize: 13, color: palette.amberInk },
 
-  ctaBlock: { marginTop: 28 },
+  ctaBlock: { marginTop: 20 },
   pillBtn: {
-    minHeight: 58,
+    minHeight: 54,
     borderRadius: radius.pill,
     alignItems: "center",
     justifyContent: "center",
   },
-  pillBtnTxt: { fontFamily: font.bold, fontSize: 16, color: palette.onDark, letterSpacing: 0.2 },
+  pillBtnTxt: { fontFamily: font.bold, fontSize: 16, color: "#3A2600", letterSpacing: 0.2 },
   pillBtnFlat: { backgroundColor: palette.sunken },
   pillBtnTxtFlat: { fontFamily: font.bold, fontSize: 16, color: palette.inkMuted, letterSpacing: 0.2 },
 
@@ -407,7 +406,7 @@ const styles = StyleSheet.create({
   },
   successTxt: { fontFamily: font.regular, fontSize: 14, color: palette.ink, flex: 1, lineHeight: 20 },
 
-  footer: { flexDirection: "row", justifyContent: "center", alignItems: "center", marginTop: 28 },
+  footer: { flexDirection: "row", justifyContent: "center", alignItems: "center", marginTop: 20 },
   footerTxt: { fontFamily: font.regular, fontSize: 14, color: palette.inkSoft },
-  footerLink: { fontFamily: font.bold, fontSize: 14, color: palette.amberDeep },
+  footerLink: { fontFamily: font.bold, fontSize: 14, color: palette.amberInk },
 });

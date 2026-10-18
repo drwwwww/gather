@@ -11,6 +11,7 @@ import { useAuth } from "../context/AuthContext";
 type NotificationRow = { id: string; type: string; payload: Record<string, unknown>; sent_at: string | null; read_at: string | null };
 
 function titleFor(n: NotificationRow): string {
+  if (n.type === "SERVICE_RECAP") return (n.payload as { title?: string })?.title ?? "Thank you for serving";
   if (n.type === "SERVE_REQUEST") {
     const p = n.payload as { requester_name?: string };
     return `${p?.requester_name?.trim() || "A member"} wants to serve`;
@@ -22,6 +23,7 @@ function titleFor(n: NotificationRow): string {
   return "Assignment reminder";
 }
 function detailFor(n: NotificationRow): string {
+  if (n.type === "SERVICE_RECAP") return (n.payload as { message?: string })?.message ?? "";
   if (n.type === "SERVE_REQUEST") {
     const p = n.payload as { role_names?: string[]; note?: string | null };
     const roles = p?.role_names && p.role_names.length > 0 ? p.role_names.join(", ") : null;

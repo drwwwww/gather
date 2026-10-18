@@ -1,6 +1,7 @@
 /**
- * Gather Design System — "Aurora"
- * Airy soft-gradient ambience, glassmorphic controls, floating cards, amber accent.
+ * Gather Design System — "Warm paper"
+ * Flat warm-paper ground (one warm hue, ~70, matching the web admin), white cards,
+ * amber accent. Home adds a soft morning-light glow; sign-in is the amber "Dawn".
  *
  * Rubik loads in App.tsx as weight-specific families (Rubik_400Regular …); the plain
  * "Rubik" name is not registered, so we reference the real family names here.
@@ -15,26 +16,26 @@ export const font = {
 } as const;
 
 export const palette = {
-  // Ambient base + surfaces
-  bg: "#FAF8FE",
+  // Warm paper base + surfaces (one warm hue — never drift into lavender/cool grays)
+  bg: "#F6F4EF",
   surface: "#FFFFFF",
   glass: "rgba(255,255,255,0.62)",
   glassStrong: "rgba(255,255,255,0.85)",
   glassBorder: "rgba(255,255,255,0.75)",
-  sunken: "#F1EEF8",
-  overlay: "rgba(30,26,38,0.42)",
+  sunken: "#EFEBE3",
+  overlay: "rgba(31,27,20,0.42)",
 
-  // Ink (cool near-black, tuned to sit on the warm-lilac wash)
-  ink: "#1E1A26",
-  inkSoft: "#6A6478",
-  inkMuted: "#A7A1B4",
+  // Ink (warm near-black)
+  ink: "#1F1B14",
+  inkSoft: "#6B6457",
+  inkMuted: "#A29B8D",
   onDark: "#FFFFFF",
   onDarkSoft: "rgba(255,255,255,0.72)",
   onDarkFaint: "rgba(255,255,255,0.42)",
 
   // Hairlines
-  line: "#EAE5F1",
-  lineSoft: "#F3EFF8",
+  line: "#E6E1D7",
+  lineSoft: "#F0ECE4",
 
   // Brand amber (sacred — accent / active / CTA only)
   amber: "#F59E0B",
@@ -56,8 +57,12 @@ export const palette = {
 } as const;
 
 export const gradient = {
-  /** Full-screen ambient wash — warm peach → soft mauve → near-white. */
-  ambient: ["#FDEEDF", "#F6EEF7", "#FBF9FE"] as const,
+  /** Flat warm paper (kept as a gradient tuple for older callers). */
+  ambient: ["#F6F4EF", "#F6F4EF", "#F6F4EF"] as const,
+  /** Home's "morning light": soft amber fading into the paper. */
+  glow: ["rgba(253,226,176,0.95)", "rgba(253,233,198,0.55)", "rgba(246,244,239,0)"] as const,
+  /** Sign-in "Dawn": amber sunrise into cream (matches the web auth transition). */
+  dawn: ["#F59E0B", "#FBC86A", "#FDE7C2", "#FBFAF7"] as const,
   /** Primary CTA / accent tiles */
   amber: ["#FDBE5A", "#F3920A"] as const,
   /** Warmer, punchier amber for key CTAs */
@@ -87,26 +92,26 @@ export const space = {
   gutter: 20,
 } as const;
 
-/** Soft, cool-tinted elevation — the airy floating look. */
+/** Soft, warm-tinted elevation (brown-black shadow, never lavender). */
 export const shadow = {
   sm: {
-    shadowColor: "#8A7CB0",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.1,
+    shadowColor: "#3B2F1E",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07,
     shadowRadius: 12,
     elevation: 2,
   },
   md: {
-    shadowColor: "#8477AC",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.13,
+    shadowColor: "#3B2F1E",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.09,
     shadowRadius: 24,
     elevation: 5,
   },
   lg: {
-    shadowColor: "#77699F",
-    shadowOffset: { width: 0, height: 18 },
-    shadowOpacity: 0.17,
+    shadowColor: "#3B2F1E",
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.13,
     shadowRadius: 40,
     elevation: 11,
   },

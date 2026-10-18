@@ -34,6 +34,10 @@ function renderMeta(notification: NotificationRow): { title: string; tone: ToneK
       detail: detailParts.length > 0 ? detailParts.join(" · ") : "No specific role picked — say hello on the People page."
     };
   }
+  if (notification.type === "SERVICE_RECAP") {
+    const payload = notification.payload as { title?: string; message?: string } | null;
+    return { title: payload?.title ?? "Thank you for serving", tone: "success", detail: payload?.message };
+  }
   if (notification.type === "ASSIGNMENT_REMINDER") {
     const payload = notification.payload as { scheduled_date?: string; source?: string; part_title?: string; role_name?: string } | null;
     const dateLabel = payload?.scheduled_date ? formatShortDate(payload.scheduled_date) : "";

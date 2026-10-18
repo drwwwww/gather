@@ -133,6 +133,7 @@ export default function EventsPage() {
         id: rsvp.id,
         name: profilesById[rsvp.user_id]?.full_name || "",
         email: profilesById[rsvp.user_id]?.email || "",
+        avatarUrl: profilesById[rsvp.user_id]?.avatar_url ?? null,
         status: rsvp.status
       }));
   }, [allRsvps, profilesById, selectedEventId]);
@@ -479,7 +480,7 @@ export default function EventsPage() {
       )}
 
       <PageGridFull>
-        <AttendeeListDialog open={viewAttendees} attendees={attendees} onClose={() => setViewAttendees(false)} />
+        <AttendeeListDialog open={viewAttendees} attendees={attendees} eventTitle={events.find((e) => e.id === selectedEventId)?.title ?? null} onClose={() => setViewAttendees(false)} />
       </PageGridFull>
     </PageGrid>
   );

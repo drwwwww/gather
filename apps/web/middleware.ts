@@ -27,6 +27,8 @@ export const config = {
     "/announcements/:path*",
     "/notifications/:path*",
     "/volunteers/:path*",
+    "/live/:path*",
+    "/insights/:path*",
     "/account/:path*",
     "/member",
     "/member/:path*",
