@@ -45,6 +45,86 @@ const interestMatches = (interests: string[], roleName: string) => {
   });
 };
 
+/** Serving-history stats, built once per plan and shared by AI fill and the people picker. */
+export type ServingStats = {
+  roleCount: Map<string, number>;
+  lastServed: Map<string, string>;
+  nearLoad: Map<string, number>;
+  declines: Map<string, number>;
+};
+
+export function buildServingStats(planDate: string, history: AutofillHistoryRow[]): ServingStats {
+  const roleCount = new Map<string, number>();
+  const lastServed = new Map<string, string>();
+  const nearLoad = new Map<string, number>();
+  const declines = new Map<string, number>();
+  for (const h of history) {
+    const delta = daysBetween(h.service_date, planDate);
+    const key = `${h.user_id}:${h.role_id}`;
+    if (h.status === "DECLINED") {
+      if (delta >= 0 && delta <= 90) declines.set(key, (declines.get(key) ?? 0) + 1);
+      continue;
+    }
+    if (delta > 0) {
+      roleCount.set(key, (roleCount.get(key) ?? 0) + 1);
+      const prev = lastServed.get(h.user_id);
+      if (!prev || h.service_date > prev) lastServed.set(h.user_id, h.service_date);
+    }
+    if (Math.abs(delta) <= 14 && delta !== 0) nearLoad.set(h.user_id, (nearLoad.get(h.user_id) ?? 0) + 1);
+  }
+  return { roleCount, lastServed, nearLoad, declines };
+}
+
+export type RankedPerson = {
+  person: AutofillPerson;
+  score: number;
+  /** Why they're a good pick, e.g. "Served as Greeter 4× · last served 5 weeks ago". */
+  reason: string;
+  /** A short fact for any list row, e.g. "Last served Oct 4" or "Hasn't served yet". */
+  fact: string;
+  /** A MEMBER with no history or interest for this role — not a suggestion, still pickable. */
+  outsider: boolean;
+};
+
+/** Scores everyone for one role on one date. Away/busy filtering is the caller's job. */
+export function rankForRole(input: {
+  planDate: string;
+  roleId: string | null;
+  roleName: string;
+  people: AutofillPerson[];
+  stats: ServingStats;
+}): RankedPerson[] {
+  const { planDate, roleId, roleName, people, stats } = input;
+  return people
+    .map((p) => {
+      const count = roleId ? stats.roleCount.get(`${p.id}:${roleId}`) ?? 0 : 0;
+      const interested = interestMatches(p.interests, roleName);
+      const last = stats.lastServed.get(p.id);
+      const restDays = last ? daysBetween(last, planDate) : 120;
+      const load = stats.nearLoad.get(p.id) ?? 0;
+      const declined = roleId ? stats.declines.get(`${p.id}:${roleId}`) ?? 0 : 0;
+      const score =
+        Math.min(count, 5) * 3 +
+        (interested ? 3 : 0) +
+        Math.min(restDays / 7, 8) -
+        (restDays <= 7 ? 6 : 0) -
+        load * 3 -
+        declined * 4 +
+        (p.role === "MEMBER" ? -1 : 0);
+      const parts: string[] = [];
+      parts.push(count > 0 ? `Served as ${roleName} ${count}×` : interested ? `Interested in ${roleName}` : `New to ${roleName}`);
+      parts.push(last ? (restDays >= 14 ? `last served ${Math.round(restDays / 7)} weeks ago` : `served ${restDays} days ago`) : "hasn't served yet");
+      if (load === 0) parts.push("free the weeks nearby");
+      const fact = count > 0
+        ? `${roleName} ${count}×${last ? ` · rested ${Math.max(0, Math.round(restDays / 7))} wk` : ""}`
+        : last
+          ? `Last served ${new Date(`${last}T12:00:00`).toLocaleDateString([], { month: "short", day: "numeric" })}`
+          : "Hasn't served yet";
+      return { person: p, score, reason: parts.join(" · "), fact, outsider: p.role === "MEMBER" && !interested && count === 0 };
+    })
+    .sort((a, b) => b.score - a.score);
+}
+
 export function proposeSchedule(input: {
   planDate: string;
   slots: AutofillSlot[];
@@ -54,6 +134,7 @@ export function proposeSchedule(input: {
   awayIds: Set<string>;
 }): { proposals: AutofillProposal[]; unfilled: number } {
   const { planDate, slots, roleNameById, people, history, awayIds } = input;
+  const stats = buildServingStats(planDate, history);
 
   const busy = new Set<string>();
   for (const s of slots) {
@@ -61,67 +142,19 @@ export function proposeSchedule(input: {
     if (s.backup_user_id) busy.add(s.backup_user_id);
   }
 
-  // Per person: past serves by role, last served date, load around this date, recent declines.
-  const roleCount = new Map<string, number>();
-  const lastServed = new Map<string, string>();
-  const nearLoad = new Map<string, number>();
-  const declines = new Map<string, number>();
-  for (const h of history) {
-    const delta = daysBetween(h.service_date, planDate);
-    if (h.status === "DECLINED") {
-      if (delta >= 0 && delta <= 90) declines.set(`${h.user_id}:${h.role_id}`, (declines.get(`${h.user_id}:${h.role_id}`) ?? 0) + 1);
-      continue;
-    }
-    if (delta > 0) {
-      roleCount.set(`${h.user_id}:${h.role_id}`, (roleCount.get(`${h.user_id}:${h.role_id}`) ?? 0) + 1);
-      const prev = lastServed.get(h.user_id);
-      if (!prev || h.service_date > prev) lastServed.set(h.user_id, h.service_date);
-    }
-    if (Math.abs(delta) <= 14 && delta !== 0) nearLoad.set(h.user_id, (nearLoad.get(h.user_id) ?? 0) + 1);
-  }
-
   const open = slots.filter((s) => !s.assigned_user_id);
   // Fill the roles with the fewest experienced people first, so scarce skills aren't spent elsewhere.
-  const experienced = (roleId: string) => people.filter((p) => (roleCount.get(`${p.id}:${roleId}`) ?? 0) > 0).length;
+  const experienced = (roleId: string) => people.filter((p) => (stats.roleCount.get(`${p.id}:${roleId}`) ?? 0) > 0).length;
   open.sort((a, b) => experienced(a.role_id) - experienced(b.role_id));
 
   const proposals: AutofillProposal[] = [];
   for (const slot of open) {
     const roleName = roleNameById[slot.role_id] ?? "this role";
-    let best: { p: AutofillPerson; score: number; reason: string } | null = null;
-
-    for (const p of people) {
-      if (busy.has(p.id) || awayIds.has(p.id)) continue;
-      const count = roleCount.get(`${p.id}:${slot.role_id}`) ?? 0;
-      const interested = interestMatches(p.interests, roleName);
-      if (p.role === "MEMBER" && !interested && count === 0) continue;
-
-      const last = lastServed.get(p.id);
-      const restDays = last ? daysBetween(last, planDate) : 120;
-      const load = nearLoad.get(p.id) ?? 0;
-      const declined = declines.get(`${p.id}:${slot.role_id}`) ?? 0;
-
-      const score =
-        Math.min(count, 5) * 3 +
-        (interested ? 3 : 0) +
-        Math.min(restDays / 7, 8) -
-        (restDays <= 7 ? 6 : 0) -
-        load * 3 -
-        declined * 4 +
-        (p.role === "MEMBER" ? -1 : 0);
-
-      if (!best || score > best.score) {
-        const parts: string[] = [];
-        parts.push(count > 0 ? `Served as ${roleName} ${count}×` : interested ? `Interested in ${roleName}` : `New to ${roleName}`);
-        parts.push(last ? (restDays >= 14 ? `last served ${Math.round(restDays / 7)} weeks ago` : `served ${restDays} days ago`) : "hasn't served yet");
-        if (load === 0) parts.push("free the weeks nearby");
-        best = { p, score, reason: parts.join(" · ") };
-      }
-    }
-
+    const best = rankForRole({ planDate, roleId: slot.role_id, roleName, people, stats })
+      .find((r) => !busy.has(r.person.id) && !awayIds.has(r.person.id) && !r.outsider);
     if (best) {
-      busy.add(best.p.id);
-      proposals.push({ slotId: slot.id, roleId: slot.role_id, roleName, userId: best.p.id, name: best.p.name, reason: best.reason });
+      busy.add(best.person.id);
+      proposals.push({ slotId: slot.id, roleId: slot.role_id, roleName, userId: best.person.id, name: best.person.name, reason: best.reason });
     }
   }
 

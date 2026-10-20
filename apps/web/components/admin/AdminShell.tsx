@@ -24,11 +24,11 @@ const NAV_GROUPS = [
     label: null,
     items: [
       { href: "/admin",                 label: "Dashboard",       icon: LayoutDashboard },
-      { href: "/live",                  label: "Sunday Live",     icon: Radio           },
+      { href: "/live",                  label: "Live Service",    icon: Radio           },
     ],
   },
   {
-    label: "Sundays",
+    label: "Planning",
     items: [
       { href: "/volunteers",            label: "Volunteers",      icon: CalendarCheck   },
       { href: "/admin/service-plans",   label: "Service Plans",   icon: ClipboardList   },
@@ -59,7 +59,7 @@ function NavItem({
   return (
     <Link
       href={href}
-      className={`sidebar-item group relative flex h-8 items-center gap-3 rounded-xl px-3 text-sm font-medium no-underline transition-colors duration-150 ${
+      className={`sidebar-item group relative flex items-center gap-3 rounded-xl px-3 text-sm font-medium no-underline transition-colors duration-150 ${
         isActive
           ? "bg-amber-50 text-amber-800"
           : "text-[var(--text-secondary)] hover:bg-[var(--surface-2)] hover:text-[var(--text-primary)]"
@@ -200,21 +200,24 @@ export default function AdminShell({ children }: { children: ReactNode }) {
           </div>
 
           {/* Main nav */}
-          <nav aria-label="Main navigation" className="sidebar-nav min-h-0 flex-1 overflow-y-auto px-2 py-2.5">
-            {NAV_GROUPS.map((group, gi) => (
-              <div key={group.label ?? gi} className={gi > 0 ? "sidebar-group mt-3" : ""}>
-                {group.label && (
-                  <p className="sidebar-label mb-0.5 px-3 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">{group.label}</p>
-                )}
-                <ul className="space-y-0.5 list-none p-0 m-0">
-                  {group.items.map(({ href, label, icon }) => (
-                    <li key={href} className="list-none">
-                      <NavItem href={href} label={label} icon={icon} isActive={isActive(href)} />
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
+          <nav aria-label="Main navigation" className="sidebar-nav min-h-0 flex-1 overflow-y-auto px-2 py-3">
+            {/* Groups spread to fill the column (up to a cap), so there's no dead space under the last link. */}
+            <div className="sidebar-groups flex min-h-full flex-col justify-between">
+              {NAV_GROUPS.map((group, gi) => (
+                <div key={group.label ?? gi}>
+                  {group.label && (
+                    <p className="sidebar-label mb-1 px-3 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">{group.label}</p>
+                  )}
+                  <ul className="space-y-0.5 list-none p-0 m-0">
+                    {group.items.map(({ href, label, icon }) => (
+                      <li key={href} className="list-none">
+                        <NavItem href={href} label={label} icon={icon} isActive={isActive(href)} />
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
           </nav>
 
           {/* Bottom nav: notifications + settings */}

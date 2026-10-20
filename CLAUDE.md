@@ -14,9 +14,9 @@ Gather exists to give churches their time back. Church leaders spend too many ho
 
 | Area | State |
 |---|---|
-| Web admin | Feature-complete for v1 (dashboard, people, volunteers, **Sunday Live**, **Team Health**, service plans/presets with **Gather AI fill** (Congregation/Network only), announcements, events with repeat/announce/delete + RSVP export, account with plan/billing + data export, reports). UI-protocol audit done. |
+| Web admin | Feature-complete for v1 (dashboard, people, volunteers, **Live Service**, **Team Health**, service plans/presets with **Gather AI fill** (Congregation/Network only), announcements, events with repeat/announce/delete + RSVP export, account with plan/billing + data export, reports). UI-protocol audit done. |
 | Mobile | All member + service-team flows live: home, news, events (address, directions, native calendar, saved, nearby churches), bulletin with check-in / run service, Serve schedule with backups, profile photos, report/block, account deletion, tour. Phone-only (`supportsTablet: false`). |
-| Backend | 47 migrations; daily reminder cron (Vercel); scheduling and privilege rules enforced by triggers/RPCs; security audit and scheduling audit both done and verified live. |
+| Backend | 49 migrations; daily reminder cron (Vercel); pg_cron + pg_net (service-start notices every 5 min); scheduling and privilege rules enforced by triggers/RPCs; security audit and scheduling audit both done and verified live. |
 | Legal / privacy | Privacy, Terms, DPA, Delete-account pages live; store privacy answers drafted. Not attorney-reviewed. |
 | Store readiness | Icon flattened, privacy manifest, export compliance, deletion, report/block all done. **Next:** test on real iPhone + Android, first `eas build` → TestFlight (no Mac needed), screenshots, listing, submit. Guide: `docs/launch/app-store-and-google-play.md`. |
 | Not started / deferred | Stripe products/keys/webhook in the Stripe dashboard (code is done), SMS provider for phone sign-in, data-caching layer, dark mode, Android device testing, LLC + D-U-N-S. |
@@ -115,7 +115,7 @@ gather/
 │   ├── ui/           # @gather/ui — placeholder (no source yet)
 │   └── config/       # Shared ESLint + TS base config
 ├── supabase/
-│   └── migrations/   # 47 SQL migrations (up-only)
+│   └── migrations/   # 49 SQL migrations (up-only)
 └── design-handoff/   # HTML/markdown dossiers from design system
 ```
 
@@ -229,7 +229,7 @@ app/
 │   │   ├── page.tsx
 │   │   └── invite/page.tsx
 │   ├── volunteers/page.tsx
-│   ├── live/page.tsx      # Sunday Live — check-ins, gaps, run of show, thank-you recap
+│   ├── live/page.tsx      # Live Service — check-ins, gaps, run of show, thank-you recap
 │   ├── insights/page.tsx  # Team Health — stretched/steady/resting/new, away dates, serve requests, CSV
 │   └── admin/
 │       ├── page.tsx              # Dashboard
@@ -282,9 +282,9 @@ Public, unauthenticated. Separate visual language from the admin portal — ligh
 - **`lib/marketing/plans.ts`** — single source of truth for plan pricing (Parish $74/mo, Congregation $149/mo, Network $225/mo; ~2 months free annually), the comparison matrix, and the pricing FAQ. Both the landing preview and `/pricing` read from here.
 - **Imagery rule:** anything added to a wide/short card slot (hero, feature panels, browse tiles) must be genuinely landscape (~1.75:1) and subject-filling. A portrait source cropped into a short card shows only a thin band of background — this actually happened once and produced "black cards with a sliver of a gradient." Verify orientation before using an image, don't assume.
 
-### Auth transition ("Dawn") — `components/auth/`, `lib/authTransition.ts`
+### Sign-in transition
 
-A full-screen amber overlay (bloom + per-letter "Gather" wordmark reveal) that plays on sign-in, sign-up, and sign-out. It's mounted once in the root layout (`AuthTransition`, not inside the auth page) so it survives the route change from `/auth` to `/admin` — the auth page calls `coverForAuthTransition()`, awaits the overlay fully covering the screen, then navigates; the overlay uncovers only once `usePathname` confirms the destination route has actually mounted (not a fixed delay — an earlier version guessed a delay and uncovered while still on the old route). Skips entirely under `prefers-reduced-motion` or when the tab is backgrounded.
+None. The full-screen amber "Dawn" overlay that used to play on sign-in/up/out (`AuthTransition`, `AuthIntro`, `lib/authTransition.ts`, `.auth-intro*` CSS) was removed at the owner's request — sign-in navigates straight to the destination. Don't reintroduce a cover/curtain animation on auth.
 
 ---
 
@@ -321,9 +321,14 @@ Active item: amber left rail (`w-1`, `--primary`) + `--primary-soft` background.
 
 ### Service Plans (`components/servicePlans/`)
 
-`ServicePlanHeader`, `ServicePlanRoleSlotsSection`, `ServicePlanStepsEditor` (compact `runOfShow/StepRow` rows — used by both the Service Plans page and the `[planId]` editor; the old card-style `PlanEditor`/`ServicePlanStepRow` were removed), `PrintablePlan`, `GenerateFromPresetButton`, `CopyLastPlanButton`
+`ServicePlanHeader`, `PrintablePlan`, `GenerateFromPresetButton`, `CopyLastPlanButton`
 
-`ServicePlanRoleSlotsSection` was reworked from ~400px stacked cards per slot to single 44px rows (`[status ▾] [assigned ▾] [backup ▾] [note] [×]`), with the whole section collapsible, unused roles hidden behind a disclosure, and per-role coverage counts. Uses `SelectMenu` throughout — the native `<select>`s it used to have were the reason status changes silently reset an assignment; that's now fixed too (assigning someone only advances a slot still marked `OPEN`, never downgrades a `CONFIRMED` one).
+**Plan editing = the Service Board** (`components/serviceBoard/`), used by both the Service Plans page and `/admin/service-plans/[planId]`:
+- `ServiceBoard` — sticky readiness bar (editable title, date · time · service name, confirmed/waiting/declined/open meter, Send reminders → `/api/notifications/dispatch` with `{ planId }`, Fill with AI), then two columns: **Order of service** (real clock times from `start_time` + cumulative durations, "ends 10:33 AM", inline title/length edit, drag or ↑↓ to reorder, notes, `N` focuses "Add a step…", quick-step chips) and **Team** (roles grouped by `ministries`, "filled / spots" per ministry, −/+ spots on hover, "+ Add a role to this service").
+- `StatusAvatar` / `EmptySeat` — a person is an avatar whose ring is their answer (green confirmed, amber waiting, red declined) with a mini-avatar badge for the backup; an empty spot is a dashed "+". **Status is never a dropdown** — it comes from the volunteer (admins can "Mark confirmed" in the popover).
+- `PeoplePicker` — one popover for every spot: Suggested (✦, ranked by `rankForRole` in `lib/ai/autofill.ts` with the reason), Service team (last-served fact), Other members, Can't this week (away / "Already on Bass", dimmed but pickable); ↑↓/Enter/Esc; after picking who's serving it asks for an optional backup. A filled spot opens a summary (change, backup, note, Mark confirmed, Clear spot, Remove spot).
+- `useBoardData` — people with photos, 26 weeks of serving history (`buildServingStats`), who's away that day, ministries; loaded once per plan. Steps' answers are read from `service_plan_items.assignment_status`; a changed assignee shows as waiting.
+- The board only edits the page's drafts (`PlanRoleSlotDraft[]` / `PlanItemDraft[]`); the page's existing in-place autosave (`syncRows`) persists. The old `ServicePlanRoleSlotsSection`, `ServicePlanStepsEditor`, `PlanEditor`, `ServicePlanStepRow` were removed; `runOfShow/StepRow` remains for the preset editor.
 
 ### Layout
 
@@ -408,7 +413,7 @@ Rebuilt (not a reskin) around three references: **Home** blends Monzo (grouped w
 - **Public marketing site added** — `(marketing)` route group at `/`, `/pricing`, `/demo`; removed the old `(admin)/page.tsx` placeholder that redirected `/` → `/admin`
 - **Dashboard density pass** — admin content wrapper `space-y-12`/`max-w-7xl` → `space-y-6`/`max-w-[1600px]`; page titles down to dashboard scale (20–24px, was 30–48px)
 - **Warm neutral token unification** — `--surface`/`--surface-2`/`--border`/`--divider` moved off three drifting hues (plus cool-blue-gray borders) onto one warm hue (~70)
-- **Dawn auth transition** — full-screen amber overlay on sign-in/up/out, mounted in the root layout so it survives the route change; see Marketing Site section above
+- **Dawn auth transition** — added, then removed (owner disliked the curtain effect); auth now navigates directly
 - **Service plan editor reworked** — role slots collapsed from ~400px cards to 44px rows, native `<select>`s replaced with the new `SelectMenu` component, fixed a bug where any assignment change reset status to `ASSIGNED` (could silently downgrade a `CONFIRMED` slot)
 - **CI build fix** — Vercel install command pinned to `pnpm install --filter web... --config.node-linker=isolated` (see Known Gaps); `turbo.json` now declares the env vars the web build actually reads, since Turborepo wasn't forwarding Vercel-configured values to the build
 - **Mobile SDK 54 → 57** — full `expo install --fix` upgrade (react-native 0.81.5→0.86.3, react 19.1.0→19.2.3, react-navigation-adjacent native modules, @sentry/react-native 8→7.11), plus the matching `pnpm.overrides` bump — forced by Expo Go on test devices auto-updating to only support the newer SDK
@@ -455,7 +460,7 @@ Rebuilt (not a reskin) around three references: **Home** blends Monzo (grouped w
 - **Plans, Gather AI, and the "what's missing" pass (migration 0046)** —
   - **Plan gating:** `churches.plan` is the source of truth; web reads it through `lib/plan.ts` (`useChurchPlan`, `planHasAi`). **Gather AI is Congregation + Network only — Parish never sees it** (no button, no upsell). AI branding = `components/ai/AiBrand.tsx` (ink pill + amber `Sparkles` star) — ink, not amber, so it never competes with primary CTAs.
   - **Gather AI fill** (`lib/ai/autofill.ts`, `components/ai/AiFillDialog.tsx`, header button on the plan editor's roles section): v1 is a transparent ranking, not a model call — experience in the role, rest since last serve, load in the surrounding 2 weeks, recent declines, ministry interests; skips anyone away, already serving in the service, or a MEMBER with no interest/history. Every pick shows its reason; the admin reviews/skips, picks go into editor state and autosave persists them (status ASSIGNED — people still confirm). Model-backed suggestions should plug in behind the same `AutofillProposal` shape.
-  - **Sunday Live** (`/live`): today's plans (tabs if several) or the next one; checked-in vs scheduled, gaps, run-of-show progress with Done/Skip/Undo (`set_plan_item_status`), team list Here/Not yet/Pending, polls every 15s while visible. After the service: **Send thank-you recap** → `/api/notifications/recap` (notification_log `SERVICE_RECAP` + push + email; `service_plans.recap_sent_at` makes it once-only).
+  - **Live Service** (`/live`): today's plans (tabs if several) or the next one; checked-in vs scheduled, gaps, run-of-show progress with Done/Skip/Undo (`set_plan_item_status`), team list Here/Not yet/Pending, polls every 15s while visible. After the service: **Send thank-you recap** → `/api/notifications/recap` (notification_log `SERVICE_RECAP` + push + email; `service_plans.recap_sent_at` makes it once-only).
   - **Team Health** (`/insights`): 90-day serving per person, 8-week sparkline, health = stretched (3+ of last 4 weeks) / steady / resting (60+ days) / new; away dates (admins add per service day); "Asked to serve" list from `serve_requests` (that flow already existed via `request_to_serve` — only the list view was missing); CSV export (`lib/csv.ts`, formula-injection safe).
   - **Away dates:** `volunteer_unavailability`; mobile Serve has a "Can't make it?" day strip (`AwayDatesCard`, next 10 weeks of the church's service days, warns if already scheduled that day); plan editor pickers mark away people with an "Away" hint; AI fill skips them.
   - **Reminders are automatic:** `vercel.json` cron hits `/api/notifications/dispatch` daily at 22:00 UTC (about 6 PM ET, the evening before); needs `CRON_SECRET` set in Vercel (Vercel sends it as the Bearer token).
@@ -468,9 +473,19 @@ Rebuilt (not a reskin) around three references: **Home** blends Monzo (grouped w
   - **Plan tab (mobile) has a service picker:** the next 8 services as chips; opens on the next one the person serves in (else the next one). Previously it showed only the earliest upcoming plan, so one stray plan hid Sunday's bulletin.
   - **No more plans on blank days (web):** Service Plans and Volunteers open on the next service day (`nextServiceDate` in `lib/format.ts`), new plans get `service_time_id` + start time from the matching service time (`serviceTimeForDate`), and creating a plan on a day with no service asks first. A stray "Sunday Morning Order" plan dated Sat Oct 17 (no time, no roles) came from exactly this.
   - **Resilience:** Home keeps what's on screen when a refresh request fails instead of blanking to "nothing on the calendar". The offline banner is hidden from screen readers while online (it was always in the a11y tree) and no longer claims "showing saved data" (nothing is cached).
-  - **Web navigation:** sidebar grouped (Dashboard, Sunday Live · Sundays · People · Communication); `Ctrl K` / `⌘K` / `/` focuses search (hint shown in the field); `AdminHeader` takes `back={{ href, label }}` (plan editor → Service plans); dashboard quick actions open the composers (`/announcements?new=1`, `/events?new=1`); hero links to Sunday Live; the admin's name in the greeting is no longer amber (decorative amber). "Fill with AI" is on the plan editor, the Service Plans page, and the Volunteers Assignments header (→ plan with `?ai=1`).
-  - **Serving vs backup is always labeled:** `SelectMenu` takes `prefix` (muted "SERVING"/"BACKUP" inside the trigger) and `emptyText` ("Choose someone" / "Optional"); used on role slots and run-of-show steps. A step's backup row stays open whenever a backup is set.
+  - **Web navigation:** sidebar grouped (Dashboard, Live Service · Planning · People · Communication — never "Sunday" in labels: some churches worship on Saturday; rows are 40px = `--sidebar-row-h`, tightening on short windows via `.sidebar-item` media queries, never a visible scrollbar); `Ctrl K` / `⌘K` / `/` focuses search (hint shown in the field); `AdminHeader` takes `back={{ href, label }}` (plan editor → Service plans); dashboard quick actions open the composers (`/announcements?new=1`, `/events?new=1`); hero links to Live Service; the admin's name in the greeting is no longer amber (decorative amber). "Fill with AI" is on the plan editor, the Service Plans page, and the Volunteers Assignments header (→ plan with `?ai=1`).
+  - **Serving vs backup is always labeled:** `SelectMenu` takes `prefix` and `emptyText` (preset step rows use them); on plans the board's avatar badge + picker make primary vs backup explicit.
   - **Buttons:** `.btn-primary`/`.btn-secondary`/`.btn-ghost` are colour-only — always pair with `.btn` (or use `components/ui/button.tsx`). Disabled primary is neutral grey, not faded amber.
+- **Live service progress (migration 0048)** — `trg_notify_plan_item_progress` (AFTER UPDATE OF status on `service_plan_items`, service day only, church timezone) writes to `notification_log` whenever a step is marked DONE/SKIPPED, from either client:
+  - `STEP_THANKS` → the step's person (once per step, even if toggled); `STEP_PROGRESS` → every later-step person, one row each for their nearest step with `steps_away`/`minutes_away`. **Only the next person to serve gets a push** (`payload.push`/`next_up`, even if an unassigned step like a video comes first) — the rest are quiet in-app updates, so a 10-step service never buzzes a phone 10×.
+  - `ASSIGNMENT_MISSED` → admins, when a done/skipped step's person never checked in anywhere in the service (never about the admin themself). `SERVICE_COMPLETE` → admins once, when no PLANNED steps remain, listing everyone scheduled who never checked in; stamps `service_plans.completed_at` (undoing a step clears it).
+  - Push: the trigger can't make HTTP calls, so whoever runs the service calls `POST /api/live/push { planId }` right after each change (web Live Service and mobile Run service both do); it sends unsent `push` rows for that plan and stamps `payload.pushed`.
+  - Web Live Service: Done → the check pops with a radial burst and the row washes green, "Now" glides to the next step, a toast says who was thanked / who's up next, "Missed" pills on steps and team; when finished, a "Service complete" panel draws a check, drops confetti, lists who didn't check in, and offers "Thank the team" (the recap). CSS: `.live-pop`, `.live-burst`, `.live-flash`, `.live-now`, `.live-check-*`, `.live-confetti` in `globals.css`, all off under reduced motion.
+  - Mobile bulletin: on service day it refreshes every 15s and everyone (not just the admin running it) sees progress, the Now step, done/skipped marks and a personal line ("You're up now / next", "Your part is N steps away · about X min", "Your part is done — thank you"), then a "Service complete" card. The admin's check springs in with a success haptic. All four types render in web + mobile Notifications.
+- **Service-start notices + kind notes (migration 0049)** —
+  - **Whole church is told a service is about to start.** `pg_cron` runs `public.send_service_start_notices()` every 5 minutes (job `service-start-notices`); for each plan starting within 30 min (church timezone, `start_time` or its service time's), once per plan (`service_plans.start_notice_sent_at`, claimed before sending so overlapping runs can't double-send) it writes `SERVICE_STARTING` for every non-disabled member and pushes straight to Expo with `pg_net` (`net.http_post`, batches of 100). No web server or Vercel cron involved. Every service notifies everyone (a 9:00 and an 11:00 both go out); there's no per-member mute yet.
+  - **No red "missed" on the finished service.** Live Service shows a neutral "No check-in" tag (steps and team) and, in the completion panel, a "Check in on …" card (neutral avatars + **Send a kind note**) → `/api/live/care` (admin; recomputes who didn't check in server-side, skips the sender, once per plan via `service_plans.care_note_sent_at`) → `CARE_NOTE` "We missed you at {service} today. Hope everything's okay — no need to reply." + push. `ASSIGNMENT_MISSED`/`SERVICE_COMPLETE` copy softened to "didn't check in" / "worth checking in on" (info/success tone, never warning red).
+  - Testing note: check the time before faking a start ("now + 10 min" near midnight wraps to 00:xx of the same date, which is in the past).
 - **Docs** — `docs/launch/app-store-and-google-play.md` (Apple as Individual → LLC conversion/transfer → Google Play), `docs/launch/store-privacy-answers.md`, `docs/security/incident-response.md`.
 ---
 

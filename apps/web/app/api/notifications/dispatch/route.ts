@@ -88,11 +88,13 @@ async function dispatch(request: Request) {
 
   const supabase = createSupabaseAdminClient() as any;
 
+  // A specific service (the plan board's "Send reminders") ignores the lookahead window.
+  const targetPlanId: string | undefined = typeof body?.planId === "string" ? body.planId : undefined;
   let plansQuery = supabase
     .from("service_plans")
     .select("id, church_id, service_date")
-    .gte("service_date", todayStr)
-    .lte("service_date", endStr);
+    .gte("service_date", todayStr);
+  plansQuery = targetPlanId ? plansQuery.eq("id", targetPlanId) : plansQuery.lte("service_date", endStr);
   if (scope.churchId) plansQuery = plansQuery.eq("church_id", scope.churchId);
   const { data: plans, error: plansError } = await plansQuery;
 

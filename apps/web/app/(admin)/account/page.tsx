@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import AdminHeader from "../../../components/admin/AdminHeader";
 import { getCurrentContext, listProfilesByChurch } from "../../../lib/supabaseData";
 import { supabase } from "../../../lib/supabaseClient";
-import { coverForAuthTransition } from "../../../lib/authTransition";
 import ProfileCard from "../../../components/account/ProfileCard";
 import SecurityCard from "../../../components/account/SecurityCard";
 import ChurchSettingsCard from "../../../components/account/ChurchSettingsCard";
@@ -216,7 +215,6 @@ export default function AccountPage() {
 
   const handleSignOut = async () => {
     await supabase?.auth.signOut();
-    await coverForAuthTransition();
     router.push("/login");
   };
 

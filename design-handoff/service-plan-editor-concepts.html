@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Plan editor concepts</title>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f6f4ef;--s:#fff;--s2:#f3f0ea;--b:#e6e1d7;--t:#1f1b14;--t2:#5f584b;--m:#9a9284;--amber:#f59e0b;--amberInk:#b45309;--ok:#059669;--okS:#e7f6ef;--warn:#b45309;--warnS:#fdf3e1;--bad:#dc2626;--badS:#fdecec}
+*{box-sizing:border-box}body{margin:0;font-family:Rubik,system-ui;background:#ece8e0;color:var(--t);padding:28px 16px 60px}
+.wrap{max-width:1180px;margin:0 auto}
+h1{font-size:22px;margin:0 0 4px}.lead{color:var(--t2);font-size:14px;margin:0 0 6px;max-width:820px;line-height:1.55}
+h2{font-size:18px;margin:44px 0 4px}.why{color:var(--t2);font-size:13.5px;margin:0 0 14px;max-width:860px;line-height:1.55}
+.frame{background:var(--bg);border:1px solid #d9d3c7;border-radius:16px;overflow:hidden;box-shadow:0 20px 40px -24px rgba(40,30,10,.35)}
+.bar{position:sticky;top:0;display:flex;align-items:center;gap:14px;padding:12px 18px;background:#fffdf8;border-bottom:1px solid var(--b)}
+.bar .t{font-weight:600;font-size:15px}.bar .sub{font-size:12px;color:var(--m)}
+.meter{flex:1;max-width:260px;height:8px;border-radius:9px;background:var(--s2);overflow:hidden;display:flex}
+.meter i{display:block;height:100%}.pill{font-size:11px;font-weight:600;padding:3px 9px;border-radius:99px}
+.ai{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:11px;color:#fff;font-size:12px;font-weight:600;border:2px solid transparent;background:linear-gradient(#211b13,#211b13) padding-box,conic-gradient(#f59e0b,#fb7185,#a78bfa,#38bdf8,#34d399,#f59e0b) border-box;box-shadow:0 6px 18px -6px rgba(245,158,11,.6)}
+.btn{height:32px;padding:0 12px;border-radius:11px;border:1px solid var(--b);background:var(--s);font-size:12px;font-weight:600;color:var(--t2);display:inline-flex;align-items:center}
+.cols{display:grid;grid-template-columns:1.35fr 1fr;gap:16px;padding:16px}
+.card{background:var(--s);border:1px solid var(--b);border-radius:14px;padding:14px}
+.card h3{margin:0 0 10px;font-size:13px;display:flex;justify-content:space-between;align-items:center}
+.card h3 small{font-weight:400;color:var(--m);font-size:11.5px}
+.step{display:grid;grid-template-columns:56px 1fr auto;gap:10px;align-items:center;padding:9px 6px;border-radius:10px}
+.step+.step{border-top:1px solid #f0ece4}
+.step .clock{font-size:12px;font-weight:600;color:var(--t2);font-variant-numeric:tabular-nums}
+.step .clock small{display:block;font-weight:400;color:var(--m);font-size:10.5px}
+.step .ti{font-size:13.5px;font-weight:500}.step .no{font-size:11.5px;color:var(--m)}
+.step.drag{background:#fffaf0;outline:1.5px dashed #f2c26b}
+.who{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--t2)}
+.av{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:10px;font-weight:700;position:relative;flex:none}
+.av.ok{box-shadow:0 0 0 2px #fff,0 0 0 3.5px var(--ok)}.av.wait{box-shadow:0 0 0 2px #fff,0 0 0 3.5px #f2b44a}.av.no{box-shadow:0 0 0 2px #fff,0 0 0 3.5px var(--bad)}
+.av .bk{position:absolute;right:-6px;bottom:-4px;width:15px;height:15px;border-radius:50%;font-size:7px;border:1.5px solid #fff;display:grid;place-items:center}
+.add{width:26px;height:26px;border-radius:50%;border:1.5px dashed #cfc7b8;display:grid;place-items:center;color:var(--m);font-size:15px}
+.team{margin-bottom:14px}.team .hd{display:flex;justify-content:space-between;font-size:11px;font-weight:600;color:var(--m);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.role{display:flex;align-items:center;gap:10px;padding:7px 4px;border-radius:9px}
+.role:hover{background:#faf8f3}.role .rn{flex:1;font-size:13px}.role .gap{font-size:11px;color:var(--warn);background:var(--warnS);padding:2px 8px;border-radius:99px;font-weight:600}
+.slots{display:flex;gap:6px}
+.picker{position:absolute;right:28px;top:250px;width:300px;background:var(--s);border:1px solid var(--b);border-radius:14px;box-shadow:0 18px 40px -12px rgba(40,30,10,.35);padding:10px}
+.picker input{width:100%;height:34px;border-radius:10px;border:1px solid var(--b);padding:0 10px;font:inherit;font-size:12.5px;background:var(--s2)}
+.picker .sec{font-size:10.5px;font-weight:600;color:var(--m);text-transform:uppercase;letter-spacing:.06em;margin:10px 4px 4px}
+.opt{display:flex;align-items:center;gap:9px;padding:7px 6px;border-radius:9px;font-size:12.5px}
+.opt:hover,.opt.hi{background:#fbf7ee}.opt .r{margin-left:auto;font-size:10.5px;color:var(--m);text-align:right}
+.opt.dim{opacity:.5}.spark{color:#f59e0b}
+.rel{position:relative}
+.note{font-size:12.5px;color:var(--t2);background:#fffaf0;border:1px solid #f4dfb5;border-radius:12px;padding:10px 12px;margin:12px 16px 16px;line-height:1.5}
+.tl{padding:16px}
+.lane{display:grid;grid-template-columns:120px 1fr;gap:12px;align-items:center;margin-bottom:8px}
+.lane .ln{font-size:12px;font-weight:600;color:var(--t2)}
+.track{position:relative;height:40px;background:var(--s);border:1px solid var(--b);border-radius:10px}
+.blk{position:absolute;top:5px;bottom:5px;border-radius:8px;font-size:11px;font-weight:600;padding:0 8px;display:flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden}
+.ruler{display:grid;grid-template-columns:120px 1fr;gap:12px;margin-bottom:6px}
+.ruler div:last-child{display:flex;justify-content:space-between;font-size:10.5px;color:var(--m);font-variant-numeric:tabular-nums}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.mini{background:var(--s);border:1px solid var(--b);border-radius:14px;padding:14px}
+.mini b{font-size:13px}.mini p{font-size:12.5px;color:var(--t2);margin:4px 0 0;line-height:1.5}
+.kbd{font-size:10.5px;border:1px solid var(--b);border-radius:5px;padding:1px 5px;background:var(--s2);color:var(--t2)}
+@media(max-width:900px){.cols,.grid3{grid-template-columns:1fr}.picker{position:static;width:auto;margin:0 16px 16px}}
+</style></head><body><div class="wrap">
+
+<h1>Service plan editor: three directions</h1>
+<p class="lead">Today the editor is two long lists of identical dropdown rows (18 roles and 11 steps), with a status dropdown nobody needs to touch and an alphabetical people list with no context. These are mockups only; nothing is built.</p>
+
+<!-- ───────────────── Concept A ───────────────── -->
+<h2>A. Service board <span class="pill" style="background:#fef3c7;color:#92400e">Recommended</span></h2>
+<p class="why">One screen, two columns. The <b>order of service</b> on the left gets real clock times (9:00, 9:05…) computed from the start time. The <b>team</b> on the right is grouped by ministry with coverage at a glance. People are avatars whose ring shows their answer (green confirmed, amber waiting, red declined), with a small badge for the backup. Status is never a dropdown: it comes from the volunteer. A sticky bar keeps readiness and the two big actions in view.</p>
+<div class="frame">
+  <div class="bar">
+    <div><div class="t">Bread in the Wilderness</div><div class="sub">Sun, Oct 18 · 9:00 AM · Sunday Morning</div></div>
+    <div class="meter" title="12 of 18 filled"><i style="width:40%;background:var(--ok)"></i><i style="width:27%;background:#f6c56b"></i></div>
+    <span class="pill" style="background:var(--okS);color:var(--ok)">7 confirmed</span>
+    <span class="pill" style="background:var(--warnS);color:var(--warn)">5 waiting</span>
+    <span class="pill" style="background:var(--badS);color:var(--bad)">6 open</span>
+    <span style="flex:1"></span>
+    <span class="btn">Send reminders</span>
+    <span class="ai">✦ Fill with AI</span>
+  </div>
+  <div class="cols rel">
+    <div class="card">
+      <h3>Order of service <small>93 min · ends 10:33 AM</small></h3>
+      <div class="step"><div class="clock">9:00<small>5 min</small></div><div><div class="ti">Countdown &amp; Welcome Loop</div><div class="no">Announcement slides on rotation</div></div><div class="who"><span class="add">+</span></div></div>
+      <div class="step"><div class="clock">9:05<small>3 min</small></div><div><div class="ti">Call to Worship</div></div><div class="who"><span class="av ok" style="background:#e0e7ff;color:#3730a3">TH</span></div></div>
+      <div class="step drag"><div class="clock">9:08<small>20 min</small></div><div><div class="ti">Worship Set (3 songs)</div><div class="no">Set list finalized Thursday · drag to reorder</div></div><div class="who"><span class="av wait" style="background:#fce7f3;color:#9d174d">MO<span class="bk" style="background:#dcfce7;color:#166534">B</span></span></div></div>
+      <div class="step"><div class="clock">9:28<small>4 min</small></div><div><div class="ti">Welcome &amp; Greeting</div></div><div class="who"><span class="av ok" style="background:#fef3c7;color:#92400e">DW</span></div></div>
+      <div class="step"><div class="clock">9:32<small>4 min</small></div><div><div class="ti">Announcements</div><div class="no">Keep to three items max</div></div><div class="who"><span class="add">+</span></div></div>
+      <div class="step"><div class="clock">9:36<small>5 min</small></div><div><div class="ti">Offering &amp; Prayer</div></div><div class="who"><span class="av no" style="background:#ede9fe;color:#5b21b6">RF</span></div></div>
+      <div class="step"><div class="clock">9:41<small>3 min</small></div><div><div class="ti">Scripture Reading</div></div><div class="who"><span class="av ok" style="background:#dcfce7;color:#166534">EB</span></div></div>
+      <div class="step"><div class="clock">9:44<small>32 min</small></div><div><div class="ti">Sermon: Bread in the Wilderness</div></div><div class="who"><span class="av ok" style="background:#fef3c7;color:#92400e">DW</span></div></div>
+      <div style="margin-top:8px;font-size:12px;color:var(--m)">+ Add step &nbsp; <span class="kbd">N</span> &nbsp;·&nbsp; Welcome · Worship · Prayer · Sermon · Offering</div>
+    </div>
+    <div class="card">
+      <h3>Team <small>18 spots · 4 ministries</small></h3>
+      <div class="team"><div class="hd"><span>Worship</span><span>3 / 5</span></div>
+        <div class="role"><span class="rn">Worship Leader</span><span class="add">+</span></div>
+        <div class="role"><span class="rn">Vocalist</span><div class="slots"><span class="av ok" style="background:#fce7f3;color:#9d174d">PM</span><span class="add">+</span></div></div>
+        <div class="role"><span class="rn">Bass</span><span class="av wait" style="background:#e0e7ff;color:#3730a3">MO</span></div>
+        <div class="role"><span class="rn">Acoustic Guitar</span><span class="gap">Open</span></div>
+      </div>
+      <div class="team"><div class="hd"><span>Tech</span><span>2 / 3</span></div>
+        <div class="role"><span class="rn">Livestream</span><span class="av ok" style="background:#dcfce7;color:#166534">RK</span></div>
+        <div class="role"><span class="rn">Slides / ProPresenter</span><span class="add">+</span></div>
+      </div>
+      <div class="team"><div class="hd"><span>Hospitality</span><span>3 / 4</span></div>
+        <div class="role"><span class="rn">Greeter</span><div class="slots"><span class="av ok" style="background:#fef3c7;color:#92400e">RK</span><span class="av wait" style="background:#ede9fe;color:#5b21b6">AC</span></div></div>
+        <div class="role"><span class="rn">Coffee Team</span><span class="av wait" style="background:#fce7f3;color:#9d174d">WA</span></div>
+      </div>
+      <div class="team" style="margin:0"><div class="hd"><span>Kids</span><span>2 / 4</span></div>
+        <div class="role"><span class="rn">Kids Check-In</span><span class="av ok" style="background:#e0e7ff;color:#3730a3">JR</span></div>
+        <div class="role"><span class="rn">Nursery</span><span class="gap">Needs 2</span></div>
+      </div>
+    </div>
+    <div class="picker">
+      <input placeholder="Assign Acoustic Guitar…">
+      <div class="sec"><span class="spark">✦</span> Suggested</div>
+      <div class="opt hi"><span class="av" style="background:#fef3c7;color:#92400e">LF</span>Levi Ferreira<span class="r">Played 4× · rested 5 wks</span></div>
+      <div class="opt"><span class="av" style="background:#dcfce7;color:#166534">KA</span>Karen Alvarez<span class="r">Interested in guitar</span></div>
+      <div class="sec">Available</div>
+      <div class="opt"><span class="av" style="background:#e0e7ff;color:#3730a3">PC</span>Philip Castellano<span class="r">Last served Oct 4</span></div>
+      <div class="sec">Can't this week</div>
+      <div class="opt dim"><span class="av" style="background:#ede9fe;color:#5b21b6">DW</span>David Whitfield<span class="r">Away Oct 18</span></div>
+      <div class="opt dim"><span class="av" style="background:#fce7f3;color:#9d174d">MO</span>Malik Osei<span class="r">Already on Bass</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--m);margin:8px 4px 2px"><span>Then pick a backup</span><span><span class="kbd">↑↓</span> <span class="kbd">Enter</span></span></div>
+    </div>
+  </div>
+  <div class="note"><b>The people picker is the real win:</b> it opens from any "+" or avatar. Suggestions come first, with their reason; away and double-booked people are shown but greyed out with why. After you pick someone, the same popover offers "Add a backup?", so the backup is one step instead of a second dropdown on every row.</div>
+</div>
+
+<!-- ───────────────── Concept B ───────────────── -->
+<h2>B. Timeline</h2>
+<p class="why">The service drawn as time. Each ministry is a lane and each step is a block sized by its length, so overruns and idle volunteers are obvious. Great for worship and tech directors planning transitions; weaker for quickly filling roles. It could be a second <i>view</i> of Concept A rather than the main editor.</p>
+<div class="frame tl">
+  <div class="ruler"><div></div><div><span>9:00</span><span>9:15</span><span>9:30</span><span>9:45</span><span>10:00</span><span>10:15</span><span>10:33</span></div></div>
+  <div class="lane"><div class="ln">Run of show</div><div class="track">
+    <div class="blk" style="left:0;width:5%;background:#fef3c7;color:#92400e">Welcome</div>
+    <div class="blk" style="left:5.5%;width:3%;background:#fde68a;color:#92400e">CtW</div>
+    <div class="blk" style="left:9%;width:21%;background:#fbbf24;color:#451a03">Worship set</div>
+    <div class="blk" style="left:30.5%;width:8%;background:#fde68a;color:#92400e">Greeting · News</div>
+    <div class="blk" style="left:39%;width:8%;background:#fef3c7;color:#92400e">Offering</div>
+    <div class="blk" style="left:47.5%;width:34%;background:#f59e0b;color:#fff">Sermon</div>
+    <div class="blk" style="left:82%;width:17%;background:#fde68a;color:#92400e">Response · Close</div>
+  </div></div>
+  <div class="lane"><div class="ln">Worship</div><div class="track"><div class="blk" style="left:9%;width:21%;background:#ede9fe;color:#5b21b6">● PM · MO · <span style="color:#dc2626">guitar open</span></div><div class="blk" style="left:82%;width:17%;background:#ede9fe;color:#5b21b6">● PM · MO</div></div></div>
+  <div class="lane"><div class="ln">Tech</div><div class="track"><div class="blk" style="left:0;width:99%;background:#e0f2fe;color:#075985">● RK livestream · <span style="color:#dc2626">slides open</span></div></div></div>
+  <div class="lane"><div class="ln">Kids</div><div class="track"><div class="blk" style="left:0;width:99%;background:#dcfce7;color:#166534">● JR check-in · <span style="color:#dc2626">nursery needs 2</span></div></div></div>
+</div>
+
+<!-- ───────────────── Concept C ───────────────── -->
+<h2>C. Guided checklist</h2>
+<p class="why">For the non-technical admin in the brief, a plan is three questions in order. Each step collapses to a one-line summary once it's done, so the page is short. This could be the first-run experience for new churches, with Concept A as the power view.</p>
+<div class="frame" style="padding:16px">
+  <div class="grid3">
+    <div class="mini"><b>1 · What's the service?</b><p>✓ Sunday Morning Order preset · 11 steps · 93 min<br><span style="color:var(--amberInk);font-weight:600">Edit order</span></p></div>
+    <div class="mini" style="border-color:#f2c26b;box-shadow:0 0 0 3px #fdf3e1"><b>2 · Who's serving?</b><p>12 of 18 filled · 6 open<br><span class="ai" style="height:28px;margin-top:8px">✦ Fill the 6 open roles</span></p></div>
+    <div class="mini"><b>3 · Let them know</b><p>Send the schedule now, and Gather reminds everyone the evening before.<br><span class="btn" style="margin-top:8px">Send to 12 people</span></p></div>
+  </div>
+</div>
+
+<!-- ───────────────── Small wins ───────────────── -->
+<h2>Small wins that fit any direction</h2>
+<div class="grid3">
+  <div class="mini"><b>Real clock times</b><p>Show 9:05, 9:08… next to each step and "ends 10:33" in the header, instead of offsets like "8m".</p></div>
+  <div class="mini"><b>Drop the status dropdown</b><p>Show status as the avatar ring. Admins only need "Mark confirmed" occasionally, so it moves to the avatar's menu.</p></div>
+  <div class="mini"><b>Group roles by ministry</b><p>Worship / Tech / Hospitality / Kids, with "3 / 5" coverage per group. Unused roles stay hidden as they are today.</p></div>
+  <div class="mini"><b>Keyboard</b><p><span class="kbd">N</span> new step, <span class="kbd">⌘↑/↓</span> move step, <span class="kbd">A</span> assign the focused role, <span class="kbd">⌘S</span> save now.</p></div>
+  <div class="mini"><b>Preview as volunteer</b><p>A toggle that shows exactly what the mobile bulletin will look like, so admins trust what they publish.</p></div>
+  <div class="mini"><b>One home for scheduling</b><p>Volunteers, Service Plans and the plan editor all edit the same data. Point Volunteers' "edit" at the board so there's one place to learn.</p></div>
+</div>
+</div></body></html>

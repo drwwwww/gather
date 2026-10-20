@@ -105,7 +105,8 @@
 
 @layer base {
   /* One visible keyboard focus ring for every control, even where a component sets focus:outline-none. */
-  :is(a, button, input, textarea, summary, [role="button"], [role="menuitem"], [role="option"], [role="tab"], [role="switch"], [tabindex]):focus-visible {
+  /* Text fields are excluded — they carry their own border + ring focus styles. */
+  :is(a, button, summary, [role="button"], [role="menuitem"], [role="option"], [role="tab"], [role="switch"], [tabindex]:not(input):not(textarea)):focus-visible {
     outline: 2px solid var(--primary) !important;
     outline-offset: 2px;
   }
@@ -669,265 +670,6 @@
   animation: toast-slide-up 0.25s ease-in forwards;
 }
 /* ════════════════════════════════════════════════════════════════════
-   AUTH INTRO — "Dawn"
-   A full-bleed warm overlay that arrives, resolves into the Gather
-   wordmark, then leaves the same way it came. Motion language borrows
-   the expo-out + slight-overshoot feel of Daylight's load-in, retuned
-   to Gather's amber/espresso palette.
-   ══════════════════════════════════════════════════════════════════ */
-
-:root {
-  --ease-expo-out: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-overshoot: cubic-bezier(0.16, 1.08, 0.38, 0.98);
-  --ease-expo-in: cubic-bezier(0.7, 0, 0.84, 0);
-}
-
-.auth-intro {
-  position: fixed;
-  top: 0;
-  left: 0;
-  /* Sized to the viewport *including* the scrollbar track, not to the
-     content box. The auth screen doesn't scroll and the dashboard does, so
-     `inset: 0` would resize this overlay by the scrollbar's width the moment
-     the route swaps behind it — jolting the centred wordmark sideways
-     mid-animation. 100vw/100dvh don't move when a scrollbar appears. */
-  width: 100vw;
-  height: 100dvh;
-  z-index: 9999;
-  overflow: hidden;
-  background: #f59e0b;
-  will-change: transform;
-}
-
-/* The overlay lifts away, mirroring how it settled in. */
-.auth-intro--leaving {
-  animation: auth-intro-lift 0.95s var(--ease-expo-in) forwards;
-  animation-delay: 0.55s;
-}
-
-@keyframes auth-intro-lift {
-  0% {
-    transform: translateY(0) scale(1);
-    border-radius: 0;
-  }
-  100% {
-    transform: translateY(-101%) scale(0.94);
-    border-radius: 48px 48px 0 0;
-  }
-}
-
-/* ── Sun bloom ─────────────────────────────────────────── */
-.auth-intro__bloom {
-  position: absolute;
-  left: 50%;
-  /* Sits low so the brightest part of the bloom reads as light rising from
-     below, rather than a hotspot directly behind the wordmark. */
-  top: 74%;
-  height: 130vmax;
-  width: 130vmax;
-  margin-left: -65vmax;
-  margin-top: -65vmax;
-  border-radius: 50%;
-  /* Sunlight across the amber ground. The core is deliberately restrained —
-     at full brightness it washed out the white wordmark sitting on top of it. */
-  background: radial-gradient(
-    circle at center,
-    rgba(255, 245, 224, 0.5) 0%,
-    rgba(255, 226, 168, 0.34) 18%,
-    rgba(251, 191, 36, 0.2) 36%,
-    rgba(245, 158, 11, 0) 62%
-  );
-  transform: scale(0.12);
-  opacity: 0;
-  animation: auth-bloom-in 1.5s var(--ease-expo-out) 0.05s forwards;
-}
-
-.auth-intro--leaving .auth-intro__bloom {
-  animation: auth-bloom-out 0.8s var(--ease-expo-in) forwards;
-}
-
-@keyframes auth-bloom-in {
-  0%   { transform: scale(0.12); opacity: 0; }
-  35%  { opacity: 1; }
-  100% { transform: scale(1); opacity: 1; }
-}
-
-@keyframes auth-bloom-out {
-  0%   { transform: scale(1); opacity: 1; }
-  100% { transform: scale(0.12); opacity: 0; }
-}
-
-/* Gentle vignette — deepens the amber toward the edges so the composition
-   has some depth and the centre doesn't read as a flat wash of light. */
-.auth-intro::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: radial-gradient(
-    ellipse at 50% 42%,
-    rgba(120, 53, 15, 0) 42%,
-    rgba(120, 53, 15, 0.16) 78%,
-    rgba(87, 38, 10, 0.28) 100%
-  );
-}
-
-/* ── Film grain ────────────────────────────────────────── */
-.auth-intro__grain {
-  position: absolute;
-  inset: -50%;
-  /* Lighter touch on the amber ground — at the old weight the dark grain
-     muddied the colour rather than texturing it. */
-  opacity: 0.09;
-  mix-blend-mode: overlay;
-  pointer-events: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
-  animation: auth-grain-drift 7s steps(6, end) infinite;
-}
-
-@keyframes auth-grain-drift {
-  0%   { transform: translate(0, 0); }
-  20%  { transform: translate(-3%, 2%); }
-  40%  { transform: translate(2%, -3%); }
-  60%  { transform: translate(-2%, -2%); }
-  80%  { transform: translate(3%, 1%); }
-  100% { transform: translate(0, 0); }
-}
-
-/* ── Stage (centers the mark) ──────────────────────────── */
-.auth-intro__stage {
-  position: relative;
-  z-index: 2;
-  display: flex;
-  height: 100%;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 1.25rem;
-  padding: 1.5rem;
-}
-
-/* ── Logo mark ─────────────────────────────────────────── */
-.auth-intro__mark {
-  height: 4rem;
-  width: 4rem;
-  border-radius: 1.25rem;
-  object-fit: cover;
-  transform: scale(0.4);
-  opacity: 0;
-  box-shadow: 0 18px 50px -14px rgba(120, 53, 15, 0.45);
-  animation: auth-mark-in 1.1s var(--ease-overshoot) 0.2s forwards;
-}
-
-.auth-intro--leaving .auth-intro__mark {
-  animation: auth-mark-out 0.6s var(--ease-expo-in) forwards;
-}
-
-@keyframes auth-mark-in {
-  0%   { transform: scale(0.4) translateY(14px); opacity: 0; }
-  100% { transform: scale(1) translateY(0); opacity: 1; }
-}
-
-@keyframes auth-mark-out {
-  0%   { transform: scale(1) translateY(0); opacity: 1; }
-  100% { transform: scale(0.4) translateY(14px); opacity: 0; }
-}
-
-/* ── Wordmark: per-letter mask reveal ──────────────────── */
-.auth-intro__word {
-  display: flex;
-  overflow: hidden;
-  padding-bottom: 0.12em;
-  font-size: clamp(2.75rem, 11vw, 5rem);
-  font-weight: 800;
-  letter-spacing: -0.045em;
-  line-height: 0.95;
-  color: #ffffff;
-  /* No text-shadow here. This element must clip tightly (the letters slide up
-     from 115% inside it), so a blurred shadow gets cut off at the box edge and
-     renders as a visible rectangle around the wordmark. Contrast comes from the
-     dimmed bloom and the vignette instead. */
-}
-
-.auth-intro__letter {
-  display: inline-block;
-  transform: translateY(115%);
-  animation: auth-letter-in 1s var(--ease-overshoot) forwards;
-}
-
-.auth-intro--leaving .auth-intro__letter {
-  animation: auth-letter-out 0.6s var(--ease-expo-in) forwards;
-}
-
-@keyframes auth-letter-in {
-  0%   { transform: translateY(115%); }
-  100% { transform: translateY(0); }
-}
-
-@keyframes auth-letter-out {
-  0%   { transform: translateY(0); }
-  100% { transform: translateY(115%); }
-}
-
-/* ── Hairline rule ─────────────────────────────────────── */
-.auth-intro__rule {
-  height: 1px;
-  width: min(230px, 42vw);
-  transform: scaleX(0);
-  transform-origin: center;
-  background: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0.8) 50%,
-    rgba(255, 255, 255, 0) 100%
-  );
-  animation: auth-rule-in 1.1s var(--ease-expo-out) 0.72s forwards;
-}
-
-.auth-intro--leaving .auth-intro__rule {
-  animation: auth-rule-out 0.5s var(--ease-expo-in) forwards;
-}
-
-@keyframes auth-rule-in  { to { transform: scaleX(1); } }
-@keyframes auth-rule-out { to { transform: scaleX(0); } }
-
-/* ── Tagline ───────────────────────────────────────────── */
-.auth-intro__tagline {
-  overflow: hidden;
-  padding-bottom: 0.2em;
-  font-size: 0.8125rem;
-  font-weight: 500;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: #ffffff;
-}
-
-.auth-intro__tagline > span {
-  display: inline-block;
-  transform: translateY(120%);
-  animation: auth-letter-in 0.95s var(--ease-expo-out) 0.82s forwards;
-}
-
-.auth-intro--leaving .auth-intro__tagline > span {
-  animation: auth-letter-out 0.5s var(--ease-expo-in) forwards;
-}
-
-/* ── Reduced motion: show the destination, skip the show ─ */
-@media (prefers-reduced-motion: reduce) {
-  .auth-intro,
-  .auth-intro__bloom,
-  .auth-intro__grain,
-  .auth-intro__mark,
-  .auth-intro__letter,
-  .auth-intro__rule,
-  .auth-intro__tagline > span {
-    animation: none !important;
-    transition: none !important;
-  }
-  .auth-intro { display: none !important; }
-}
-
-/* ════════════════════════════════════════════════════════════════════
    MARKETING / LANDING
    Light, respectful type: everything large is weight 300 with tight
    negative tracking, on a warm off-white ground. Colour comes from the
@@ -1334,16 +1076,93 @@
   .ai-btn-label { color: #fff; background: none; }
 }
 
-/* Sidebar never shows a scrollbar: rows tighten on short windows, and if a
-   tiny window still can't fit everything it scrolls without a visible bar. */
+/* Sidebar fills its column at any window height, with no dead space and no
+   scrollbar: rows scale with the viewport (28–46px), groups spread apart via
+   justify-between with a 12px minimum gap, and the spread stops growing at 720px
+   so very tall monitors don't scatter the links. A tiny window can still
+   scroll, just without a visible bar. */
 .sidebar-nav {
   scrollbar-width: none;
 }
 .sidebar-nav::-webkit-scrollbar {
   display: none;
 }
-@media (max-height: 700px) {
-  .sidebar-item { height: 1.75rem; }
-  .sidebar-group { margin-top: 0.5rem; }
-  .sidebar-label { margin-bottom: 0; }
+.sidebar-groups {
+  gap: 0.75rem;
+  max-height: 720px;
+}
+.sidebar-item {
+  height: clamp(1.75rem, 4.9vh, 2.875rem);
+}
+
+/* ── Live Service: step completion ───────────────────────────────────────────
+   Done = the check pops in with a small radial burst and the row washes green;
+   the new "Now" step glides in. Completion draws a check inside a ring and drops
+   a little confetti. Everything is transform/opacity only and off under
+   prefers-reduced-motion. */
+.live-pop { animation: live-pop 520ms cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+@keyframes live-pop {
+  0% { transform: scale(0.3); opacity: 0; }
+  60% { transform: scale(1.18); opacity: 1; }
+  100% { transform: scale(1); }
+}
+.live-burst { position: relative; }
+.live-burst::before,
+.live-burst::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 9999px;
+  pointer-events: none;
+}
+.live-burst::before {
+  border: 2px solid rgb(16 185 129 / 0.55);
+  animation: live-ring 650ms ease-out forwards;
+}
+.live-burst::after {
+  background: radial-gradient(circle, rgb(16 185 129 / 0.9) 1.5px, transparent 2px) 50% 0 / 6px 6px no-repeat,
+    radial-gradient(circle, rgb(245 158 11 / 0.9) 1.5px, transparent 2px) 100% 50% / 6px 6px no-repeat,
+    radial-gradient(circle, rgb(16 185 129 / 0.9) 1.5px, transparent 2px) 50% 100% / 6px 6px no-repeat,
+    radial-gradient(circle, rgb(245 158 11 / 0.9) 1.5px, transparent 2px) 0 50% / 6px 6px no-repeat;
+  animation: live-sparks 650ms ease-out forwards;
+}
+@keyframes live-ring {
+  from { transform: scale(0.6); opacity: 1; }
+  to { transform: scale(1.6); opacity: 0; }
+}
+@keyframes live-sparks {
+  from { transform: scale(0.7) rotate(0deg); opacity: 1; }
+  to { transform: scale(1.9) rotate(25deg); opacity: 0; }
+}
+.live-flash { animation: live-flash 1200ms ease-out; }
+@keyframes live-flash {
+  0% { background-color: rgb(16 185 129 / 0.16); }
+  100% { background-color: transparent; }
+}
+.live-now { animation: live-now 600ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes live-now {
+  from { transform: translateY(6px); opacity: 0.4; box-shadow: 0 0 0 0 rgb(245 158 11 / 0.45); }
+  60% { box-shadow: 0 0 0 6px rgb(245 158 11 / 0); }
+  to { transform: none; opacity: 1; }
+}
+.live-check-ring { stroke-dasharray: 151; stroke-dashoffset: 151; animation: live-draw 900ms cubic-bezier(0.65, 0, 0.35, 1) 100ms forwards; }
+.live-check-mark { stroke-dasharray: 40; stroke-dashoffset: 40; animation: live-draw 450ms cubic-bezier(0.65, 0, 0.35, 1) 850ms forwards; }
+@keyframes live-draw { to { stroke-dashoffset: 0; } }
+.live-confetti i {
+  position: absolute;
+  top: 0;
+  width: 6px;
+  height: 10px;
+  border-radius: 2px;
+  opacity: 0;
+  animation: live-fall 1600ms cubic-bezier(0.2, 0.7, 0.4, 1) forwards;
+}
+@keyframes live-fall {
+  0% { transform: translateY(-10px) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(120px) rotate(320deg); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .live-pop, .live-burst::before, .live-burst::after, .live-flash, .live-now, .live-confetti i { animation: none; }
+  .live-burst::before, .live-burst::after, .live-confetti { display: none; }
+  .live-check-ring, .live-check-mark { animation: none; stroke-dashoffset: 0; }
 }

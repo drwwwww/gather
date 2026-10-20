@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { View, Text, ScrollView, RefreshControl, Pressable, Linking, StyleSheet } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useFocusEffect } from "@react-navigation/native";
@@ -9,7 +9,8 @@ import {
 } from "../components/ds";
 import { supabase } from "../supabase";
 import { useAuth } from "../context/AuthContext";
-import { WEB_URL } from "../lib/webApi";
+import { WEB_URL, postWebApi } from "../lib/webApi";
+import { SpringIn } from "../components/ds/motion";
 
 type AssignmentChip = { key: string; label: string; role: "Primary" | "Backup" | "Part" };
 /** `start_time` lives directly on the plan (migration 0027) — service_time_id is legacy and often null. */
@@ -122,6 +123,24 @@ export default function ServicePlanScreen() {
 
   const doneCount = items.filter((i) => i.status === "DONE" || i.status === "SKIPPED").length;
   const currentItemId = items.find((i) => i.status === "PLANNED")?.id ?? null;
+  // Once the service is under way, everyone follows along (not just whoever runs it).
+  const inProgress = isServiceDay && doneCount > 0;
+  const showProgress = live || inProgress;
+  const finished = showProgress && items.length > 0 && doneCount === items.length;
+  // Where the service is relative to *my* next part.
+  const myStatusLine = useMemo(() => {
+    if (!inProgress || !myUserId) return null;
+    const planned = items.filter((i) => i.status === "PLANNED");
+    const mine = planned.findIndex((i) => i.assigned_user_id === myUserId);
+    if (mine === 0) return { tone: "now" as const, text: "You're up now" };
+    if (mine === 1) return { tone: "next" as const, text: "You're up next" };
+    if (mine > 1) {
+      const mins = planned.slice(0, mine).reduce((sum, i) => sum + (i.duration_minutes ?? 0), 0);
+      return { tone: "later" as const, text: `Your part is ${mine} steps away${mins ? ` · about ${mins} min` : ""}` };
+    }
+    if (items.some((i) => i.assigned_user_id === myUserId && i.status === "DONE")) return { tone: "done" as const, text: "Your part is done — thank you for serving" };
+    return null;
+  }, [inProgress, items, myUserId]);
 
   const readyBy = useMemo(() => {
     if (assignmentChips.length === 0 || !plan?.start_time) return null;
@@ -204,6 +223,15 @@ export default function ServicePlanScreen() {
 
   useFocusEffect(useCallback(() => { setLoading(true); void load(); }, [load]));
 
+  // On the day, follow the service live: refresh every 15s while this screen is open.
+  useFocusEffect(
+    useCallback(() => {
+      if (!isServiceDay) return;
+      const t = setInterval(() => { void load(); }, 15_000);
+      return () => clearInterval(t);
+    }, [isServiceDay, load])
+  );
+
   const handleCheckIn = async () => {
     if (!supabase || !plan || checkingIn) return;
     setCheckingIn(true);
@@ -230,7 +258,13 @@ export default function ServicePlanScreen() {
     setItems((list) => list.map((i) => (i.id === item.id ? { ...i, status: next } : i)));
     Haptics.selectionAsync().catch(() => {});
     const { error: rpcError } = await supabase.rpc("set_plan_item_status", { p_item_id: item.id, p_status: next } as any);
-    if (rpcError) setItems((list) => list.map((i) => (i.id === item.id ? { ...i, status: prev } : i)));
+    if (rpcError) {
+      setItems((list) => list.map((i) => (i.id === item.id ? { ...i, status: prev } : i)));
+      return;
+    }
+    if (next === "DONE") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    // The database wrote the thank-you / "you're up next" notes; this sends their push.
+    if (next !== "PLANNED" && plan) void postWebApi("/api/live/push", { planId: plan.id });
   };
 
   const dateLine = plan
@@ -362,15 +396,34 @@ export default function ServicePlanScreen() {
               <View style={{ marginTop: 8 }}>
                 <View style={styles.sectionRow}>
                   <Text style={styles.sectionLabel}>Order of Service</Text>
-                  {live ? (
+                  {showProgress ? (
                     <Pill label={`${doneCount} of ${items.length} done`} tone={doneCount === items.length ? "success" : "amber"} />
                   ) : totalMinutes > 0 ? (
                     <Pill label={`${totalMinutes} min`} tone="amber" />
                   ) : null}
                 </View>
-                {live ? (
+                {showProgress ? (
                   <View style={styles.progressTrack} accessibilityLabel={`${doneCount} of ${items.length} parts done`}>
                     <View style={[styles.progressFill, { width: `${items.length ? (doneCount / items.length) * 100 : 0}%` }]} />
+                  </View>
+                ) : null}
+                {finished ? (
+                  <SpringIn>
+                    <View style={styles.finishedCard} accessibilityLiveRegion="polite">
+                      <Icon name="checkCircle" size={22} color={palette.successInk} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.finishedTitle}>Service complete</Text>
+                        <Text style={styles.finishedBody}>Thank you to everyone who served today.</Text>
+                      </View>
+                    </View>
+                  </SpringIn>
+                ) : myStatusLine ? (
+                  <View
+                    style={[styles.myLine, myStatusLine.tone === "now" || myStatusLine.tone === "next" ? styles.myLineHot : myStatusLine.tone === "done" ? styles.myLineDone : null]}
+                    accessibilityLiveRegion="polite"
+                  >
+                    <Icon name={myStatusLine.tone === "done" ? "checkCircle" : "clock"} size={16} color={myStatusLine.tone === "done" ? palette.successInk : palette.amberInk} />
+                    <Text style={[styles.myLineTxt, myStatusLine.tone === "done" && { color: palette.successInk }]}>{myStatusLine.text}</Text>
                   </View>
                 ) : null}
                 {items.map((item, idx) => {
@@ -381,7 +434,7 @@ export default function ServicePlanScreen() {
                   const statusLabel = declined ? "Declined" : item.assignment_status === "CONFIRMED" ? "Confirmed" : "Pending";
                   const done = item.status === "DONE";
                   const skipped = item.status === "SKIPPED";
-                  const isNow = live && item.id === currentItemId;
+                  const isNow = showProgress && item.id === currentItemId;
                   return (
                     <View
                       key={item.id}
@@ -389,7 +442,7 @@ export default function ServicePlanScreen() {
                         styles.orderCard,
                         isMe && styles.orderCardMe,
                         isNow && styles.orderCardNow,
-                        live && (done || skipped) && { opacity: 0.55 },
+                        showProgress && (done || skipped) && { opacity: 0.55 },
                       ]}
                     >
                       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
@@ -403,20 +456,28 @@ export default function ServicePlanScreen() {
                               accessibilityLabel={`Mark ${item.title} ${done ? "not done" : "done"}`}
                               style={[styles.doneCircle, done && styles.doneCircleOn]}
                             >
-                              {done ? <Icon name="check" size={16} color={palette.onDark} /> : null}
+                              {done ? (
+                                <SpringIn key={`done-${item.id}`} from={0.3}>
+                                  <Icon name="check" size={16} color={palette.onDark} />
+                                </SpringIn>
+                              ) : null}
                             </Pressable>
+                          ) : inProgress && (done || skipped) ? (
+                            <View style={[styles.doneCircle, done && styles.doneCircleOn]} accessibilityLabel={done ? "Done" : "Skipped"}>
+                              {done ? <Icon name="check" size={16} color={palette.onDark} /> : <Icon name="close" size={12} color={palette.inkMuted} />}
+                            </View>
                           ) : (
                             <Text style={[styles.orderNum, isMe && { color: palette.amberDeep }]}>{String(idx + 1).padStart(2, "0")}</Text>
                           )}
                           <View style={{ flex: 1, minWidth: 0 }}>
                             {isNow ? <Text style={styles.nowLabel}>Now</Text> : null}
                             <Text
-                              style={[styles.orderTitle, live && (done || skipped) && { textDecorationLine: "line-through" }]}
+                              style={[styles.orderTitle, showProgress && (done || skipped) && { textDecorationLine: "line-through" }]}
                               numberOfLines={3}
                             >
                               {item.title}
                             </Text>
-                            {live && skipped ? <Text style={styles.skippedTxt}>Skipped</Text> : null}
+                            {showProgress && skipped ? <Text style={styles.skippedTxt}>Skipped</Text> : null}
                             {item.notes ? <Text style={styles.orderNotes} numberOfLines={6}>{item.notes}</Text> : null}
                             {isMe ? (
                               <View style={styles.assignedRow}>
@@ -496,6 +557,13 @@ export default function ServicePlanScreen() {
 }
 
 const styles = StyleSheet.create({
+  finishedCard: { flexDirection: "row", alignItems: "center", gap: 12, backgroundColor: palette.successSoft, borderRadius: radius.lg, padding: 14, marginBottom: 12 },
+  finishedTitle: { fontFamily: font.bold, fontSize: 15, color: palette.successInk },
+  finishedBody: { fontFamily: font.regular, fontSize: 13, color: palette.successInk, marginTop: 2 },
+  myLine: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: palette.surface, borderRadius: radius.md, paddingVertical: 10, paddingHorizontal: 12, marginBottom: 12 },
+  myLineHot: { backgroundColor: palette.amberSofter },
+  myLineDone: { backgroundColor: palette.successSoft },
+  myLineTxt: { fontFamily: font.semibold, fontSize: 14, color: palette.amberInk, flex: 1 },
   header: { height: 56, paddingHorizontal: space.gutter, justifyContent: "center" },
   pickerRow: { gap: space.sm, paddingHorizontal: space.gutter },
   pickerChip: { minHeight: 36, justifyContent: "center", paddingHorizontal: 14, borderRadius: radius.pill, backgroundColor: palette.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: palette.line },

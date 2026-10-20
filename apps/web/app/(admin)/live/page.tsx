@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, Check, CheckCircle2, Circle, Clock, Heart, Radio, SkipForward, Undo2, UserCheck } from "lucide-react";
+import { AlertTriangle, Check, HandHeart, CheckCircle2, Circle, Clock, Heart, Radio, SkipForward, Undo2, UserCheck } from "lucide-react";
 import AdminHeader from "../../../components/admin/AdminHeader";
 import Avatar from "../../../components/ui/avatar";
 import { PageGrid, PageGridFull, PageGridRowTwoOne } from "../../../components/layout/PageGrid";
@@ -12,7 +12,7 @@ import { supabase } from "../../../lib/supabaseClient";
 import { localDateString } from "../../../lib/format";
 import { useToast } from "../../../lib/toast";
 
-type Plan = { id: string; title: string | null; service_date: string; start_time: string | null; service_time_id: string | null; recap_sent_at: string | null };
+type Plan = { id: string; title: string | null; service_date: string; start_time: string | null; service_time_id: string | null; recap_sent_at: string | null; care_note_sent_at?: string | null };
 type Slot = { id: string; role_id: string; assigned_user_id: string | null; status: string; checked_in_at: string | null };
 type Item = { id: string; position: number; title: string | null; duration_minutes: number | null; assigned_user_id: string | null; status: string; assignment_status: string | null; checked_in_at: string | null };
 type Person = { id: string; full_name: string | null; email: string | null; avatar_url: string | null };
@@ -42,6 +42,9 @@ export default function LivePage() {
   const [loading, setLoading] = useState(true);
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
   const [sendingRecap, setSendingRecap] = useState(false);
+  /** The step just marked done — drives the pop/burst once. */
+  const [justDone, setJustDone] = useState<string | null>(null);
+  const [sendingCare, setSendingCare] = useState(false);
 
   const today = localDateString();
 
@@ -57,14 +60,14 @@ export default function LivePage() {
       const db = supabase as any;
       const { data: todays } = await db
         .from("service_plans")
-        .select("id, title, service_date, start_time, service_time_id, recap_sent_at")
+        .select("id, title, service_date, start_time, service_time_id, recap_sent_at, care_note_sent_at")
         .eq("church_id", cid).eq("service_date", today).order("start_time");
       let list = (todays ?? []) as Plan[];
       if (list.length === 0) {
         setIsToday(false);
         const { data: next } = await db
           .from("service_plans")
-          .select("id, title, service_date, start_time, service_time_id, recap_sent_at")
+          .select("id, title, service_date, start_time, service_time_id, recap_sent_at, care_note_sent_at")
           .eq("church_id", cid).gt("service_date", today).order("service_date").order("start_time").limit(1);
         list = (next ?? []) as Plan[];
       }
@@ -129,6 +132,16 @@ export default function LivePage() {
   const nowItem = items.find((i) => i.status === "PLANNED");
   const progress = items.length ? Math.round(((done + skipped) / items.length) * 100) : 0;
   const serviceOver = plan ? plan.service_date <= today : false;
+  const finished = isToday && items.length > 0 && !nowItem;
+  // Missed: a step of theirs has passed (done/skipped) and they never checked in —
+  // or the whole service is over and they never showed.
+  const missedIds = new Set(
+    active
+      .filter((t) => !t.here)
+      .filter((t) => finished || items.some((i) => i.assigned_user_id === t.id && i.status !== "PLANNED"))
+      .map((t) => t.id)
+  );
+  const missedStep = (i: Item) => !!i.assigned_user_id && i.status !== "PLANNED" && !i.checked_in_at && missedIds.has(i.assigned_user_id);
 
   const setItemStatus = async (item: Item, status: "PLANNED" | "DONE" | "SKIPPED") => {
     if (!supabase) return;
@@ -138,7 +151,21 @@ export default function LivePage() {
     if (error) {
       setItems(prev);
       pushToast("Couldn't update that part.", "error");
+      return;
     }
+    if (status === "PLANNED" || !plan) return;
+    if (status === "DONE") {
+      setJustDone(item.id);
+      window.setTimeout(() => setJustDone((id) => (id === item.id ? null : id)), 1400);
+    }
+    // The database already wrote the thank-you / "you're up next" notes; this sends their push.
+    void fetch("/api/live/push", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ planId: plan.id }) }).catch(() => null);
+    const next = items.find((x) => x.status === "PLANNED" && x.id !== item.id && x.position > item.position);
+    const parts = [
+      status === "DONE" && item.assigned_user_id ? `Thanked ${name(item.assigned_user_id)}` : null,
+      next?.assigned_user_id ? `${name(next.assigned_user_id)} knows they're up next` : null,
+    ].filter(Boolean);
+    if (parts.length) pushToast(parts.join(" · "), "success");
   };
 
   const sendRecap = async () => {
@@ -157,6 +184,21 @@ export default function LivePage() {
     setPlans((list) => list.map((p) => (p.id === plan.id ? { ...p, recap_sent_at: new Date().toISOString() } : p)));
   };
 
+  const sendCareNote = async () => {
+    if (!plan) return;
+    setSendingCare(true);
+    const res = await fetch("/api/live/care", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ planId: plan.id }),
+    });
+    const json = await res.json().catch(() => ({}));
+    setSendingCare(false);
+    if (!res.ok) { pushToast(json.error ?? "Couldn't send the note.", "error"); return; }
+    pushToast(`Sent a note to ${json.sentTo} ${json.sentTo === 1 ? "person" : "people"}.`, "success");
+    setPlans((list) => list.map((p) => (p.id === plan.id ? { ...p, care_note_sent_at: new Date().toISOString() } : p)));
+  };
+
   const name = (uid: string) => people[uid]?.full_name?.trim() || people[uid]?.email || "Member";
   const serviceLabel = (p: Plan) => [p.service_time_id ? serviceNames[p.service_time_id] : null, fmtTime(p.start_time)].filter(Boolean).join(" · ") || p.title || "Service";
   const dateLabel = plan ? new Date(`${plan.service_date}T12:00:00`).toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" }) : "";
@@ -165,7 +207,7 @@ export default function LivePage() {
     <PageGrid>
       <PageGridFull className="animate-fade-in-up">
         <AdminHeader
-          title={isToday ? "Sunday live" : "Next service"}
+          title={isToday ? "Live service" : "Next service"}
           subtitle={
             plan
               ? isToday
@@ -230,6 +272,66 @@ export default function LivePage() {
         </PageGridFull>
       ) : (
         <>
+          {finished && (
+            <PageGridFull>
+              <div className="relative overflow-hidden rounded-2xl border border-emerald-200 bg-emerald-50/60 p-5">
+                <div className="live-confetti pointer-events-none absolute inset-x-0 top-0 h-0" aria-hidden>
+                  {Array.from({ length: 14 }, (_, k) => (
+                    <i key={k} style={{ left: `${6 + k * 6.6}%`, background: ["#f59e0b", "#10b981", "#fb7185", "#a78bfa"][k % 4], animationDelay: `${(k % 5) * 90}ms` }} />
+                  ))}
+                </div>
+                <div className="flex flex-wrap items-center gap-5">
+                  <svg viewBox="0 0 56 56" className="h-14 w-14 shrink-0" aria-hidden>
+                    <circle cx="28" cy="28" r="24" fill="none" stroke="#a7f3d0" strokeWidth="3" />
+                    <circle className="live-check-ring" cx="28" cy="28" r="24" fill="none" stroke="#10b981" strokeWidth="3" strokeLinecap="round" transform="rotate(-90 28 28)" />
+                    <path className="live-check-mark" d="M18 29l7 7 13-15" fill="none" stroke="#059669" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  <div className="min-w-0 flex-1">
+                    <h2 className="text-base font-semibold text-emerald-900">Service complete</h2>
+                    <p className="text-sm text-emerald-800/80">
+                      {done} of {items.length} steps ran{skipped ? ` · ${skipped} skipped` : ""} · {here.length} of {active.length} checked in
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={sendRecap}
+                    disabled={sendingRecap || !!plan?.recap_sent_at || active.length === 0}
+                    className="btn btn-primary h-10 gap-1.5 px-4 text-sm"
+                  >
+                    <Heart className="h-4 w-4" />
+                    {plan?.recap_sent_at ? "Recap sent" : sendingRecap ? "Sending…" : "Thank the team"}
+                  </button>
+                </div>
+                {missedIds.size > 0 && (
+                  <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
+                    <div className="flex -space-x-2">
+                      {[...missedIds].slice(0, 5).map((uid) => (
+                        <span key={uid} className="rounded-full ring-2 ring-[var(--surface)]">
+                          <Avatar name={name(uid)} email={people[uid]?.email ?? ""} imageUrl={people[uid]?.avatar_url ?? null} size={28} className="bg-[var(--surface-2)] text-[10px] font-semibold text-[var(--text-secondary)]" />
+                        </span>
+                      ))}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-[var(--text-primary)]">Check in on {missedIds.size === 1 ? name([...missedIds][0]) : `${missedIds.size} people`}</p>
+                      <p className="truncate text-xs text-[var(--text-muted)]">
+                        {missedIds.size === 1 ? "They" : [...missedIds].map(name).join(", ") + " —"} didn&apos;t check in today. A short note says they were missed, not that they messed up.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={sendCareNote}
+                      disabled={sendingCare || !!plan?.care_note_sent_at}
+                      className="btn btn-secondary h-9 gap-1.5 px-3 text-sm"
+                      title="Sends: “We missed you at the service today. Hope everything's okay — no need to reply.”"
+                    >
+                      <HandHeart className="h-4 w-4" />
+                      {plan?.care_note_sent_at ? "Note sent" : sendingCare ? "Sending…" : "Send a kind note"}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </PageGridFull>
+          )}
           <PageGridFull>
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
               <Stat icon={UserCheck} label="Checked in" value={`${here.length}`} context={`of ${active.length} scheduled`} loading={loading} tone={here.length === active.length && active.length > 0 ? "good" : "plain"} />
@@ -259,9 +361,11 @@ export default function LivePage() {
                     {items.map((item) => {
                       const isNow = item.id === nowItem?.id && isToday;
                       return (
-                        <li key={item.id} className={`flex items-center gap-3 py-2.5 ${isNow ? "-mx-2 rounded-xl bg-amber-50/70 px-2" : ""}`}>
+                        <li key={item.id} className={`flex items-center gap-3 py-2.5 ${isNow ? "live-now -mx-2 rounded-xl bg-amber-50/70 px-2" : ""} ${justDone === item.id ? "live-flash -mx-2 rounded-xl px-2" : ""}`}>
                           {item.status === "DONE" ? (
-                            <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-500" aria-label="Done" />
+                            <span className={`inline-flex shrink-0 ${justDone === item.id ? "live-pop live-burst rounded-full" : ""}`}>
+                              <CheckCircle2 className="h-5 w-5 text-emerald-500" aria-label="Done" />
+                            </span>
                           ) : item.status === "SKIPPED" ? (
                             <SkipForward className="h-5 w-5 shrink-0 text-[var(--text-muted)]" aria-label="Skipped" />
                           ) : (
@@ -273,7 +377,8 @@ export default function LivePage() {
                               {isNow && <span className="ml-2 rounded-md bg-amber-500 px-1.5 py-0.5 text-[10px] font-bold uppercase text-white">Now</span>}
                             </p>
                             <p className="truncate text-xs text-[var(--text-muted)]">
-                              {[item.duration_minutes ? `${item.duration_minutes} min` : null, item.assigned_user_id ? name(item.assigned_user_id) : null, item.assigned_user_id ? (item.checked_in_at ? "here" : "not checked in") : null].filter(Boolean).join(" · ")}
+                              {[item.duration_minutes ? `${item.duration_minutes} min` : null, item.assigned_user_id ? name(item.assigned_user_id) : null, item.assigned_user_id && !missedStep(item) ? (item.checked_in_at ? "here" : "not checked in") : null].filter(Boolean).join(" · ")}
+                              {missedStep(item) && <span className="ml-1.5 rounded-full bg-[var(--surface-2)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--text-secondary)]">No check-in</span>}
                             </p>
                           </div>
                           {isToday && (
@@ -316,8 +421,8 @@ export default function LivePage() {
                             <p className="truncate text-sm text-[var(--text-primary)]">{name(t.id)}</p>
                             <p className="truncate text-[11px] text-[var(--text-muted)]">{t.jobs.join(", ")}</p>
                           </div>
-                          <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${t.here ? "bg-emerald-50 text-emerald-700" : t.confirmed ? "bg-[var(--surface-2)] text-[var(--text-secondary)]" : "bg-amber-50 text-amber-700"}`}>
-                            {t.here ? "Here" : t.confirmed ? "Not yet" : "Pending"}
+                          <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${t.here ? "bg-emerald-50 text-emerald-700" : missedIds.has(t.id) ? "bg-[var(--surface-2)] text-[var(--text-muted)]" : t.confirmed ? "bg-[var(--surface-2)] text-[var(--text-secondary)]" : "bg-amber-50 text-amber-700"}`}>
+                            {t.here ? "Here" : missedIds.has(t.id) ? "No check-in" : t.confirmed ? "Not yet" : "Pending"}
                           </span>
                         </li>
                       ))}

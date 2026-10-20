@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMemberPortal } from "../../../components/member/MemberPortalContext";
 import { supabase } from "../../../lib/supabaseClient";
-import { coverForAuthTransition } from "../../../lib/authTransition";
 import { useToast } from "../../../lib/toast";
 import ProfileCard from "../../../components/account/ProfileCard";
 import SecurityCard from "../../../components/account/SecurityCard";
@@ -81,7 +80,6 @@ export default function MemberAccountPage() {
 
   const handleSignOut = async () => {
     await supabase?.auth.signOut();
-    await coverForAuthTransition();
     router.push("/login");
   };
 

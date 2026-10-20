@@ -34,6 +34,32 @@ function renderMeta(notification: NotificationRow): { title: string; tone: ToneK
       detail: detailParts.length > 0 ? detailParts.join(" · ") : "No specific role picked — say hello on the People page."
     };
   }
+  if (notification.type === "STEP_THANKS") {
+    const p = notification.payload as { title?: string } | null;
+    return { title: "Thank you for serving", tone: "success", detail: `${p?.title ?? "Your part"} is done.` };
+  }
+  if (notification.type === "STEP_PROGRESS") {
+    const p = notification.payload as { done_title?: string; your_title?: string; steps_away?: number; minutes_away?: number } | null;
+    const away = p?.steps_away === 1 ? "You're up next" : `${p?.steps_away ?? "A few"} steps until ${p?.your_title ?? "your part"}${p?.minutes_away ? ` · about ${p.minutes_away} min` : ""}`;
+    return { title: `${p?.done_title ?? "A step"} just finished`, tone: "info", detail: away };
+  }
+  if (notification.type === "ASSIGNMENT_MISSED") {
+    const p = notification.payload as { volunteer_name?: string; label?: string } | null;
+    return { title: `${p?.volunteer_name ?? "Someone"} didn't check in`, tone: "info", detail: `${p?.label ?? "Their step"} went ahead without them. Maybe check they're okay.` };
+  }
+  if (notification.type === "SERVICE_STARTING") {
+    const p = notification.payload as { title?: string; time_label?: string; church_name?: string } | null;
+    return { title: `${p?.title ?? "The service"} starts at ${p?.time_label ?? "soon"}`, tone: "info", detail: `See you soon${p?.church_name ? ` at ${p.church_name}` : ""}.` };
+  }
+  if (notification.type === "CARE_NOTE") {
+    const p = notification.payload as { title?: string; message?: string } | null;
+    return { title: p?.title ?? "We missed you today", tone: "info", detail: p?.message };
+  }
+  if (notification.type === "SERVICE_COMPLETE") {
+    const p = notification.payload as { title?: string; missed?: string[] } | null;
+    const missed = p?.missed ?? [];
+    return { title: `${p?.title ?? "The service"} is complete`, tone: "success", detail: missed.length ? `Worth checking in on: ${missed.join(", ")}` : "Everyone scheduled checked in." };
+  }
   if (notification.type === "ASSIGNMENT_DECLINED") {
     const payload = notification.payload as { volunteer_name?: string; label?: string; scheduled_date?: string; was_confirmed?: boolean; backup_promoted?: boolean } | null;
     const when = payload?.scheduled_date ? formatShortDate(payload.scheduled_date) : "";

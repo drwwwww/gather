@@ -375,7 +375,7 @@ export default function AdminEntryPage() {
               </Link>
               <Link href="/live"
                 className="inline-flex items-center gap-2 rounded-xl border border-amber-300 bg-white/60 px-4 py-2 text-sm font-semibold text-amber-800 no-underline transition hover:bg-white hover:-translate-y-px active:translate-y-0">
-                Sunday Live
+                Live Service
               </Link>
               <Link href="/volunteers"
                 className="inline-flex items-center gap-2 rounded-xl border border-amber-300 bg-white/60 px-4 py-2 text-sm font-semibold text-amber-800 no-underline transition hover:bg-white hover:-translate-y-px active:translate-y-0">

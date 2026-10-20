@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "../../lib/supabaseClient";
 import { destinationAfterSignIn, isJoinNextPath, sanitizeNextPath } from "../../lib/postLoginDestination";
-import { coverForAuthTransition } from "../../lib/authTransition";
 
 type Tab = "signin" | "signup";
 
@@ -44,7 +43,6 @@ export default function AuthPage() {
   // Raise the Dawn overlay, then navigate behind it once it covers the screen.
   const enterApp = useCallback(
     async (dest: string) => {
-      await coverForAuthTransition();
       router.push(dest);
     },
     [router]

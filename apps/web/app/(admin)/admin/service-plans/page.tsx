@@ -9,8 +9,6 @@ import { Button } from "../../../../components/ui/button";
 import AdminHeader from "../../../../components/admin/AdminHeader";
 import ServicePlanHeader from "../../../../components/servicePlans/ServicePlanHeader";
 import ServicePlanEmptyState from "../../../../components/servicePlans/ServicePlanEmptyState";
-import ServicePlanStepsEditor from "../../../../components/servicePlans/ServicePlanStepsEditor";
-import ServicePlanRoleSlotsSection from "../../../../components/servicePlans/ServicePlanRoleSlotsSection";
 import CopyLastPlanButton from "../../../../components/servicePlans/CopyLastPlanButton";
 import GenerateFromPresetButton from "../../../../components/servicePlans/GenerateFromPresetButton";
 import { PageGrid, PageGridFull, PageGridRowTwoOne } from "../../../../components/layout/PageGrid";
@@ -19,7 +17,7 @@ import { getCurrentContext } from "../../../../lib/supabaseData";
 import { formatFriendlyLocalDate, localDateString, nextServiceDate, serviceTimeForDate } from "../../../../lib/format";
 import { useToast } from "../../../../lib/toast";
 import { useChurchPlan } from "../../../../lib/plan";
-import { AiButton } from "../../../../components/ai/AiBrand";
+import ServiceBoard from "../../../../components/serviceBoard/ServiceBoard";
 import AiFillDialog from "../../../../components/ai/AiFillDialog";
 import {
   createPlanRow,
@@ -32,7 +30,6 @@ import {
   fetchPlanRoleSlots,
   replacePlanItems,
   replacePlanRoleSlots,
-  adjustPlanRoleSlotCount,
   reindexPlanRoleSlots,
   type PlanItemDraft,
   type PlanRoleSlotDraft,
@@ -77,11 +74,9 @@ export default function ServicePlansPage() {
   const [loadingPlan, setLoadingPlan] = useState(false);
   const [loadingPresets, setLoadingPresets] = useState(false);
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
-  const [focusItemId, setFocusItemId] = useState<string | null>(null);
   const [roleSlotDrafts, setRoleSlotDrafts] = useState<PlanRoleSlotDraft[]>([]);
   const { aiEnabled } = useChurchPlan();
   const [aiOpen, setAiOpen] = useState(false);
-  const [members, setMembers] = useState<{ id: string; full_name: string | null; email: string | null }[]>([]);
   // Role management
   const [newRoleName, setNewRoleName] = useState("");
   const [newRoleMinistry, setNewRoleMinistry] = useState("");
@@ -255,29 +250,6 @@ export default function ServicePlansPage() {
   }, [router]);
 
   useEffect(() => {
-    if (!supabase || !churchId) {
-      setMembers([]);
-      return;
-    }
-    let cancelled = false;
-    (async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, full_name, email")
-        .eq("church_id", churchId)
-        .eq("disabled", false)
-        .in("role", ["SERVICE", "ADMIN"])
-        .order("full_name", { ascending: true });
-      if (!cancelled && !error && data) {
-        setMembers(data);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [churchId]);
-
-  useEffect(() => {
     if (churchId && serviceDate) {
       loadPresets(churchId, serviceDate);
       loadPlan(churchId, serviceDate);
@@ -325,12 +297,6 @@ export default function ServicePlansPage() {
       }
     };
   }, [plan, planTitle, planItems, roleSlotDrafts, persistPlan]);
-
-  useEffect(() => {
-    if (!focusItemId) return;
-    const timer = window.setTimeout(() => setFocusItemId(null), 800);
-    return () => window.clearTimeout(timer);
-  }, [focusItemId]);
 
   const handleSavePlanNow = useCallback(async () => {
     if (!plan) return;
@@ -446,24 +412,6 @@ export default function ServicePlansPage() {
     } catch (err) {
       pushToast(err instanceof Error ? err.message : "Unable to add second service.", "error");
     }
-  };
-
-  const handleAddStep = (title = "New step") => {
-    const id = createLocalId();
-    setPlanItems((prev) => [
-      ...prev,
-      {
-        id,
-        title,
-        duration_minutes: null,
-        notes: "",
-        owner_role_id: null,
-        assigned_user_id: null,
-        backup_user_id: null,
-        status: "PLANNED"
-      }
-    ]);
-    setFocusItemId(id);
   };
 
   const handlePrint = () => {
@@ -632,42 +580,25 @@ export default function ServicePlansPage() {
             copyDisabled={loadingPlan}
           />
         ) : (
-          <div className="space-y-6">
-            {/* Inline plan title */}
-            <div className="flex items-center gap-3">
-              <input
-                type="text"
-                value={planTitle}
-                onChange={(e) => setPlanTitle(e.target.value)}
-                className="flex-1 bg-transparent text-2xl font-bold tracking-tight text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none"
-                placeholder="Service Plan"
-              />
-              {saveState === "saving" && (
-                <span className="text-xs text-[var(--text-muted)]">Saving…</span>
-              )}
-              {saveState === "saved" && (
-                <span className="text-xs text-green-600">Saved</span>
-              )}
-            </div>
-
-            <ServicePlanRoleSlotsSection
-              slots={roleSlotDrafts}
+          <>
+            <ServiceBoard
+              title={planTitle}
+              onTitleChange={setPlanTitle}
+              planId={plan.id}
+              planDate={plan.service_date}
+              startTime={(plan as any).start_time ?? (planStartTime || null)}
+              serviceName={serviceTimes.find((t) => t.id === (plan as any).service_time_id)?.name ?? null}
+              churchId={churchId ?? plan.church_id}
               roles={roles}
-              members={members}
-              onChange={(id, patch) =>
-                setRoleSlotDrafts((prev) =>
-                  reindexPlanRoleSlots(prev.map((s) => (s.id === id ? { ...s, ...patch } : s)), roles)
-                )
-              }
-              onAdjustRoleCount={(roleId, delta) =>
-                setRoleSlotDrafts((prev) => adjustPlanRoleSlotCount(prev, roles, roleId, delta, createLocalId))
-              }
-              onRemoveSlot={(id) =>
-                setRoleSlotDrafts((prev) => reindexPlanRoleSlots(prev.filter((s) => s.id !== id), roles))
-              }
-              headerAction={aiEnabled && roleSlotDrafts.length > 0 ? <AiButton onClick={() => setAiOpen(true)}>Fill with AI</AiButton> : null}
+              slots={roleSlotDrafts}
+              onSlotsChange={(next) => setRoleSlotDrafts(reindexPlanRoleSlots(next, roles))}
+              items={planItems}
+              onItemsChange={setPlanItems}
+              savingLabel={saveState === "saving" ? "Saving…" : saveState === "saved" ? "Saved" : saveState === "error" ? "Couldn't save" : "Saves automatically"}
+              aiEnabled={aiEnabled}
+              onOpenAi={() => setAiOpen(true)}
             />
-            {aiEnabled && plan && churchId && (
+            {aiEnabled && churchId && (
               <AiFillDialog
                 open={aiOpen}
                 onClose={() => setAiOpen(false)}
@@ -686,17 +617,7 @@ export default function ServicePlansPage() {
                 }
               />
             )}
-
-            <ServicePlanStepsEditor
-              items={planItems}
-              members={members}
-              savingState={saveState}
-              focusItemId={focusItemId}
-              onItemsChange={setPlanItems}
-              onAddStep={() => handleAddStep("New step")}
-              onAddQuickStep={handleAddStep}
-            />
-          </div>
+          </>
         )}
       </PageGridFull>
 

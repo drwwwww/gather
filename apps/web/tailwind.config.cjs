@@ -27,7 +27,8 @@ const config = {
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
     "./lib/**/*.{js,ts,jsx,tsx,mdx}",
-    "../../packages/**/*.{js,ts,jsx,tsx,mdx}"
+    // Only package source — "packages/**" also swept packages/lib/node_modules, slowing every compile and costing GBs of memory.
+    "../../packages/*/src/**/*.{js,ts,jsx,tsx,mdx}"
   ],
   theme: {
     extend: {

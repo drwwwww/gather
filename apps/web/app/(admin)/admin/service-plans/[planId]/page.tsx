@@ -2,21 +2,19 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import AdminHeader from "../../../../../components/admin/AdminHeader";
+import Link from "next/link";
+import { ChevronLeft } from "lucide-react";
 import PageLoader from "../../../../../components/ui/PageLoader";
-import ServicePlanStepsEditor from "../../../../../components/servicePlans/ServicePlanStepsEditor";
-import ServicePlanRoleSlotsSection from "../../../../../components/servicePlans/ServicePlanRoleSlotsSection";
+import ServiceBoard from "../../../../../components/serviceBoard/ServiceBoard";
 import { PageGrid, PageGridFull } from "../../../../../components/layout/PageGrid";
 import { getCurrentContext } from "../../../../../lib/supabaseData";
 import { useChurchPlan } from "../../../../../lib/plan";
-import { AiButton } from "../../../../../components/ai/AiBrand";
 import AiFillDialog from "../../../../../components/ai/AiFillDialog";
 import { supabase } from "../../../../../lib/supabaseClient";
 import {
   fetchPlanRoleSlots,
   replacePlanItems,
   replacePlanRoleSlots,
-  adjustPlanRoleSlotCount,
   reindexPlanRoleSlots,
   type PlanItemDraft,
   type PlanRoleSlotDraft,
@@ -43,7 +41,6 @@ export default function ServicePlanEditorPage() {
   const [plan, setPlan] = useState<ServicePlan | null>(null);
   const [items, setItems] = useState<PlanItem[]>([]);
   const [roles, setRoles] = useState<RoleRow[]>([]);
-  const [members, setMembers] = useState<{ id: string; full_name: string | null; email: string | null }[]>([]);
   const [roleSlotDrafts, setRoleSlotDrafts] = useState<PlanRoleSlotDraft[]>([]);
   const [presetName, setPresetName] = useState<string | null>(null);
   const [status, setStatus] = useState<PageState>("loading");
@@ -55,7 +52,7 @@ export default function ServicePlanEditorPage() {
   const router = useRouter();
   const { aiEnabled } = useChurchPlan();
   const [aiOpen, setAiOpen] = useState(false);
-  const [awayIds, setAwayIds] = useState<Set<string>>(new Set());
+  const [serviceName, setServiceName] = useState<string | null>(null);
 
   // Volunteers → "Fill with AI" lands here with ?ai=1.
   useEffect(() => {
@@ -64,6 +61,11 @@ export default function ServicePlanEditorPage() {
       window.history.replaceState(null, "", window.location.pathname);
     }
   }, [aiEnabled, status]);
+
+  const [serviceTimesForName, setServiceTimesForName] = useState<{ id: string; name: string }[]>([]);
+  useEffect(() => {
+    setServiceName(serviceTimesForName.find((t) => t.id === plan?.service_time_id)?.name ?? null);
+  }, [serviceTimesForName, plan?.service_time_id]);
 
   const title = useMemo(() => plan?.title || "Service Plan", [plan]);
 
@@ -142,6 +144,7 @@ export default function ServicePlanEditorPage() {
         return;
       }
       await loadPlan(context.profile.church_id);
+      setServiceTimesForName(context.serviceTimes.map((t) => ({ id: t.id, name: t.name })));
       setStatus("ready");
       hasLoadedRef.current = true;
     };
@@ -149,52 +152,6 @@ export default function ServicePlanEditorPage() {
     load();
   }, [router, planId]);
 
-  useEffect(() => {
-    if (!supabase || !plan?.church_id) {
-      setMembers([]);
-      return;
-    }
-    let cancelled = false;
-    (async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, full_name, email")
-        .eq("church_id", plan.church_id)
-        .eq("disabled", false)
-        .order("full_name", { ascending: true });
-      if (!cancelled && !error && data) {
-        setMembers(data);
-      }
-      if (plan.service_date) {
-        const { data: away } = await (supabase as any)
-          .from("volunteer_unavailability")
-          .select("user_id")
-          .eq("church_id", plan.church_id)
-          .lte("start_date", plan.service_date)
-          .gte("end_date", plan.service_date);
-        if (!cancelled) setAwayIds(new Set((away ?? []).map((a: { user_id: string }) => a.user_id)));
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [plan?.church_id, plan?.service_date]);
-
-  const handleAddItem = (title = "") => {
-    setItems((prev) => [
-      ...prev,
-      {
-        id: createLocalId(),
-        title,
-        duration_minutes: null,
-        notes: "",
-        owner_role_id: null,
-        assigned_user_id: null,
-        backup_user_id: null,
-        status: "PLANNED"
-      }
-    ]);
-  };
 
 
   const handleSave = useCallback(async () => {
@@ -301,53 +258,36 @@ export default function ServicePlanEditorPage() {
   return (
     <PageGrid>
       <PageGridFull className="animate-fade-in-up">
-        <AdminHeader
-          back={{ href: "/admin/service-plans", label: "Service plans" }}
-          title={title}
-          subtitle="Adjust this service plan without changing the preset."
-        />
+        {/* The board's bar carries the (editable) title; this keeps the way back and a real page heading. */}
+        <h1 className="sr-only">{title}</h1>
+        <Link
+          href="/admin/service-plans"
+          className="inline-flex items-center gap-0.5 text-xs font-medium text-[var(--text-muted)] no-underline transition-colors hover:text-[var(--text-primary)]"
+        >
+          <ChevronLeft className="h-3.5 w-3.5" aria-hidden />
+          Service plans
+        </Link>
       </PageGridFull>
-      <PageGridFull className="animate-fade-in-up [animation-delay:100ms] opacity-0 space-y-6">
-        <div className="stitch-section-card">
-          <label htmlFor="plan-title" className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)]">
-            Title
-          </label>
-          <input
-            id="plan-title"
-            value={plan?.title ?? ""}
-            onChange={(e) => setPlan((prev) => (prev ? { ...prev, title: e.target.value } : prev))}
-            className="mt-1.5 h-10 w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm text-[var(--text-primary)] outline-none transition-colors focus:border-amber-300 focus:ring-2 focus:ring-amber-100"
+      <PageGridFull className="animate-fade-in-up [animation-delay:100ms] opacity-0">
+        {plan ? (
+          <ServiceBoard
+            title={plan.title ?? ""}
+            onTitleChange={(value) => setPlan((prev) => (prev ? { ...prev, title: value } : prev))}
+            planId={plan.id}
+            planDate={plan.service_date}
+            startTime={plan.start_time}
+            serviceName={serviceName}
+            churchId={plan.church_id}
+            roles={roles}
+            slots={roleSlotDrafts}
+            onSlotsChange={(next) => setRoleSlotDrafts(reindexPlanRoleSlots(next, roles))}
+            items={items}
+            onItemsChange={setItems}
+            savingLabel={error ? `Couldn't save: ${error}` : saving ? "Saving…" : lastSaved ? `Saved ${lastSaved.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}` : presetName ? `From ${presetName} · saves automatically` : "Saves automatically"}
+            aiEnabled={aiEnabled}
+            onOpenAi={() => setAiOpen(true)}
           />
-          <p className="mt-1.5 text-xs text-[var(--text-muted)]">
-            {presetName ? `Based on preset: ${presetName} · ` : ""}
-            {error ? <span className="text-red-600">{error}</span> : saving ? "Saving…" : lastSaved ? `Saved ${lastSaved.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}` : "Changes save automatically"}
-          </p>
-        </div>
-        <ServicePlanRoleSlotsSection
-          slots={roleSlotDrafts}
-          roles={roles}
-          members={members}
-          onChange={(id, patch) =>
-            setRoleSlotDrafts((prev) =>
-              reindexPlanRoleSlots(
-                prev.map((s) => (s.id === id ? { ...s, ...patch } : s)),
-                roles
-              )
-            )
-          }
-          onAdjustRoleCount={(roleId, delta) =>
-            setRoleSlotDrafts((prev) => adjustPlanRoleSlotCount(prev, roles, roleId, delta, createLocalId))
-          }
-          onRemoveSlot={(id) =>
-            setRoleSlotDrafts((prev) => reindexPlanRoleSlots(prev.filter((s) => s.id !== id), roles))
-          }
-          awayIds={awayIds}
-          headerAction={
-            aiEnabled && roleSlotDrafts.length > 0 ? (
-              <AiButton onClick={() => setAiOpen(true)}>Fill with AI</AiButton>
-            ) : null
-          }
-        />
+        ) : null}
         {aiEnabled && plan && (
           <AiFillDialog
             open={aiOpen}
@@ -367,14 +307,6 @@ export default function ServicePlanEditorPage() {
             }
           />
         )}
-        <ServicePlanStepsEditor
-          items={items}
-          members={members}
-          savingState={error ? "error" : saving ? "saving" : lastSaved ? "saved" : "idle"}
-          onItemsChange={setItems}
-          onAddStep={() => handleAddItem("New step")}
-          onAddQuickStep={(title) => handleAddItem(title)}
-        />
       </PageGridFull>
     </PageGrid>
   );

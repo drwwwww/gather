@@ -12,6 +12,18 @@ type NotificationRow = { id: string; type: string; payload: Record<string, unkno
 
 function titleFor(n: NotificationRow): string {
   if (n.type === "SERVICE_RECAP") return (n.payload as { title?: string })?.title ?? "Thank you for serving";
+  if (n.type === "STEP_THANKS") return "Thank you for serving";
+  if (n.type === "STEP_PROGRESS") {
+    const p = n.payload as { done_title?: string; steps_away?: number };
+    return p?.steps_away === 1 ? "You're up next" : `${p?.done_title ?? "A step"} just finished`;
+  }
+  if (n.type === "ASSIGNMENT_MISSED") return `${(n.payload as { volunteer_name?: string })?.volunteer_name ?? "Someone"} didn't check in`;
+  if (n.type === "SERVICE_STARTING") {
+    const p = n.payload as { title?: string; time_label?: string };
+    return `${p?.title ?? "The service"} starts at ${p?.time_label ?? "soon"}`;
+  }
+  if (n.type === "CARE_NOTE") return (n.payload as { title?: string })?.title ?? "We missed you today";
+  if (n.type === "SERVICE_COMPLETE") return `${(n.payload as { title?: string })?.title ?? "The service"} is complete`;
   if (n.type === "ASSIGNMENT_DECLINED") return `${(n.payload as { volunteer_name?: string })?.volunteer_name ?? "A volunteer"} can't make it`;
   if (n.type === "SERVE_REQUEST") {
     const p = n.payload as { requester_name?: string };
@@ -25,6 +37,26 @@ function titleFor(n: NotificationRow): string {
 }
 function detailFor(n: NotificationRow): string {
   if (n.type === "SERVICE_RECAP") return (n.payload as { message?: string })?.message ?? "";
+  if (n.type === "STEP_THANKS") return `${(n.payload as { title?: string })?.title ?? "Your part"} is done.`;
+  if (n.type === "STEP_PROGRESS") {
+    const p = n.payload as { done_title?: string; your_title?: string; steps_away?: number; minutes_away?: number };
+    return p?.steps_away === 1
+      ? `${p?.done_title ?? "The last step"} just finished — ${p?.your_title ?? "your part"} is next.`
+      : `${p?.steps_away ?? "A few"} steps until ${p?.your_title ?? "your part"}${p?.minutes_away ? ` · about ${p.minutes_away} min` : ""}`;
+  }
+  if (n.type === "ASSIGNMENT_MISSED") {
+    const p = n.payload as { label?: string };
+    return `${p?.label ?? "Their step"} went ahead without them. Maybe check they're okay.`;
+  }
+  if (n.type === "SERVICE_STARTING") {
+    const p = n.payload as { church_name?: string };
+    return `See you soon${p?.church_name ? ` at ${p.church_name}` : ""}.`;
+  }
+  if (n.type === "CARE_NOTE") return (n.payload as { message?: string })?.message ?? "";
+  if (n.type === "SERVICE_COMPLETE") {
+    const missed = (n.payload as { missed?: string[] })?.missed ?? [];
+    return missed.length ? `Worth checking in on: ${missed.join(", ")}` : "Everyone scheduled checked in.";
+  }
   if (n.type === "ASSIGNMENT_DECLINED") {
     const p = n.payload as { label?: string; backup_promoted?: boolean };
     return [p?.label, p?.backup_promoted ? "Backup stepped in" : "Needs someone"].filter(Boolean).join(" · ");
