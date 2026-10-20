@@ -209,8 +209,7 @@
           "project": "mobile",
           "organization": "bernadel-studios"
         }
-      ],
-      "@sentry/react-native"
+      ]
     ],
     "owner": "drww"
   }
