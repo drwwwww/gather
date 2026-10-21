@@ -7,6 +7,7 @@ import {
 } from "../components/ds";
 import { supabase } from "../supabase";
 import { useAuth } from "../context/AuthContext";
+import { openForNotification } from "../hooks/usePushTaps";
 
 type NotificationRow = { id: string; type: string; payload: Record<string, unknown>; sent_at: string | null; read_at: string | null };
 
@@ -25,6 +26,13 @@ function titleFor(n: NotificationRow): string {
   if (n.type === "CARE_NOTE") return (n.payload as { title?: string })?.title ?? "We missed you today";
   if (n.type === "SERVICE_COMPLETE") return `${(n.payload as { title?: string })?.title ?? "The service"} is complete`;
   if (n.type === "ASSIGNMENT_DECLINED") return `${(n.payload as { volunteer_name?: string })?.volunteer_name ?? "A volunteer"} can't make it`;
+  if (n.type === "ASSIGNMENT_CONFIRMED") return `${(n.payload as { volunteer_name?: string })?.volunteer_name ?? "A volunteer"} is coming`;
+  if (n.type === "ASSIGNMENT_NEW") {
+    const p = n.payload as { title?: string; as_backup?: boolean };
+    return p?.as_backup ? `You're a backup for ${p?.title ?? "a service"}` : `You're on the team for ${p?.title ?? "a service"}`;
+  }
+  if (n.type === "EVENT_NEW") return `New event: ${(n.payload as { title?: string })?.title ?? "Event"}`;
+  if (n.type === "ANNOUNCEMENT_NEW") return (n.payload as { title?: string })?.title ?? "New announcement";
   if (n.type === "SERVE_REQUEST") {
     const p = n.payload as { requester_name?: string };
     return `${p?.requester_name?.trim() || "A member"} wants to serve`;
@@ -61,6 +69,19 @@ function detailFor(n: NotificationRow): string {
     const p = n.payload as { label?: string; backup_promoted?: boolean };
     return [p?.label, p?.backup_promoted ? "Backup stepped in" : "Needs someone"].filter(Boolean).join(" · ");
   }
+  if (n.type === "ASSIGNMENT_CONFIRMED") {
+    const p = n.payload as { label?: string };
+    return `Confirmed${p?.label ? ` for ${p.label}` : ""}.`;
+  }
+  if (n.type === "ASSIGNMENT_NEW") {
+    const p = n.payload as { when_label?: string; label?: string | null; as_backup?: boolean };
+    return [p?.label, p?.when_label].filter(Boolean).join(" · ") + (p?.as_backup ? ". Tap to see your part." : ". Tap to see your part and confirm.");
+  }
+  if (n.type === "EVENT_NEW") {
+    const p = n.payload as { when_label?: string; more_dates?: number };
+    return `${p?.when_label ?? ""}${p?.more_dates ? ` (and ${p.more_dates} more ${p.more_dates === 1 ? "date" : "dates"})` : ""}`;
+  }
+  if (n.type === "ANNOUNCEMENT_NEW") return (n.payload as { preview?: string })?.preview ?? "";
   if (n.type === "SERVE_REQUEST") {
     const p = n.payload as { role_names?: string[]; note?: string | null };
     const roles = p?.role_names && p.role_names.length > 0 ? p.role_names.join(", ") : null;
@@ -146,7 +167,14 @@ export default function NotificationsScreen({ navigation }: any) {
               const detail = detailFor(n);
               const isUnread = !n.read_at;
               return (
-                <Pressable key={n.id} onPress={() => { if (isUnread) void markRead(n.id); }}>
+                <Pressable
+                  key={n.id}
+                  accessibilityRole="button"
+                  onPress={() => {
+                    if (isUnread) void markRead(n.id);
+                    void openForNotification({ type: n.type, ...(n.payload as object) });
+                  }}
+                >
                   <View style={[styles.card, !isUnread && styles.cardRead]}>
                     <View style={[styles.accent, { backgroundColor: isUnread ? palette.amber : palette.line }]} />
                     <View style={{ flex: 1 }}>

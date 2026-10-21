@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import AdminHeader from "../../../components/admin/AdminHeader";
-import { getCurrentContext, listProfilesByChurch } from "../../../lib/supabaseData";
+import { getCurrentContext, invalidateCurrentContext, listProfilesByChurch } from "../../../lib/supabaseData";
 import { supabase } from "../../../lib/supabaseClient";
 import ProfileCard from "../../../components/account/ProfileCard";
 import SecurityCard from "../../../components/account/SecurityCard";
@@ -57,6 +57,7 @@ export default function AccountPage() {
     const showSkeleton = profile === null && church === null;
     if (showSkeleton) setLoading(true);
     try {
+      invalidateCurrentContext();
       const context = await getCurrentContext();
       if (!context) {
         router.push("/login");

@@ -4,6 +4,7 @@ import { useReopenDigest } from "../../hooks/useReopenDigest";
 import { useFirstAssignmentCard } from "../../hooks/useFirstAssignmentCard";
 import { useFirstChurchTutorialCard } from "../../hooks/useFirstChurchTutorialCard";
 import { navigate } from "../../navigation/navigationRef";
+import { usePushTaps } from "../../hooks/usePushTaps";
 
 // Swap for any photo that reads as "you're part of the team" / "welcome home".
 const FIRST_ASSIGNMENT_IMAGE = "https://images.unsplash.com/photo-1509062522246-3755977927d7?w=900&q=80";
@@ -17,6 +18,7 @@ const FIRST_ASSIGNMENT_IMAGE = "https://images.unsplash.com/photo-1509062522246-
 export default function AppOverlays() {
   useLiveUpdatesToast();
   useReopenDigest();
+  usePushTaps();
 
   const { card: firstAssignment, dismiss: dismissFirstAssignment } = useFirstAssignmentCard();
   const { show: showTutorial, dismiss: dismissTutorial } = useFirstChurchTutorialCard();

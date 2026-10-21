@@ -16,7 +16,7 @@ Gather exists to give churches their time back. Church leaders spend too many ho
 |---|---|
 | Web admin | Feature-complete for v1 (dashboard, people, volunteers, **Live Service**, **Team Health**, service plans/presets with **Gather AI fill** (Congregation/Network only), announcements, events with repeat/announce/delete + RSVP export, account with plan/billing + data export, reports). UI-protocol audit done. |
 | Mobile | All member + service-team flows live: home, news, events (address, directions, native calendar, saved, nearby churches), bulletin with check-in / run service, Serve schedule with backups, profile photos, report/block, account deletion, tour. Phone-only (`supportsTablet: false`). |
-| Backend | 49 migrations; daily reminder cron (Vercel); pg_cron + pg_net (service-start notices every 5 min); scheduling and privilege rules enforced by triggers/RPCs; security audit and scheduling audit both done and verified live. |
+| Backend | 50 migrations; daily reminder cron (Vercel); pg_cron + pg_net (service-start notices every 5 min, notification queue every minute); scheduling and privilege rules enforced by triggers/RPCs; security audit and scheduling audit both done and verified live. |
 | Legal / privacy | Privacy, Terms, DPA, Delete-account pages live; store privacy answers drafted. Not attorney-reviewed. |
 | Store readiness | Icon flattened, privacy manifest, export compliance, deletion, report/block all done. **Next:** test on real iPhone + Android, first `eas build` → TestFlight (no Mac needed), screenshots, listing, submit. Guide: `docs/launch/app-store-and-google-play.md`. |
 | Not started / deferred | Stripe products/keys/webhook in the Stripe dashboard (code is done), SMS provider for phone sign-in, data-caching layer, dark mode, Android device testing, LLC + D-U-N-S. |
@@ -115,7 +115,7 @@ gather/
 │   ├── ui/           # @gather/ui — placeholder (no source yet)
 │   └── config/       # Shared ESLint + TS base config
 ├── supabase/
-│   └── migrations/   # 49 SQL migrations (up-only)
+│   └── migrations/   # 50 SQL migrations (up-only)
 └── design-handoff/   # HTML/markdown dossiers from design system
 ```
 
@@ -486,6 +486,16 @@ Rebuilt (not a reskin) around three references: **Home** blends Monzo (grouped w
   - **Whole church is told a service is about to start.** `pg_cron` runs `public.send_service_start_notices()` every 5 minutes (job `service-start-notices`); for each plan starting within 30 min (church timezone, `start_time` or its service time's), once per plan (`service_plans.start_notice_sent_at`, claimed before sending so overlapping runs can't double-send) it writes `SERVICE_STARTING` for every non-disabled member and pushes straight to Expo with `pg_net` (`net.http_post`, batches of 100). No web server or Vercel cron involved. Every service notifies everyone (a 9:00 and an 11:00 both go out); there's no per-member mute yet.
   - **No red "missed" on the finished service.** Live Service shows a neutral "No check-in" tag (steps and team) and, in the completion panel, a "Check in on …" card (neutral avatars + **Send a kind note**) → `/api/live/care` (admin; recomputes who didn't check in server-side, skips the sender, once per plan via `service_plans.care_note_sent_at`) → `CARE_NOTE` "We missed you at {service} today. Hope everything's okay — no need to reply." + push. `ASSIGNMENT_MISSED`/`SERVICE_COMPLETE` copy softened to "didn't check in" / "worth checking in on" (info/success tone, never warning red).
   - Testing note: check the time before faking a start ("now + 10 min" near midnight wraps to 00:xx of the same date, which is in the past).
+- **Notifications for assignments, confirms, events, announcements (migration 0050)** —
+  - `ASSIGNMENT_NEW`: trigger on slots + steps whenever someone becomes the person serving or the backup on an upcoming plan (one per person per plan, never about yourself). The push waits `delay_seconds` (45) and `send_queued_pushes()` deletes it unsent if they were taken off the plan meanwhile — admins trying names in the editor don't buzz phones.
+  - `ASSIGNMENT_CONFIRMED` to admins alongside `ASSIGNMENT_DECLINED` (both skip the admin answering for themself), in `respond_assignment`.
+  - `EVENT_NEW` / `ANNOUNCEMENT_NEW`: `queue_content_notices()` claims rows via `events.notified_at` / `announcements.notified_at` (announcements once `publish_at` passes), notifies everyone the audience reaches (`audience_reaches()` mirrors the select policies) except `created_by` (new column, defaults to `auth.uid()`); a repeating series made in one go announces once ("and 3 more dates").
+  - pg_cron job `notification-queue` runs both functions every minute; pushes go out via pg_net with `push_title`/`push_body` from the payload. Live-service pushes still go through `/api/live/push`.
+  - Mobile: `hooks/usePushTaps.ts` opens the right screen when a push (or an inbox row) is tapped — there was no tap handling before.
+  - `follow_service_time_change` trigger: changing a service time moves upcoming plans that used the old time. The Service Plans page time picker now saves to the plan (it only changed local state, so the app kept the old time).
+- **Volunteers page plan creation** — it upserted `service_plans` on `(church_id, service_date)`, but the unique key is `(church_id, service_time_id, service_date)`, so "Create the plan"/"Copy last service" failed with a raw Postgres ON CONFLICT error. Now find-or-create tied to that day's service time (asks first on a non-service day), plain-language errors in a dismissable banner.
+- **Gather AI fill covers steps** — it only looked at team spots, so a plan with roles filled but steps empty said "Every role is already filled". Steps go to whoever holds the step's role in that service, else the best-rested match; empty states now say what's actually true.
+- **Web speed** — middleware uses `auth.getClaims()` (verifies the JWT against cached keys) instead of `getUser()` per navigation; `getCurrentContext()` reads the session locally, runs church + service times in parallel, shares in-flight calls and caches 5s (`invalidateCurrentContext()` after Account edits); sign-in drops a round trip, prefetches the destination and stays "Signing in…" until it lands. Local `pnpm dev` still compiles each page on first visit (4–6s) — judge speed on the deployed site.
 - **Docs** — `docs/launch/app-store-and-google-play.md` (Apple as Individual → LLC conversion/transfer → Google Play), `docs/launch/store-privacy-answers.md`, `docs/security/incident-response.md`.
 ---
 

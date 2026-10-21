@@ -1,7 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "@gather/lib";
-import type { User } from "@supabase/supabase-js";
 import { getSupabaseAnonKey, getSupabaseUrl } from "./client";
 
 /**
@@ -10,7 +9,7 @@ import { getSupabaseAnonKey, getSupabaseUrl } from "./client";
  */
 export async function updateSession(request: NextRequest): Promise<{
   response: NextResponse;
-  user: User | null;
+  user: { id: string } | null;
 }> {
   let supabaseResponse = NextResponse.next({
     request,
@@ -37,9 +36,11 @@ export async function updateSession(request: NextRequest): Promise<{
     },
   });
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // getClaims refreshes an expired session like getUser does, but verifies the
+  // token against the cached signing keys instead of calling the Auth server
+  // on every page change.
+  const { data } = await supabase.auth.getClaims();
+  const sub = data?.claims?.sub;
 
-  return { response: supabaseResponse, user };
+  return { response: supabaseResponse, user: typeof sub === "string" ? { id: sub } : null };
 }

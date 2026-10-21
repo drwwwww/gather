@@ -314,7 +314,7 @@ export default function ServicePlanScreen() {
                       accessibilityLabel={p.label}
                       style={({ pressed }: { pressed: boolean }) => [styles.pickerChip, active && styles.pickerChipActive, pressed && !active && { opacity: 0.8 }]}
                     >
-                      <Text style={[styles.pickerTxt, active && styles.pickerTxtActive]} numberOfLines={1}>{p.label}</Text>
+                      <Text style={[styles.pickerTxt, active && styles.pickerTxtActive]} maxFontSizeMultiplier={1.3}>{p.label}</Text>
                     </Pressable>
                   );
                 })}
@@ -340,7 +340,7 @@ export default function ServicePlanScreen() {
                       ) : (
                         <View style={styles.checkInLater} accessibilityRole="text">
                           <Icon name="clock" size={16} color={palette.inkSoft} />
-                          <Text style={styles.checkInLaterTxt} numberOfLines={1}>
+                          <Text style={styles.checkInLaterTxt} numberOfLines={2}>
                             Check-in opens {formatWeekday(plan.service_date)}
                           </Text>
                         </View>
@@ -473,7 +473,6 @@ export default function ServicePlanScreen() {
                             {isNow ? <Text style={styles.nowLabel}>Now</Text> : null}
                             <Text
                               style={[styles.orderTitle, showProgress && (done || skipped) && { textDecorationLine: "line-through" }]}
-                              numberOfLines={3}
                             >
                               {item.title}
                             </Text>
@@ -487,7 +486,7 @@ export default function ServicePlanScreen() {
                             ) : assignedName ? (
                               <View style={[styles.assignedRow, { marginTop: 8, flexWrap: "wrap" }]}>
                                 <Icon name="members" size={14} color={palette.inkMuted} />
-                                <Text style={styles.assignedToOther} numberOfLines={1}>{assignedName}</Text>
+                                <Text style={[styles.assignedToOther, { flexShrink: 1 }]}>{assignedName}</Text>
                                 <Pill label={statusLabel} tone={statusTone} />
                               </View>
                             ) : null}
@@ -535,8 +534,8 @@ export default function ServicePlanScreen() {
                             <View style={styles.emptyAvatar}><Icon name="add" size={18} color={palette.inkMuted} /></View>
                           )}
                           <View style={{ flex: 1, minWidth: 0 }}>
-                            <Text style={styles.teamRole} numberOfLines={1}>{roleName}</Text>
-                            <Text style={[styles.teamPerson, !assignedName && { color: palette.inkMuted, fontFamily: font.regular }]} numberOfLines={1}>{assignedName ?? "Unassigned"}</Text>
+                            <Text style={styles.teamRole} numberOfLines={2}>{roleName}</Text>
+                            <Text style={[styles.teamPerson, !assignedName && { color: palette.inkMuted, fontFamily: font.regular }]} numberOfLines={2}>{assignedName ?? "Nobody yet"}</Text>
                           </View>
                           {assignedName ? (
                             slot.checked_in_at ? <Pill label="Here" tone="success" /> : <Pill label={statusLabel} tone={statusTone} />
@@ -576,14 +575,14 @@ const styles = StyleSheet.create({
 
   hero: { backgroundColor: palette.surface, borderRadius: radius.xl, padding: 22, marginBottom: 20, ...shadow.md },
   heroTitle: { fontFamily: font.bold, fontSize: 24, color: palette.ink, letterSpacing: -0.3, marginTop: 6 },
-  heroMeta: { fontFamily: font.regular, fontSize: 13, color: palette.inkSoft, marginTop: 4 },
+  heroMeta: { fontFamily: font.regular, fontSize: 14, lineHeight: 20, color: palette.inkSoft, marginTop: 4 },
   statWrap: { borderTopWidth: StyleSheet.hairlineWidth, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: palette.line, marginVertical: 16, paddingHorizontal: 2 },
 
   serving: { backgroundColor: palette.surface, borderRadius: radius.xl, padding: 18, marginBottom: 20, ...shadow.sm },
   servingHead: { flexDirection: "row", alignItems: "center", gap: 6 },
   servingEyebrow: { fontFamily: font.bold, fontSize: 10, color: palette.amberDeep, letterSpacing: 1.6 },
-  chip: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: palette.amberSofter, borderRadius: radius.chip, paddingHorizontal: 12, paddingVertical: 7 },
-  chipTxt: { fontFamily: font.semibold, fontSize: 13, color: palette.amberDeep },
+  chip: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 6, maxWidth: "100%", backgroundColor: palette.amberSofter, borderRadius: radius.chip, paddingHorizontal: 12, paddingVertical: 7 },
+  chipTxt: { fontFamily: font.semibold, fontSize: 13, color: palette.amberDeep, flexShrink: 1 },
   chipRole: { fontFamily: font.bold, fontSize: 9, color: palette.amberDeep, opacity: 0.7, textTransform: "uppercase", letterSpacing: 0.5 },
   readyBy: { fontFamily: font.regular, fontSize: 12, color: palette.inkSoft, marginTop: 12 },
 
@@ -619,8 +618,8 @@ const styles = StyleSheet.create({
     minHeight: 46, borderRadius: radius.lg, backgroundColor: palette.sunken,
     flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingHorizontal: 12,
   },
-  checkInLaterTxt: { fontFamily: font.semibold, fontSize: 14, color: palette.inkSoft },
-  checkedInTxt: { fontFamily: font.semibold, fontSize: 14, color: palette.amberInk },
+  checkInLaterTxt: { fontFamily: font.semibold, fontSize: 14, color: palette.inkSoft, flexShrink: 1, textAlign: "center" },
+  checkedInTxt: { fontFamily: font.semibold, fontSize: 14, color: palette.amberInk, flexShrink: 1, textAlign: "center" },
   inlineError: { fontFamily: font.medium, fontSize: 13, color: palette.dangerInk, marginTop: 10 },
   printLink: { alignSelf: "center", marginTop: 12, minHeight: 32, justifyContent: "center", paddingHorizontal: 8 },
   printLinkTxt: { fontFamily: font.semibold, fontSize: 13, color: palette.amberInk },
@@ -629,6 +628,6 @@ const styles = StyleSheet.create({
   teamCard: { backgroundColor: palette.surface, borderRadius: radius.xl, overflow: "hidden", ...shadow.sm },
   teamRow: { padding: 14, flexDirection: "row", alignItems: "center", gap: 14 },
   emptyAvatar: { width: 42, height: 42, borderRadius: 21, backgroundColor: palette.sunken, alignItems: "center", justifyContent: "center" },
-  teamRole: { fontFamily: font.bold, fontSize: 10, color: palette.inkMuted, letterSpacing: 1, textTransform: "uppercase" },
+  teamRole: { fontFamily: font.bold, fontSize: 11, color: palette.inkMuted, letterSpacing: 0.8, textTransform: "uppercase" },
   teamPerson: { fontFamily: font.bold, fontSize: 15, color: palette.ink, marginTop: 2 },
 });

@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import AdminHeader from "../../../components/admin/AdminHeader";
 import { getCurrentContext, indexProfilesById, listProfilesByChurch } from "../../../lib/supabaseData";
 import { supabase } from "../../../lib/supabaseClient";
-import { formatShortWeekdayDateTime, nextServiceDate } from "../../../lib/format";
+import { nextServiceDate, serviceTimeForDate } from "../../../lib/format";
 import NextServiceReadinessStrip from "../../../components/volunteers/NextServiceReadinessStrip";
 import AssignmentsTable from "../../../components/volunteers/AssignmentsTable";
 import type { BulletinSlotRow, BulletinItemRow } from "../../../components/volunteers/AssignmentsTable";
@@ -22,6 +22,7 @@ type ServicePlanRoleSlotRow = Database["public"]["Tables"]["service_plan_role_sl
 
 type RoleRow = Database["public"]["Tables"]["volunteer_roles"]["Row"];
 type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
+type ServiceTimeRow = { id: string; name: string; day_of_week: number; start_time: string | null };
 
 type StoredScheduleSlot = {
   id: string;
@@ -84,6 +85,7 @@ export default function VolunteersPage() {
   const [bulletinSlots, setBulletinSlots] = useState<BulletinSlotRow[]>([]);
   const [bulletinItems, setBulletinItems] = useState<BulletinItemRow[]>([]);
   const [bulletinLoading, setBulletinLoading] = useState(false);
+  const [serviceTimes, setServiceTimes] = useState<ServiceTimeRow[]>([]);
   const router = useRouter();
   const { aiEnabled } = useChurchPlan();
   const initialDateSetRef = useRef(false);
@@ -95,8 +97,8 @@ export default function VolunteersPage() {
     [dateStripStart]
   );
 
-  // Plans on a date determine if a "has service" dot shows on the strip
-  const serviceDaysOfWeek = useMemo(() => new Set<number>(), []);
+  /** The church's regular service on the selected day (null on a day with no service). */
+  const serviceOnDay = useMemo(() => serviceTimeForDate(serviceTimes, serviceDate), [serviceTimes, serviceDate]);
 
   const triggerStripAnim = (anim: "left" | "right") => {
     setStripAnim(null);
@@ -226,10 +228,11 @@ export default function VolunteersPage() {
 
   const serviceLabel = useMemo(() => {
     if (!serviceDate) return "Not scheduled";
-    const [y, m, d] = serviceDate.split("-").map(Number);
-    const date = new Date(y, (m ?? 1) - 1, d ?? 1);
-    return formatShortWeekdayDateTime(date);
-  }, [serviceDate]);
+    const day = format(parseYmdLocal(serviceDate), "EEE, MMM d");
+    if (!serviceOnDay) return day;
+    const time = serviceOnDay.start_time ? formatTimeString(serviceOnDay.start_time) : null;
+    return [day, time, serviceOnDay.name].filter(Boolean).join(" · ");
+  }, [serviceDate, serviceOnDay]);
 
   const refresh = async () => {
     if (!supabase) return;
@@ -254,6 +257,7 @@ export default function VolunteersPage() {
       }))
     );
     setProfiles(profilesResult ?? []);
+    setServiceTimes(context.serviceTimes as ServiceTimeRow[]);
     // First load: jump from "today" to the next service day so the bulletin isn't an empty Saturday.
     if (!initialDateSetRef.current) {
       initialDateSetRef.current = true;
@@ -417,21 +421,40 @@ export default function VolunteersPage() {
     setSlots((prev) => prev.filter((s) => s.id !== slotId));
   };
 
-  const handleGenerateSchedule = async () => {
-    if (!supabase || !slots.length || !churchId) return;
-    const context = await getCurrentContext();
-    if (!context) return;
-
-    const { data: plan, error: planError } = await supabase
+  /**
+   * The plan this page is showing, or a new one for the selected day tied to that
+   * day's service time. Asks first on a day with no regular service.
+   */
+  const ensurePlan = async (): Promise<{ id: string } | null> => {
+    if (!supabase || !churchId) return null;
+    if (bulletinPlanId) return { id: bulletinPlanId };
+    if (!serviceOnDay && serviceTimes.length > 0) {
+      const day = format(parseYmdLocal(serviceDate), "EEEE, MMMM d");
+      if (!window.confirm(`${day} isn't one of your service days. Make a plan for it anyway?`)) return null;
+    }
+    const { data, error: planError } = await supabase
       .from("service_plans")
-      .upsert(
-        { church_id: context.profile.church_id, service_date: serviceDate, title: "Service Plan" } as any,
-        { onConflict: "church_id,service_date", ignoreDuplicates: false }
-      )
+      .insert({
+        church_id: churchId,
+        service_date: serviceDate,
+        title: serviceOnDay?.name || "Service",
+        service_time_id: serviceOnDay?.id ?? null,
+        start_time: serviceOnDay?.start_time?.slice(0, 5) ?? null,
+      } as any)
       .select("id")
       .single();
+    if (planError || !data) {
+      setError("We couldn't start a plan for this day. Refresh the page and try again.");
+      return null;
+    }
+    return data as { id: string };
+  };
 
-    if (planError || !plan) { setError(planError?.message ?? "Failed to create plan"); return; }
+  const handleGenerateSchedule = async () => {
+    if (!supabase || !slots.length || !churchId) return;
+    setError(null);
+    const plan = await ensurePlan();
+    if (!plan) return;
 
     const payload = slots.flatMap((slot) =>
       Array.from({ length: slot.count }, (_, i) => ({
@@ -444,7 +467,7 @@ export default function VolunteersPage() {
     );
 
     const { error: insertError } = await supabase.from("service_plan_role_slots").insert(payload);
-    if (insertError) { setError(insertError.message); return; }
+    if (insertError) { setError("We couldn't add those spots. Try again."); return; }
     setSlots([]);
     refreshBulletin();
   };
@@ -452,12 +475,13 @@ export default function VolunteersPage() {
   const handleCopyLastService = async () => {
     if (!supabase || !serviceDate || !churchId) return;
     if (bulletinSlots.length > 0 || bulletinItems.length > 0) {
-      setError("A service plan already exists for this date.");
+      setError("This day already has a plan. Open it to make changes.");
       return;
     }
 
     const context = await getCurrentContext();
     if (!context) return;
+    setError(null);
 
     // Find the most recent prior plan for this service time
     const { data: prevPlan, error: prevPlanError } = await supabase
@@ -469,8 +493,8 @@ export default function VolunteersPage() {
       .limit(1)
       .maybeSingle();
 
-    if (prevPlanError) { setError(prevPlanError.message); return; }
-    if (!prevPlan) { setToastError("No prior service plan found to copy."); return; }
+    if (prevPlanError) { setError("We couldn't load your last service. Try again."); return; }
+    if (!prevPlan) { setToastError("There's no earlier service to copy yet."); return; }
 
     const { data: prevSlots, error: slotsError } = await supabase
       .from("service_plan_role_slots")
@@ -479,19 +503,10 @@ export default function VolunteersPage() {
       .order("sort_order");
 
     if (slotsError) { setError(slotsError.message); return; }
-    if (!prevSlots?.length) { setToastError("The prior plan has no role slots to copy."); return; }
+    if (!prevSlots?.length) { setToastError("Your last service had no team spots to copy."); return; }
 
-    // Upsert a plan for the target date
-    const { data: newPlan, error: newPlanError } = await supabase
-      .from("service_plans")
-      .upsert(
-        { church_id: context.profile.church_id, service_date: serviceDate, title: "Service Plan" } as any,
-        { onConflict: "church_id,service_date", ignoreDuplicates: false }
-      )
-      .select("id")
-      .single();
-
-    if (newPlanError || !newPlan) { setError(newPlanError?.message ?? "Failed to create plan"); return; }
+    const newPlan = await ensurePlan();
+    if (!newPlan) return;
 
     const payload = (prevSlots as ServicePlanRoleSlotRow[]).map((slot, i) => ({
       plan_id: newPlan.id,
@@ -661,7 +676,7 @@ export default function VolunteersPage() {
             <AdminHeader
               size="large"
               title="Volunteer scheduling"
-              subtitle="Organize ministry teams and monitor service coverage for your upcoming gatherings."
+              subtitle="See who’s serving, fill open spots, and follow up with your team."
             />
             {/* KPI chips */}
             {hasData && (
@@ -777,15 +792,13 @@ export default function VolunteersPage() {
 
             {/* Service time info line — inline below strip */}
             <div className="mt-3 flex min-h-8 items-center justify-center gap-2 text-sm animate-volunteers-service-time-reveal">
-              {planDates.has(serviceDate) || serviceDaysOfWeek.has(parseYmdLocal(serviceDate).getDay()) ? (
+              {planDates.has(serviceDate) || serviceOnDay ? (
                 <>
                   <CalendarDays className="h-4 w-4 shrink-0 text-[#EF9F27]" aria-hidden />
-                  <span className="font-semibold text-[var(--text-primary)]">
-                    {format(parseYmdLocal(serviceDate), "EEE, MMM d")}
-                  </span>
+                  <span className="font-semibold text-[var(--text-primary)]">{serviceLabel}</span>
                 </>
               ) : (
-                <span className="text-xs italic text-[var(--text-muted)]">No service scheduled on this date</span>
+                <span className="text-sm text-[var(--text-muted)]">No service on this day</span>
               )}
 
               {/* Calendar picker — opens a centered modal */}
@@ -910,7 +923,10 @@ export default function VolunteersPage() {
 
         {error ? (
           <PageGridFull>
-            <p className="text-sm text-error">{error}</p>
+            <div role="alert" className="flex items-start justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+              <span>{error}</span>
+              <button type="button" onClick={() => setError(null)} className="shrink-0 rounded-lg px-2 text-red-700 transition-colors hover:bg-red-100">Dismiss</button>
+            </div>
           </PageGridFull>
         ) : null}
 

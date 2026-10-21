@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Check, Loader2, X } from "lucide-react";
 import { supabase } from "../../lib/supabaseClient";
-import { proposeSchedule, type AutofillProposal, type AutofillSlot } from "../../lib/ai/autofill";
+import { proposeSchedule, type AutofillProposal, type AutofillSlot, type AutofillStep } from "../../lib/ai/autofill";
 import { AiBadge } from "./AiBrand";
 
 const addDays = (ymd: string, d: number) => {
@@ -19,6 +19,7 @@ export default function AiFillDialog({
   planDate,
   churchId,
   slots,
+  steps = [],
   roleNameById,
   onApply,
 }: {
@@ -28,6 +29,7 @@ export default function AiFillDialog({
   planDate: string;
   churchId: string;
   slots: AutofillSlot[];
+  steps?: AutofillStep[];
   roleNameById: Record<string, string>;
   onApply: (picks: AutofillProposal[]) => void;
 }) {
@@ -35,6 +37,7 @@ export default function AiFillDialog({
   const [error, setError] = useState<string | null>(null);
   const [proposals, setProposals] = useState<AutofillProposal[]>([]);
   const [unfilled, setUnfilled] = useState(0);
+  const [total, setTotal] = useState(0);
   const [skipped, setSkipped] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -79,6 +82,7 @@ export default function AiFillDialog({
       const result = proposeSchedule({
         planDate,
         slots,
+        steps,
         roleNameById,
         people,
         history,
@@ -87,12 +91,13 @@ export default function AiFillDialog({
       if (!alive) return;
       setProposals(result.proposals);
       setUnfilled(result.unfilled);
+      setTotal(result.total);
       setLoading(false);
     })();
     return () => { alive = false; };
-    // slots are a snapshot when the dialog opens
+    // A snapshot when the dialog opens — re-read only if the plan finishes loading after that.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, [open, slots.length + steps.length]);
 
   useEffect(() => {
     if (!open) return;
@@ -117,11 +122,11 @@ export default function AiFillDialog({
         <div className="flex items-start justify-between gap-3 border-b border-[var(--border)] px-5 py-4">
           <div>
             <div className="flex items-center gap-2">
-              <h2 id="ai-fill-title" className="text-base font-semibold text-[var(--text-primary)]">Fill open roles</h2>
+              <h2 id="ai-fill-title" className="text-base font-semibold text-[var(--text-primary)]">Fill open spots</h2>
               <AiBadge />
             </div>
             <p className="mt-0.5 text-xs text-[var(--text-muted)]">
-              Picks people who know the role, have rested longest, and aren&apos;t away. Review before applying.
+              Suggests people who know the role, haven&apos;t served lately, and aren&apos;t away. Check the list, then assign.
             </p>
           </div>
           <button type="button" onClick={onClose} aria-label="Close" className="rounded-lg p-1.5 text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-2)] hover:text-[var(--text-primary)]">
@@ -135,10 +140,14 @@ export default function AiFillDialog({
               <Loader2 className="h-4 w-4 animate-spin" /> Reading serving history…
             </div>
           ) : error ? (
-            <p className="py-10 text-center text-sm text-red-600">{error}</p>
+            <p className="py-10 text-center text-sm text-red-700">{error}</p>
           ) : proposals.length === 0 ? (
             <p className="py-10 text-center text-sm text-[var(--text-muted)]">
-              {unfilled > 0 ? "No one available fits the open roles — everyone is away, already serving, or new." : "Every role in this service is already filled."}
+              {total === 0
+                ? "This service has no team spots or steps yet. Add a role first, then try again."
+                : unfilled > 0
+                  ? "We couldn’t find a good match. Everyone who fits is away or already serving."
+                  : "Everyone’s already scheduled for this service."}
             </p>
           ) : (
             <ul className="divide-y divide-[var(--divider)]">
@@ -148,7 +157,7 @@ export default function AiFillDialog({
                   <li key={p.slotId} className={`flex items-center gap-3 py-2.5 transition-opacity ${isSkipped ? "opacity-45" : ""}`}>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium text-[var(--text-primary)]">
-                        {p.name} <span className="font-normal text-[var(--text-muted)]">→ {p.roleName}</span>
+                        {p.name} <span className="font-normal text-[var(--text-muted)]">→ {p.roleName}{p.kind === "step" ? " (step)" : ""}</span>
                       </p>
                       <p className="truncate text-xs text-[var(--text-muted)]">{p.reason}</p>
                     </div>
@@ -165,7 +174,7 @@ export default function AiFillDialog({
             </ul>
           )}
           {!loading && unfilled > 0 && proposals.length > 0 && (
-            <p className="mt-2 text-xs text-[var(--text-muted)]">{unfilled} role{unfilled === 1 ? "" : "s"} still need someone — no good match.</p>
+            <p className="mt-2 text-xs text-[var(--text-muted)]">{unfilled} {unfilled === 1 ? "spot still needs" : "spots still need"} someone. Pick them yourself on the plan.</p>
           )}
         </div>
 

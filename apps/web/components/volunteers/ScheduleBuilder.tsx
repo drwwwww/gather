@@ -78,8 +78,8 @@ export default function ScheduleBuilder({
     <section className="stitch-section-card space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-lg font-semibold text-[var(--text-primary)]">Build this service</h2>
-        <p className="mt-1 text-sm text-[var(--text-muted)]">Queue up role slots, then generate or copy the last plan.</p>
+        <h2 className="text-lg font-semibold text-[var(--text-primary)]">Set up this service</h2>
+        <p className="mt-1 text-sm text-[var(--text-muted)]">Add the spots you need filled, or start from your last service.</p>
       </div>
 
       {/* Quick actions */}
@@ -94,7 +94,7 @@ export default function ScheduleBuilder({
           </div>
           <div>
             <p className="text-sm font-semibold text-[var(--text-primary)]">Copy last service</p>
-            <p className="text-xs text-[var(--text-muted)]">Duplicate roles from the previous plan</p>
+            <p className="text-xs text-[var(--text-muted)]">Same team spots and people as last time</p>
           </div>
         </button>
         <button
@@ -107,15 +107,15 @@ export default function ScheduleBuilder({
             <Sparkles className="h-4 w-4 text-amber-600" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-amber-900">Generate schedule</p>
-            <p className="text-xs text-amber-700">{hasSlots ? `${slots.reduce((s, sl) => s + sl.count, 0)} slots queued` : "Queue slots below first"}</p>
+            <p className="text-sm font-semibold text-amber-900">Create the plan</p>
+            <p className="text-xs text-amber-700">{hasSlots ? spotsReadyLabel(slots.reduce((s, sl) => s + sl.count, 0)) : "Add spots below first"}</p>
           </div>
         </button>
       </div>
 
       {/* Slot builder */}
       <div className="space-y-3">
-        <p className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Add role slots</p>
+        <p className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Spots to fill</p>
 
         {hasRoles ? (
           <div className="flex gap-2">
@@ -134,14 +134,14 @@ export default function ScheduleBuilder({
                 +
               </button>
             </div>
-            <button type="button" onClick={onAddSlot} aria-label="Add role slot"
+            <button type="button" onClick={onAddSlot} aria-label="Add these spots"
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500 text-white transition-colors hover:bg-amber-600 focus:outline-none">
               <Plus className="h-5 w-5" />
             </button>
           </div>
         ) : (
           <p className="text-sm text-[var(--text-muted)]">
-            No roles configured yet. <a href="/admin/service-plans" className="font-medium text-amber-600 hover:underline">Add roles →</a>
+            You haven’t added any roles yet. <a href="/admin/service-plans" className="font-medium text-amber-600 hover:underline">Add roles →</a>
           </p>
         )}
 
@@ -170,4 +170,8 @@ export default function ScheduleBuilder({
       </div>
     </section>
   );
+}
+
+function spotsReadyLabel(count: number) {
+  return `${count} ${count === 1 ? "spot" : "spots"} ready to add`;
 }

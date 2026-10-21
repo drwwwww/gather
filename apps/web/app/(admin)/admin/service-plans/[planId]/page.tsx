@@ -296,15 +296,22 @@ export default function ServicePlanEditorPage() {
             planDate={plan.service_date}
             churchId={plan.church_id}
             slots={roleSlotDrafts}
+            steps={items}
             roleNameById={Object.fromEntries(roles.map((r) => [r.id, r.name]))}
-            onApply={(picks) =>
+            onApply={(picks) => {
               setRoleSlotDrafts((prev) =>
                 prev.map((s) => {
-                  const pick = picks.find((p) => p.slotId === s.id);
+                  const pick = picks.find((p) => p.kind === "role" && p.slotId === s.id);
                   return pick && !s.assigned_user_id ? { ...s, assigned_user_id: pick.userId, status: "ASSIGNED" } : s;
                 })
-              )
-            }
+              );
+              setItems((prev) =>
+                prev.map((it) => {
+                  const pick = picks.find((p) => p.kind === "step" && p.slotId === it.id);
+                  return pick && !it.assigned_user_id ? { ...it, assigned_user_id: pick.userId } : it;
+                })
+              );
+            }}
           />
         )}
       </PageGridFull>

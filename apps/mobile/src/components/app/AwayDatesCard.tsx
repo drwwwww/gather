@@ -105,11 +105,11 @@ export default function AwayDatesCard({
               accessibilityLabel={`${date.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}${isAway ? ", away" : ""}`}
               style={({ pressed }: { pressed: boolean }) => [styles.chip, isAway && styles.chipAway, { opacity: busy === day ? 0.5 : pressed ? 0.85 : 1 }]}
             >
-              <Text style={[styles.chipDow, isAway && styles.chipTxtAway]}>
+              <Text style={[styles.chipDow, isAway && styles.chipTxtAway]} maxFontSizeMultiplier={1.3}>
                 {date.toLocaleDateString("en-US", { weekday: "short" })}
               </Text>
-              <Text style={[styles.chipDay, isAway && styles.chipTxtAway]}>{date.getDate()}</Text>
-              <Text style={[styles.chipMon, isAway && styles.chipTxtAway]}>
+              <Text style={[styles.chipDay, isAway && styles.chipTxtAway]} maxFontSizeMultiplier={1.3}>{date.getDate()}</Text>
+              <Text style={[styles.chipMon, isAway && styles.chipTxtAway]} maxFontSizeMultiplier={1.3}>
                 {isAway ? "Away" : date.toLocaleDateString("en-US", { month: "short" })}
               </Text>
             </Pressable>
@@ -131,7 +131,8 @@ const styles = StyleSheet.create({
   body: { fontFamily: font.regular, fontSize: 13, color: palette.inkSoft, marginTop: 2, lineHeight: 18 },
   row: { gap: 8, paddingHorizontal: 18, paddingTop: 14 },
   chip: {
-    width: 56,
+    minWidth: 56,
+    paddingHorizontal: 6,
     minHeight: 72,
     borderRadius: radius.md,
     backgroundColor: palette.sunken,

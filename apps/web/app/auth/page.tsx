@@ -40,7 +40,11 @@ export default function AuthPage() {
     if (t === "signup") setTab("signup");
   }, [searchParams]);
 
-  // Raise the Dawn overlay, then navigate behind it once it covers the screen.
+  // Warm the destination while the person types, so signing in lands fast.
+  useEffect(() => {
+    router.prefetch(nextUrl.startsWith("/") ? nextUrl : "/admin");
+  }, [router, nextUrl]);
+
   const enterApp = useCallback(
     async (dest: string) => {
       router.push(dest);
@@ -65,20 +69,13 @@ export default function AuthPage() {
       return;
     }
 
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
 
     if (signInError) {
       setError(getFriendlySignInError(signInError.message));
       setErrorDetails(signInError.message);
     } else {
-      const { data: authData, error: authError } = await supabase.auth.getUser();
-      if (authError) {
-        setError("We could not verify your session. Please try again.");
-        setErrorDetails(authError.message);
-        setLoading(false);
-        return;
-      }
-      const userId = authData.user?.id;
+      const userId = signInData.user?.id;
       if (!userId) {
         setError("We could not verify your session. Please sign in again.");
         setLoading(false);
@@ -98,6 +95,8 @@ export default function AuthPage() {
         const dest = destinationAfterSignIn({ role: profile.role, nextPath: nextUrl });
         await enterApp(dest);
       }
+      // Stay in the loading state until the next page replaces this one.
+      return;
     }
     setLoading(false);
   };

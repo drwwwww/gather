@@ -422,7 +422,7 @@ export function Pill({ label, tone = "neutral" }: { label: string; tone?: Tone }
   const c = PILL_TONES[tone];
   return (
     <View style={[styles.pill, { backgroundColor: c.bg }]}>
-      <Text style={[styles.pillTxt, { color: c.fg }]}>{label}</Text>
+      <Text style={[styles.pillTxt, { color: c.fg }]} numberOfLines={1} maxFontSizeMultiplier={1.3}>{label}</Text>
     </View>
   );
 }
@@ -504,7 +504,7 @@ export function StatGrid({
             <Icon name={s.icon} size={14} color={palette.amber} />
             <Text style={styles.statLabel}>{s.label}</Text>
           </View>
-          <Text style={styles.statValue} numberOfLines={1}>{s.value}</Text>
+          <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} maxFontSizeMultiplier={1.3}>{s.value}</Text>
         </View>
       ))}
     </View>
@@ -1001,7 +1001,7 @@ const styles = StyleSheet.create({
   btnInner: { flexDirection: "row", alignItems: "center", gap: 8 },
   btnLabel: { fontFamily: font.bold, fontSize: 16 },
 
-  pill: { borderRadius: radius.chip, paddingHorizontal: 10, paddingVertical: 4, alignSelf: "flex-start" },
+  pill: { borderRadius: radius.chip, paddingHorizontal: 10, paddingVertical: 4, alignSelf: "flex-start", flexShrink: 0 },
   pillTxt: { fontFamily: font.bold, fontSize: 11, letterSpacing: 0.3 },
 
   chipsRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },

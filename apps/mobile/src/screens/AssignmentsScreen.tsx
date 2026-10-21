@@ -328,7 +328,7 @@ ${body}`)) void respondToAssignment(a, "DECLINED");
                               : <Pill label="Pending" tone="amber" />}
                           </View>
                           <View style={styles.timeRow}>
-                            <Icon name="clock" size={14} color={palette.inkMuted} />
+                            <View style={{ marginTop: 2 }}><Icon name="clock" size={14} color={palette.inkMuted} /></View>
                             <Text style={styles.timeTxt}>{a.service_label}</Text>
                           </View>
                           {rowError?.key === a.key ? <Text style={styles.rowError}>{rowError.message}</Text> : null}
@@ -422,16 +422,16 @@ const styles = StyleSheet.create({
   statusHl: { fontFamily: font.bold, fontSize: 17, color: palette.ink, letterSpacing: -0.2 },
   statusBd: { fontFamily: font.regular, fontSize: 13, color: palette.inkSoft, marginTop: 2 },
   allDone: { backgroundColor: palette.successSoft, borderRadius: radius.xl, padding: 18, flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 24 },
-  allDoneTxt: { fontFamily: font.semibold, fontSize: 15, color: palette.successInk },
+  allDoneTxt: { fontFamily: font.semibold, fontSize: 15, color: palette.successInk, flex: 1 },
 
   groupLabel: { fontFamily: font.bold, fontSize: 11, textTransform: "uppercase", letterSpacing: 1.6, color: palette.inkMuted, marginBottom: 14 },
 
   card: { backgroundColor: palette.surface, borderRadius: radius.xl, padding: 20, ...shadow.sm },
   cardTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 },
   cardTitle: { fontFamily: font.bold, fontSize: 17, color: palette.ink, lineHeight: 22 },
-  cardSub: { fontFamily: font.regular, fontSize: 12, color: palette.inkMuted, marginTop: 3 },
-  timeRow: { flexDirection: "row", alignItems: "center", gap: 7 },
-  timeTxt: { fontFamily: font.regular, fontSize: 13, color: palette.inkSoft },
+  cardSub: { fontFamily: font.regular, fontSize: 13, lineHeight: 18, color: palette.inkSoft, marginTop: 3 },
+  timeRow: { flexDirection: "row", alignItems: "flex-start", gap: 7 },
+  timeTxt: { fontFamily: font.regular, fontSize: 13, lineHeight: 18, color: palette.inkSoft, flex: 1 },
   rowError: { fontFamily: font.regular, fontSize: 12, color: palette.danger, marginTop: 8 },
   divider: { height: StyleSheet.hairlineWidth, backgroundColor: palette.line, marginTop: 16, marginBottom: 14 },
   actions: { flexDirection: "row", gap: 10 },

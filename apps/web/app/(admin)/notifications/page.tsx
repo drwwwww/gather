@@ -69,6 +69,23 @@ function renderMeta(notification: NotificationRow): { title: string; tone: ToneK
       detail: [payload?.label, when, payload?.was_confirmed ? "had confirmed" : null, payload?.backup_promoted ? "backup stepped in" : "needs someone"].filter(Boolean).join(" · "),
     };
   }
+  if (notification.type === "ASSIGNMENT_CONFIRMED") {
+    const p = notification.payload as { volunteer_name?: string; label?: string; scheduled_date?: string } | null;
+    const when = p?.scheduled_date ? formatShortDate(p.scheduled_date) : "";
+    return { title: `${p?.volunteer_name ?? "A volunteer"} is coming`, tone: "success", detail: [p?.label, when].filter(Boolean).join(" · ") };
+  }
+  if (notification.type === "ASSIGNMENT_NEW") {
+    const p = notification.payload as { title?: string; when_label?: string; label?: string | null; as_backup?: boolean } | null;
+    return { title: p?.as_backup ? `You're a backup for ${p?.title ?? "a service"}` : `You're on the team for ${p?.title ?? "a service"}`, tone: "info", detail: [p?.label, p?.when_label].filter(Boolean).join(" · ") };
+  }
+  if (notification.type === "EVENT_NEW") {
+    const p = notification.payload as { title?: string; when_label?: string; more_dates?: number } | null;
+    return { title: `New event: ${p?.title ?? "Event"}`, tone: "info", detail: `${p?.when_label ?? ""}${p?.more_dates ? ` (and ${p.more_dates} more)` : ""}` };
+  }
+  if (notification.type === "ANNOUNCEMENT_NEW") {
+    const p = notification.payload as { title?: string; preview?: string } | null;
+    return { title: p?.title ?? "New announcement", tone: "info", detail: p?.preview };
+  }
   if (notification.type === "SERVICE_RECAP") {
     const payload = notification.payload as { title?: string; message?: string } | null;
     return { title: payload?.title ?? "Thank you for serving", tone: "success", detail: payload?.message };

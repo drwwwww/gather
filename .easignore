@@ -1,0 +1,31 @@
+# EAS Build uploads the whole monorepo; this replaces .gitignore for that upload.
+# Keep everything the mobile build needs: root package.json / lockfile /
+# .npmrc / pnpm-workspace.yaml, packages/*, apps/mobile, and every workspace
+# package.json (pnpm's frozen lockfile expects all importers to exist).
+
+# Same as .gitignore
+node_modules
+.pnpm-store
+.turbo
+.next
+dist
+.expo
+.env
+.env.local
+.env.sentry-build-plugin
+.claude/
+.DS_Store
+.seed-tmp/
+.next-verify/
+
+# Web app: only its package.json is needed
+apps/web/*
+!apps/web/package.json
+
+# Not used by the mobile build
+design-handoff/
+IconKitchen-Output/
+supabase/
+docs/
+/public/
+CLAUDE.md

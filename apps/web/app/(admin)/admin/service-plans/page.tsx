@@ -298,6 +298,24 @@ export default function ServicePlansPage() {
     };
   }, [plan, planTitle, planItems, roleSlotDrafts, persistPlan]);
 
+  /** Changing the time on an existing plan saves right away, so the app and the "starts soon" notice follow it. */
+  const handleStartTimeChange = async (next: string) => {
+    setPlanStartTime(next);
+    const current = plan as (ServicePlan & { start_time?: string | null }) | null;
+    if (!current || !supabase || (current.start_time ?? "").slice(0, 5) === next.slice(0, 5)) return;
+    const { error: timeError } = await supabase
+      .from("service_plans")
+      .update({ start_time: next || null, start_notice_sent_at: null } as any)
+      .eq("id", current.id);
+    if (timeError) {
+      pushToast("Couldn't change the time. Try again.", "error");
+      return;
+    }
+    setPlan((p) => (p ? ({ ...p, start_time: next || null } as ServicePlan) : p));
+    setPlansForDate((list) => list.map((p) => (p.id === current.id ? ({ ...p, start_time: next || null } as ServicePlan) : p)));
+    pushToast("Start time updated.", "success");
+  };
+
   const handleSavePlanNow = useCallback(async () => {
     if (!plan) return;
     if (saveTimerRef.current) {
@@ -480,7 +498,7 @@ export default function ServicePlansPage() {
           servicesOnDate={plansForDate.map((p): ServiceEntry => ({ id: p.id, startTime: (p as any).start_time ?? null }))}
           activePlanId={plan?.id ?? null}
           onServiceDateChange={setServiceDate}
-          onStartTimeChange={setPlanStartTime}
+          onStartTimeChange={(t) => void handleStartTimeChange(t)}
           onSwitchService={handleSwitchService}
           onAddSecondService={handleAddSecondService}
           actions={
@@ -606,15 +624,22 @@ export default function ServicePlansPage() {
                 planDate={plan.service_date}
                 churchId={churchId}
                 slots={roleSlotDrafts}
+                steps={planItems}
                 roleNameById={Object.fromEntries(roles.map((r) => [r.id, r.name]))}
-                onApply={(picks) =>
+                onApply={(picks) => {
                   setRoleSlotDrafts((prev) =>
                     prev.map((s) => {
-                      const pick = picks.find((x) => x.slotId === s.id);
+                      const pick = picks.find((x) => x.kind === "role" && x.slotId === s.id);
                       return pick && !s.assigned_user_id ? { ...s, assigned_user_id: pick.userId, status: "ASSIGNED" } : s;
                     })
-                  )
-                }
+                  );
+                  setPlanItems((prev) =>
+                    prev.map((it) => {
+                      const pick = picks.find((x) => x.kind === "step" && x.slotId === it.id);
+                      return pick && !it.assigned_user_id ? { ...it, assigned_user_id: pick.userId } : it;
+                    })
+                  );
+                }}
               />
             )}
           </>

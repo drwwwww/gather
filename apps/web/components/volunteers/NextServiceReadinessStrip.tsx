@@ -71,7 +71,7 @@ export default function NextServiceReadinessStrip({
             </div>
             <div>
               <p className="text-sm font-semibold text-[var(--text-primary)]">No team scheduled</p>
-              <p className="mt-1 text-xs text-[var(--text-muted)]">Generate a schedule to see coverage here.</p>
+              <p className="mt-1 text-xs text-[var(--text-muted)]">Add spots to this service to see who’s coming.</p>
             </div>
           </div>
         ) : (

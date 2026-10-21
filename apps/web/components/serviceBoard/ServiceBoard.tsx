@@ -415,7 +415,7 @@ export default function ServiceBoard({
         <section className="stitch-section-card" aria-labelledby="team-title">
           <div className="mb-2 flex items-baseline justify-between gap-2">
             <h2 id="team-title" className="text-sm font-semibold text-[var(--text-primary)]">Team</h2>
-            <span className="text-xs text-[var(--text-muted)]">{slots.length} spots · {groups.length} {groups.length === 1 ? "ministry" : "ministries"}</span>
+            <span className="text-xs text-[var(--text-muted)]">{slots.length} {slots.length === 1 ? "spot" : "spots"} · {groups.length} {groups.length === 1 ? "ministry" : "ministries"}</span>
           </div>
           {groups.length === 0 && (
             <p className="py-4 text-center text-sm text-[var(--text-muted)]">Add the roles this service needs below.</p>

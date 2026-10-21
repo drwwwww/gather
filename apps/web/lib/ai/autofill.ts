@@ -24,7 +24,12 @@ export type AutofillHistoryRow = {
 
 export type AutofillSlot = { id: string; role_id: string; assigned_user_id: string | null; backup_user_id: string | null };
 
+/** A step in the order of service that needs a person (e.g. "Welcome", "Worship set"). */
+export type AutofillStep = { id: string; title: string; owner_role_id: string | null; assigned_user_id: string | null; backup_user_id: string | null };
+
 export type AutofillProposal = {
+  /** "role" fills a team spot, "step" fills an order-of-service step. */
+  kind: "role" | "step";
   slotId: string;
   roleId: string;
   roleName: string;
@@ -114,7 +119,7 @@ export function rankForRole(input: {
       const parts: string[] = [];
       parts.push(count > 0 ? `Served as ${roleName} ${count}×` : interested ? `Interested in ${roleName}` : `New to ${roleName}`);
       parts.push(last ? (restDays >= 14 ? `last served ${Math.round(restDays / 7)} weeks ago` : `served ${restDays} days ago`) : "hasn't served yet");
-      if (load === 0) parts.push("free the weeks nearby");
+      if (load === 0) parts.push("not on the schedule the weeks around it");
       const fact = count > 0
         ? `${roleName} ${count}×${last ? ` · rested ${Math.max(0, Math.round(restDays / 7))} wk` : ""}`
         : last
@@ -128,12 +133,13 @@ export function rankForRole(input: {
 export function proposeSchedule(input: {
   planDate: string;
   slots: AutofillSlot[];
+  steps?: AutofillStep[];
   roleNameById: Record<string, string>;
   people: AutofillPerson[];
   history: AutofillHistoryRow[];
   awayIds: Set<string>;
-}): { proposals: AutofillProposal[]; unfilled: number } {
-  const { planDate, slots, roleNameById, people, history, awayIds } = input;
+}): { proposals: AutofillProposal[]; unfilled: number; total: number } {
+  const { planDate, slots, steps = [], roleNameById, people, history, awayIds } = input;
   const stats = buildServingStats(planDate, history);
 
   const busy = new Set<string>();
@@ -154,9 +160,44 @@ export function proposeSchedule(input: {
       .find((r) => !busy.has(r.person.id) && !awayIds.has(r.person.id) && !r.outsider);
     if (best) {
       busy.add(best.person.id);
-      proposals.push({ slotId: slot.id, roleId: slot.role_id, roleName, userId: best.person.id, name: best.person.name, reason: best.reason });
+      proposals.push({ kind: "role", slotId: slot.id, roleId: slot.role_id, roleName, userId: best.person.id, name: best.person.name, reason: best.reason });
     }
   }
 
-  return { proposals, unfilled: open.length - proposals.length };
+  // Steps: whoever holds the step's role in this service leads it (the worship
+  // leader takes "Worship"); otherwise the best-rested person who isn't away.
+  const roleHolder = new Map<string, string>();
+  for (const s of slots) {
+    const holder = s.assigned_user_id ?? proposals.find((p) => p.slotId === s.id)?.userId;
+    if (holder && !roleHolder.has(s.role_id)) roleHolder.set(s.role_id, holder);
+  }
+  const nameById = new Map(people.map((p) => [p.id, p.name]));
+  const onStep = new Set(steps.map((s) => s.assigned_user_id).filter(Boolean) as string[]);
+  const openSteps = steps.filter((s) => !s.assigned_user_id);
+  let stepsFilled = 0;
+  for (const step of openSteps) {
+    const label = step.title.trim() || "this step";
+    const holder = step.owner_role_id ? roleHolder.get(step.owner_role_id) : undefined;
+    if (holder && !awayIds.has(holder) && nameById.has(holder)) {
+      const roleName = roleNameById[step.owner_role_id!] ?? "that role";
+      proposals.push({ kind: "step", slotId: step.id, roleId: step.owner_role_id!, roleName: label, userId: holder, name: nameById.get(holder)!, reason: `Already serving as ${roleName} in this service` });
+      stepsFilled++;
+      continue;
+    }
+    const roleName = step.owner_role_id ? roleNameById[step.owner_role_id] ?? label : label;
+    const best = rankForRole({ planDate, roleId: step.owner_role_id, roleName, people, stats })
+      .find((r) => !onStep.has(r.person.id) && !awayIds.has(r.person.id) && !r.outsider);
+    if (best) {
+      onStep.add(best.person.id);
+      proposals.push({ kind: "step", slotId: step.id, roleId: step.owner_role_id ?? "", roleName: label, userId: best.person.id, name: best.person.name, reason: best.reason });
+      stepsFilled++;
+    }
+  }
+
+  const openRolesFilled = proposals.filter((p) => p.kind === "role").length;
+  return {
+    proposals,
+    unfilled: open.length - openRolesFilled + (openSteps.length - stepsFilled),
+    total: slots.length + steps.length,
+  };
 }
