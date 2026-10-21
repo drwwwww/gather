@@ -462,7 +462,10 @@ function getFriendlySignInError(message: string) {
   if (n.includes("email not confirmed")) {
     return "Check your email to confirm your account, then sign in.";
   }
-  return "We couldn't sign you in. Please try again.";
+  if (n.includes("failed to fetch") || n.includes("network") || n.includes("load failed")) {
+    return "We couldn't reach Gather. Check your internet connection and try again. If it keeps happening, try a private window — a browser extension may be blocking it.";
+  }
+  return "We couldn't sign you in. Try again in a moment.";
 }
 
 function getFriendlySignUpError(message: string) {

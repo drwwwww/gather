@@ -12,7 +12,7 @@ import { useAuth } from "../context/AuthContext";
 import { WEB_URL, postWebApi } from "../lib/webApi";
 import { SpringIn } from "../components/ds/motion";
 
-type AssignmentChip = { key: string; label: string; role: "Primary" | "Backup" | "Part" };
+type AssignmentChip = { key: string; label: string; role: "" | "Backup" }; // "" = they're the one serving (no tag shown)
 /** `start_time` lives directly on the plan (migration 0027) — service_time_id is legacy and often null. */
 type PlanRow = { id: string; title: string; service_date: string; start_time: string | null; service_time_id?: string | null };
 /** `status` = execution state (PLANNED/DONE/SKIPPED); `assignment_status` = confirm/decline state — the two are unrelated. */
@@ -98,10 +98,10 @@ export default function ServicePlanScreen() {
 
   const assignmentChips: AssignmentChip[] = useMemo(() => {
     const chips: AssignmentChip[] = [];
-    for (const item of myItems) chips.push({ key: `i-${item.id}`, label: item.title, role: item.assigned_user_id === myUserId ? "Part" : "Backup" });
+    for (const item of myItems) chips.push({ key: `i-${item.id}`, label: item.title, role: item.assigned_user_id === myUserId ? "" : "Backup" });
     for (const slot of mySlots) {
       const name = roleLookup[slot.role_id] ?? "Role";
-      chips.push({ key: `s-${slot.id}`, label: name, role: slot.assigned_user_id === myUserId ? "Primary" : "Backup" });
+      chips.push({ key: `s-${slot.id}`, label: name, role: slot.assigned_user_id === myUserId ? "" : "Backup" });
     }
     return chips;
   }, [myItems, mySlots, roleLookup, myUserId]);
@@ -383,7 +383,7 @@ export default function ServicePlanScreen() {
                   {assignmentChips.map((chip) => (
                     <View key={chip.key} style={styles.chip}>
                       <Text style={styles.chipTxt}>{chip.label}</Text>
-                      {chip.role !== "Part" ? <Text style={styles.chipRole}>{chip.role}</Text> : null}
+                      {chip.role ? <Text style={styles.chipRole}>{chip.role}</Text> : null}
                     </View>
                   ))}
                 </View>
@@ -591,7 +591,7 @@ const styles = StyleSheet.create({
 
   orderCard: { backgroundColor: palette.surface, borderRadius: radius.lg, padding: 18, marginBottom: 10, ...shadow.sm },
   orderCardMe: { borderWidth: 1.5, borderColor: palette.amberSoft },
-  orderNum: { fontFamily: font.bold, fontSize: 24, color: "#D8D2E2", marginTop: 2, minWidth: 30 },
+  orderNum: { fontFamily: font.bold, fontSize: 24, color: "#D3CABA", marginTop: 2, minWidth: 30 },
   orderTitle: { fontFamily: font.bold, fontSize: 17, color: palette.ink },
   orderNotes: { fontFamily: font.regular, fontSize: 13, color: palette.inkSoft, marginTop: 4, lineHeight: 19 },
   assignedRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 8 },

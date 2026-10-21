@@ -118,10 +118,8 @@ export default function AnnouncementsScreen({ navigation }: any) {
                   resizeMode="cover"
                 />
                 <View style={{ flex: 1 }}>
-                  <View style={styles.restTop}>
-                    <Text style={styles.restTitle} numberOfLines={2}>{a.title}</Text>
-                    <Text style={styles.restDate}>{formatRelativeLabel(a.publish_at, a.created_at)}</Text>
-                  </View>
+                  <Text style={styles.restDate}>{formatRelativeLabel(a.publish_at, a.created_at)}</Text>
+                  <Text style={styles.restTitle} numberOfLines={3}>{a.title}</Text>
                   <Text style={styles.restBody} numberOfLines={2}>{excerpt(a.body)}</Text>
                 </View>
               </PressCard>
@@ -152,8 +150,7 @@ const styles = StyleSheet.create({
   restCard: { backgroundColor: palette.surface, borderRadius: radius.lg, padding: 16, flexDirection: "row", alignItems: "center", gap: 14, ...shadow.sm },
   restAccent: { width: 4, borderRadius: 2, backgroundColor: palette.amber, alignSelf: "stretch" },
   restThumb: { width: 48, height: 48, borderRadius: radius.sm, backgroundColor: palette.sunken },
-  restTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 6 },
-  restTitle: { fontFamily: font.bold, fontSize: 16, color: palette.ink, flex: 1 },
-  restDate: { fontFamily: font.regular, fontSize: 11, color: palette.inkMuted, flexShrink: 0, marginTop: 2 },
+  restTitle: { fontFamily: font.bold, fontSize: 16, lineHeight: 21, color: palette.ink, marginBottom: 4 },
+  restDate: { fontFamily: font.medium, fontSize: 11, color: palette.inkMuted, marginBottom: 2 },
   restBody: { fontFamily: font.regular, fontSize: 13, color: palette.inkSoft, lineHeight: 19 },
 });

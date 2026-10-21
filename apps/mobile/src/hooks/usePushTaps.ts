@@ -34,6 +34,24 @@ export async function openForNotification(data: PushData) {
   }
 }
 
+/** A tapped push has been seen — mark its inbox row(s) read so the list doesn't still say "New". */
+async function markPushRead(data: PushData) {
+  if (!supabase || !data.type) return;
+  const { data: session } = await supabase.auth.getSession();
+  const uid = session.session?.user.id;
+  if (!uid) return;
+  let q = (supabase as any)
+    .from("notification_log")
+    .update({ read_at: new Date().toISOString() })
+    .eq("user_id", uid)
+    .eq("type", data.type)
+    .is("read_at", null);
+  if (data.plan_id) q = q.eq("payload->>plan_id", data.plan_id);
+  if (data.event_id) q = q.eq("payload->>event_id", data.event_id);
+  if (data.announcement_id) q = q.eq("payload->>announcement_id", data.announcement_id);
+  await q;
+}
+
 /**
  * Tapping a push opens the screen it's about — including the push that
  * launched the app from closed (it waits until navigation is ready).
@@ -50,6 +68,7 @@ export function usePushTaps() {
       if (handled.has(id)) return;
       handled.add(id);
       const data = (response.notification.request.content.data ?? {}) as PushData;
+      void markPushRead(data).catch(() => {});
       const go = (tries: number) => {
         if (!alive) return;
         if (navigationRef.isReady()) void openForNotification(data);

@@ -18,7 +18,7 @@ import { RiseIn, Shimmer, usePressScale } from "../components/ds/motion";
 import { eventFallback } from "../lib/churchImagery";
 import { distanceMiles, formatDistance } from "../lib/geo";
 import { supabase } from "../supabase";
-import { eventWhen, eventPhase, eventAddress, shareEvent, loadSavedEvents, setEventSaved } from "../lib/events";
+import { eventWhen, eventPhase, eventAddress, shareEvent, loadSavedEvents, setEventSaved, soonLabel } from "../lib/events";
 import { useAuth } from "../context/AuthContext";
 
 type EventRow = {
@@ -413,7 +413,7 @@ function EventCard({
               <View style={[styles.soonBadge, phase === "now" && styles.nowBadge]}>
                 <Icon name="clock" size={11} color={phase === "now" ? palette.onDark : palette.ink} />
                 <Text style={[styles.soonTxt, phase === "now" && { color: palette.onDark }]}>
-                  {phase === "now" ? "Happening now" : "Starting soon"}
+                  {phase === "now" ? "Happening now" : soonLabel(event)}
                 </Text>
               </View>
             ) : null}

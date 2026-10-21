@@ -555,7 +555,7 @@ function OfferCard({ assignment, onOpen }: { assignment: AssignmentPreview; onOp
             <Icon name="serve" size={16} color={palette.amberDeep} />
           </View>
           <View style={{ flex: 1, minWidth: 0 }}>
-            <Text style={styles.offerTitle} numberOfLines={1}>
+            <Text style={styles.offerTitle} numberOfLines={2}>
               {assignment.title}
             </Text>
             <Text style={styles.offerWhen} numberOfLines={1}>
@@ -634,7 +634,7 @@ function ListRow({ event, last, onPress }: { event: EventPreview; last: boolean;
         <Text style={styles.listMonth}>{month}</Text>
       </View>
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text style={styles.listTitle} numberOfLines={1}>
+        <Text style={styles.listTitle} numberOfLines={2}>
           {event.title}
         </Text>
         <Text style={styles.listMeta} numberOfLines={1}>

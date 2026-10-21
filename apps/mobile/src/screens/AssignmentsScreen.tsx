@@ -24,32 +24,31 @@ function localTodayString(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 const weekdayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-const weekdayShort = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 function formatDateLabel(dateStr: string): string {
   const d = new Date(dateStr + "T00:00:00");
   const month = d.toLocaleString("en-US", { month: "short" });
   return `${weekdayNames[d.getDay()]}, ${month} ${d.getDate()}`;
 }
-function formatServiceTime(dateStr: string, startTime: string): string {
-  const d = new Date(dateStr + "T00:00:00");
-  const day = weekdayShort[d.getDay()] ?? "";
-  const [h, m] = (startTime || "09:00").split(":").map(Number);
+/** "9:00 AM" — the day is already in the group heading above each row. */
+function formatClock(startTime: string): string {
+  const [h, m] = startTime.split(":").map(Number);
   const hour = h > 12 ? h - 12 : h === 0 ? 12 : h;
   const ampm = h >= 12 ? "PM" : "AM";
-  return `${day} ${hour}:${String(m).padStart(2, "0")} ${ampm}`;
+  return `${hour}:${String(m || 0).padStart(2, "0")} ${ampm}`;
 }
 function serviceLabelFor(
-  dateStr: string,
+  _dateStr: string,
   startTime: string | null,
   serviceName: string | undefined
 ): string {
-  const time = formatServiceTime(dateStr, startTime ?? "09:00");
-  return serviceName ? `${serviceName} · ${time}` : time;
+  // No made-up "9:00" when a plan has no start time — just leave the time off.
+  const time = startTime ? formatClock(startTime) : null;
+  return [serviceName, time].filter(Boolean).join(" · ") || "Service";
 }
 function subtitleFor(a: AssignmentRow): string {
-  if (a.source === "bulletin_part") return a.isBackup ? "Run of show · backup" : "Run of show";
-  return a.isBackup ? "Role · backup" : "Role";
+  if (a.source === "bulletin_part") return a.isBackup ? "Backup for this part of the service" : "Part of the service";
+  return a.isBackup ? "Backup on the team" : "On the team";
 }
 
 export default function AssignmentsScreen() {

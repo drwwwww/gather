@@ -154,7 +154,7 @@ export default function SearchScreen({ navigation }: any) {
                       <Icon name="events" size={17} color={palette.amberDeep} />
                     </View>
                     <View style={{ flex: 1, minWidth: 0 }}>
-                      <Text style={styles.rowTitle} numberOfLines={1}>{e.title}</Text>
+                      <Text style={styles.rowTitle} numberOfLines={2}>{e.title}</Text>
                       <Text style={styles.rowMeta} numberOfLines={1}>
                         {whenLabel(e.start_at)}{e.location ? ` · ${e.location}` : ""}
                       </Text>
@@ -188,7 +188,7 @@ export default function SearchScreen({ navigation }: any) {
                       <Icon name="announcements" size={17} color={palette.amberDeep} />
                     </View>
                     <View style={{ flex: 1, minWidth: 0 }}>
-                      <Text style={styles.rowTitle} numberOfLines={1}>{a.title}</Text>
+                      <Text style={styles.rowTitle} numberOfLines={2}>{a.title}</Text>
                       {a.body ? <Text style={styles.rowMeta} numberOfLines={1}>{a.body}</Text> : null}
                     </View>
                     <Icon name="chevronRight" size={16} color={palette.inkMuted} />
@@ -208,7 +208,7 @@ export default function SearchScreen({ navigation }: any) {
                   >
                     <Avatar imageUri={m.avatar_url} name={m.full_name} email={m.email} seed={m.id} size={38} />
                     <View style={{ flex: 1, minWidth: 0 }}>
-                      <Text style={styles.rowTitle} numberOfLines={1}>
+                      <Text style={styles.rowTitle} numberOfLines={2}>
                         {m.full_name?.trim() || m.email?.split("@")[0] || "Member"}
                       </Text>
                       {m.email ? <Text style={styles.rowMeta} numberOfLines={1}>{m.email}</Text> : null}

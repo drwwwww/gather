@@ -56,6 +56,17 @@ export function eventPhase(e: Pick<EventLike, "start_at" | "end_at">, now = Date
   return "upcoming";
 }
 
+/** Badge text for a "soon" event: the last few hours say "Starting soon", otherwise the day. */
+export function soonLabel(e: Pick<EventLike, "start_at">, now = new Date()): string {
+  const start = new Date(e.start_at);
+  if (start.getTime() - now.getTime() < 3 * 3600_000) return "Starting soon";
+  const day = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const days = Math.round((day(start) - day(now)) / 86_400_000);
+  if (days <= 0) return "Today";
+  if (days === 1) return "Tomorrow";
+  return `In ${days} days`;
+}
+
 /** The event's own address, else its church's. */
 export const eventAddress = (e: Pick<EventLike, "address">, churchAddress?: string | null) =>
   e.address?.trim() || churchAddress?.trim() || null;

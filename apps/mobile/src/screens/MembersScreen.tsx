@@ -125,13 +125,14 @@ export default function MembersScreen({ navigation }: any) {
                   accessibilityHint={isSelf ? undefined : "Options to report or block"}
                 >
                   <Avatar imageUri={m.avatar_url} name={m.full_name} email={m.email} seed={m.id} size={46} />
+                  {/* Name gets the full width (wraps to 2 lines); the role sits under it instead of squeezing it. */}
                   <View style={{ flex: 1, minWidth: 0 }}>
-                    <Text style={styles.name} numberOfLines={1}>
-                      {displayName}{isSelf ? <Text style={styles.you}>  you</Text> : null}
+                    <Text style={styles.name} numberOfLines={2}>
+                      {displayName}{isSelf ? <Text style={styles.you}>  (you)</Text> : null}
                     </Text>
-                    {m.email ? <Text style={styles.email} numberOfLines={1}>{m.email}</Text> : null}
+                    {m.email ? <Text style={styles.email} numberOfLines={1} ellipsizeMode="middle">{m.email}</Text> : null}
+                    <View style={{ marginTop: 6 }}><Pill label={roleLabel(m.role)} tone={roleTone(m.role)} /></View>
                   </View>
-                  <Pill label={roleLabel(m.role)} tone={roleTone(m.role)} />
                   {!isSelf ? <Icon name="more" size={18} color={palette.inkMuted} /> : null}
                 </Pressable>
               );

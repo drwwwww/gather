@@ -5,7 +5,7 @@ import {
   GlassIconButton, LinearGradient,
   palette, font, gradient, radius, shadow,
 } from "../components/ds";
-import DawnLayout from "../components/app/DawnLayout";
+import DawnLayout, { DAWN_INK_STRONG } from "../components/app/DawnLayout";
 import { RiseIn, usePressScale } from "../components/ds/motion";
 import { supabase } from "../supabase";
 import { toE164, PHONE_AUTH_ENABLED } from "../lib/phone";
@@ -25,6 +25,9 @@ function BigField({
   keyboardType,
   autoFocus,
   rightSlot,
+  onSubmit,
+  returnKeyType = "next",
+  kind = "email",
 }: {
   value: string;
   onChangeText: (v: string) => void;
@@ -33,6 +36,9 @@ function BigField({
   keyboardType?: "default" | "email-address" | "phone-pad";
   autoFocus?: boolean;
   rightSlot?: React.ReactNode;
+  onSubmit?: () => void;
+  returnKeyType?: "next" | "go" | "send";
+  kind?: "email" | "phone" | "password";
 }) {
   return (
     <View style={{ position: "relative" }}>
@@ -46,6 +52,11 @@ function BigField({
         autoCorrect={false}
         keyboardType={keyboardType ?? (secureTextEntry ? "default" : "email-address")}
         autoFocus={autoFocus}
+        onSubmitEditing={onSubmit}
+        returnKeyType={returnKeyType}
+        autoComplete={kind === "password" ? "current-password" : kind === "phone" ? "tel" : "email"}
+        textContentType={kind === "password" ? "password" : kind === "phone" ? "telephoneNumber" : "username"}
+        accessibilityLabel={placeholder}
         style={[styles.bigInput, rightSlot ? { paddingRight: 64 } : null]}
       />
       {rightSlot ? <View style={styles.rightSlot}>{rightSlot}</View> : null}
@@ -88,6 +99,9 @@ function PillButton({
     <Animated.View style={press.style}>
       <Pressable
         onPress={onPress}
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        accessibilityState={{ disabled: !!isDisabled, busy: !!loading }}
         onPressIn={isDisabled ? undefined : press.onPressIn}
         onPressOut={isDisabled ? undefined : press.onPressOut}
         disabled={isDisabled}
@@ -109,6 +123,15 @@ function PillButton({
       </Pressable>
     </Animated.View>
   );
+}
+
+function friendlySignInError(message: string): string {
+  const m = message.toLowerCase();
+  if (m.includes("invalid login") || m.includes("invalid credentials")) return "That email or password didn't match. Try again.";
+  if (m.includes("email not confirmed")) return "Check your email to confirm your account, then sign in.";
+  if (m.includes("rate") || m.includes("too many")) return "Too many tries. Wait a minute, then try again.";
+  if (m.includes("failed to fetch") || m.includes("network")) return "We couldn't reach Gather. Check your connection and try again.";
+  return "We couldn't sign you in. Try again in a moment.";
 }
 
 export default function SignInScreen({ navigation }: any) {
@@ -147,7 +170,7 @@ export default function SignInScreen({ navigation }: any) {
       ...credential,
       password,
     } as any);
-    if (signInError) setError(signInError.message);
+    if (signInError) setError(friendlySignInError(signInError.message));
     setLoading(false);
   };
 
@@ -160,9 +183,14 @@ export default function SignInScreen({ navigation }: any) {
   const handleForgotPassword = async () => {
     if (!supabase || !forgotEmail.trim()) return;
     setForgotLoading(true);
-    await supabase.auth.resetPasswordForEmail(forgotEmail.trim());
-    setForgotSent(true);
+    setError(null);
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(forgotEmail.trim());
     setForgotLoading(false);
+    if (resetError) {
+      setError(friendlySignInError(resetError.message));
+      return;
+    }
+    setForgotSent(true);
   };
 
   const back = () => {
@@ -200,6 +228,7 @@ export default function SignInScreen({ navigation }: any) {
                     placeholder="Email address"
                     keyboardType="email-address"
                     autoFocus
+                    onSubmit={goToPassword}
                   />
                 ) : (
                   <BigField
@@ -208,6 +237,8 @@ export default function SignInScreen({ navigation }: any) {
                     placeholder="(555) 123-4567"
                     keyboardType="phone-pad"
                     autoFocus
+                    kind="phone"
+                    onSubmit={goToPassword}
                   />
                 )}
               </View>
@@ -239,8 +270,11 @@ export default function SignInScreen({ navigation }: any) {
                   placeholder="Password"
                   secureTextEntry={!showPassword}
                   autoFocus
+                  kind="password"
+                  returnKeyType="go"
+                  onSubmit={() => { if (password) void handleSignIn(); }}
                   rightSlot={
-                    <Pressable onPress={() => setShowPassword((v) => !v)} hitSlop={8}>
+                    <Pressable onPress={() => setShowPassword((v) => !v)} hitSlop={8} accessibilityRole="button" accessibilityLabel={showPassword ? "Hide password" : "Show password"}>
                       <Text style={styles.showHide}>{showPassword ? "Hide" : "Show"}</Text>
                     </Pressable>
                   }
@@ -291,8 +325,15 @@ export default function SignInScreen({ navigation }: any) {
                       value={forgotEmail}
                       onChangeText={setForgotEmail}
                       placeholder="Email address"
+                      returnKeyType="send"
+                      onSubmit={() => void handleForgotPassword()}
                     />
                   </View>
+                  {error ? (
+                    <View style={styles.errorCard}>
+                      <Text style={styles.errorTxt}>{error}</Text>
+                    </View>
+                  ) : null}
                   <View style={styles.ctaBlock}>
                     <PillButton
                       label="Send reset link"
@@ -323,7 +364,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     lineHeight: 30,
     letterSpacing: -0.4,
-    color: palette.ink,
+    color: "#3D2A14",
   },
   subHeadline: {
     fontFamily: font.regular,
@@ -375,7 +416,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  pillBtnTxt: { fontFamily: font.bold, fontSize: 16, color: "#3A2600", letterSpacing: 0.2 },
+  pillBtnTxt: { fontFamily: font.bold, fontSize: 16, color: DAWN_INK_STRONG, letterSpacing: 0.2 },
   pillBtnFlat: { backgroundColor: palette.sunken },
   pillBtnTxtFlat: { fontFamily: font.bold, fontSize: 16, color: palette.inkMuted, letterSpacing: 0.2 },
 

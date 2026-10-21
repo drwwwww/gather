@@ -4,7 +4,10 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { LinearGradient, BrandMark, font, gradient, shadow } from "../ds";
 
 /** Dark brown for text on the amber — white on amber is ~2:1, this is ~8:1. */
-const DAWN_INK = "#3A2600";
+/** Deep amber-brown taken from the sunrise itself — dark enough to read (6:1 on the sun), soft enough not to look black. */
+export const DAWN_INK = "#7A4A0C";
+/** For small bold text on solid amber (CTA pills), where the lighter ink would dip under 4.5:1. */
+export const DAWN_INK_STRONG = "#5C3405";
 const SHEET = "#FBFAF7";
 
 /**
@@ -84,7 +87,7 @@ const styles = StyleSheet.create({
   topRow: { paddingHorizontal: 20, paddingTop: 8, height: 52, justifyContent: "center" },
   brand: { alignItems: "center", paddingTop: 4, paddingBottom: 24, flexShrink: 1 },
   wordmark: { fontFamily: font.bold, fontSize: 34, letterSpacing: -0.8, color: DAWN_INK, marginTop: 12 },
-  tagline: { fontFamily: font.medium, fontSize: 14, color: DAWN_INK, opacity: 0.78, marginTop: 2 },
+  tagline: { fontFamily: font.medium, fontSize: 14, color: DAWN_INK, marginTop: 2 },
   sheetWrap: { flex: 1, justifyContent: "flex-end" },
   sheet: {
     backgroundColor: SHEET,
