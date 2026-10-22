@@ -109,7 +109,7 @@ export default function PresetCard({
               }}
               aria-haspopup="menu"
               aria-expanded={menuOpen}
-              aria-label="Preset options"
+              aria-label="Template options"
               className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-2)] hover:text-[var(--text-primary)]"
             >
               <MoreHorizontal className="h-4 w-4" />

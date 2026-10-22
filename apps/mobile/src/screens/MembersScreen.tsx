@@ -26,6 +26,8 @@ function roleLabel(role: string): string {
 
 export default function MembersScreen({ navigation }: any) {
   const { user, profile } = useAuth();
+  // Contact details are for church admins; everyone else sees names and roles only.
+  const showEmails = profile?.role === "ADMIN";
   const [members, setMembers] = useState<MemberRow[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -64,7 +66,7 @@ export default function MembersScreen({ navigation }: any) {
     const q = search.trim().toLowerCase();
     const visible = members.filter((m) => !blockedIds.has(m.id));
     if (!q) return visible;
-    return visible.filter((m) => (m.full_name ?? "").toLowerCase().includes(q) || (m.email ?? "").toLowerCase().includes(q));
+    return visible.filter((m) => (m.full_name ?? "").toLowerCase().includes(q) || (showEmails && (m.email ?? "").toLowerCase().includes(q)));
   }, [members, search, blockedIds]);
 
   const blockedMembers = useMemo(() => members.filter((m) => blockedIds.has(m.id)), [members, blockedIds]);
@@ -88,7 +90,7 @@ export default function MembersScreen({ navigation }: any) {
         <View style={styles.searchBox}>
           <Icon name="search" size={18} color={palette.inkMuted} />
           <TextInput
-            placeholder="Search by name or email…"
+            placeholder={showEmails ? "Search by name or email…" : "Search by name…"}
             placeholderTextColor={palette.inkMuted}
             value={search}
             onChangeText={setSearch}
@@ -113,7 +115,7 @@ export default function MembersScreen({ navigation }: any) {
         ) : (
           <View style={{ gap: 10 }}>
             {filtered.map((m) => {
-              const displayName = m.full_name?.trim() || m.email?.split("@")[0] || "Member";
+              const displayName = m.full_name?.trim() || (showEmails ? m.email?.split("@")[0] : null) || "Member";
               const isSelf = m.id === user?.id;
               return (
                 <Pressable
@@ -130,7 +132,7 @@ export default function MembersScreen({ navigation }: any) {
                     <Text style={styles.name} numberOfLines={2}>
                       {displayName}{isSelf ? <Text style={styles.you}>  (you)</Text> : null}
                     </Text>
-                    {m.email ? <Text style={styles.email} numberOfLines={1} ellipsizeMode="middle">{m.email}</Text> : null}
+                    {showEmails && m.email ? <Text style={styles.email} numberOfLines={1} ellipsizeMode="middle">{m.email}</Text> : null}
                     <View style={{ marginTop: 6 }}><Pill label={roleLabel(m.role)} tone={roleTone(m.role)} /></View>
                   </View>
                   {!isSelf ? <Icon name="more" size={18} color={palette.inkMuted} /> : null}
@@ -151,7 +153,7 @@ export default function MembersScreen({ navigation }: any) {
                 {blockedMembers.map((m) => (
                   <Pressable key={m.id} onPress={() => setSheetMember(m)} style={[styles.row, { opacity: 0.7 }]} accessibilityRole="button">
                     <Avatar imageUri={m.avatar_url} name={m.full_name} email={m.email} seed={m.id} size={40} />
-                    <Text style={[styles.name, { flex: 1 }]} numberOfLines={1}>{m.full_name?.trim() || m.email || "Member"}</Text>
+                    <Text style={[styles.name, { flex: 1 }]} numberOfLines={1}>{m.full_name?.trim() || (showEmails ? m.email : null) || "Member"}</Text>
                     <Text style={styles.unblock}>Unblock</Text>
                   </Pressable>
                 ))}

@@ -290,11 +290,15 @@ None. The full-screen amber "Dawn" overlay that used to play on sign-in/up/out (
 
 ## AdminShell
 
-Fixed left sidebar (200px), sticky top header (56px / h-14), main content offset by sidebar width.
+Sidebar-only shell (Hilos/Linear pattern) — **there is no top bar**: it only duplicated search, the bell and the avatar, which all live in the sidebar. Fixed left sidebar (200px), main content offset by sidebar width and starting at the top of the screen (sticky things use `top-3`, toasts `top-6`).
 
-**Nav items:** Dashboard · People · Volunteers · Service Plans · Service Presets · Announcements · Events · Notifications (with red unread badge) · Account
+Sidebar, top to bottom: church name (wraps to 2 lines) · **Search** row with the ⌘K/Ctrl K hint → `components/admin/CommandPalette.tsx` (centered panel; live results for people, service plans, events, announcements plus "Go to" pages; ↑↓/Enter/Esc; "See all results" → `/admin/search`) · Dashboard, Live Service · Planning (Volunteers, Service Plans) · People (People, Team Health) · Communication (Announcements, Events) · Notifications (red unread badge) · Settings · user card.
 
-Active item: amber left rail (`w-1`, `--primary`) + `--primary-soft` background. Notification count polled from `notification_log` on mount and on `gather-notifications-updated` window event.
+**Service Presets are "Service templates"** inside Service Plans: no nav item (Service Plans stays highlighted on `/admin/service-presets`), reached from the Service Plans "Templates" button or ⌘K; page has a back link. Code/table names stay `preset`.
+
+Deep links used by search: `/people?member=<id>`, `/events?open=<id>`, `/announcements?open=<id>`, `/admin/service-plans?date=YYYY-MM-DD`.
+
+Active item: amber left rail + amber-50 background. Notification count polled from `notification_log` on mount and on `gather-notifications-updated` window event.
 
 ---
 
@@ -302,14 +306,11 @@ Active item: amber left rail (`w-1`, `--primary`) + `--primary-soft` background.
 
 ### Volunteers (`components/volunteers/`)
 
-| Component | Purpose |
-|---|---|
-| `AssignmentsTable` | Main bulletin editor: role slots + run-of-show items |
-| `ScheduleBuilder` | Generate/copy schedule |
-| `NextServiceReadinessStrip` | Three-layer donut + stats + action buttons |
-| `PendingResponsesCard` | ASSIGNED slots awaiting response |
-| `DeclinedCard` | DECLINED slots needing replacement |
-| `QuickRolePresets` | One-click add Greeter / Usher / Sound Team |
+**The Volunteers page is an overview, not an editor** — the only place to change who serves is the Service Board. `/volunteers` covers every regular service in the next 8 weeks (matched to its plan, or "Not planned yet") in two views, remembered per browser: **List** (default; Linear project list / Stripe table — date, service, confirmed meter "9 of 17", one-word Needs column: "1 can't make it" / "4 open spots" / "All set", team avatars; the whole row opens the plan or starts one) and **Grid** (Planning Center Matrix — roles × planned services, each spot a first-name chip coloured by answer, Open shown dashed; any cell opens that plan). No per-row action buttons and no AI button here (reminders and Fill with AI live on the plan): one quiet line — "N services in the next two weeks need attention · Show only those" — filters the list. The old editor components (`AssignmentsTable`, `ScheduleBuilder`, `NextServiceReadinessStrip`, `PendingResponsesCard`, `DeclinedCard`, `QuickRolePresets`) were deleted. Remaining in `components/volunteers/`: `RolesCard` (Service Plans), `ServiceTeamBulletinSummary`.
+
+### Announcements (`components/announcements/`)
+
+`AnnouncementBrowser` — list + phone preview (Mailchimp campaigns / Gmail / Linear inbox): compact rows (thumbnail, title, audience · time, Live/Scheduled/Draft pill) on the left; the selected post rendered as the app shows it on the right (sticky), with Edit / Duplicate / Don't send (scheduled) / Delete. Replaced the full-width banner cards (`RecentAnnouncementsList`, deleted) and the stat cards that repeated the tab counts.
 
 ### Dashboard (`components/dashboard/`)
 

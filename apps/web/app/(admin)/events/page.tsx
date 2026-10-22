@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import AdminHeader from "../../../components/admin/AdminHeader";
 import Loader from "../../../components/ui/Loader";
@@ -391,6 +391,19 @@ export default function EventsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const openEdit = (event: EventItem) => { handleSelectEvent(event); setComposerOpen(true); };
+
+  // Search links here with ?open=<id> — open that event once the list has loaded.
+  const openedFromLinkRef = useRef(false);
+  useEffect(() => {
+    if (openedFromLinkRef.current || events.length === 0) return;
+    const id = new URLSearchParams(window.location.search).get("open");
+    const match = id ? events.find((e) => e.id === id) : undefined;
+    if (!id) return;
+    openedFromLinkRef.current = true;
+    window.history.replaceState(null, "", window.location.pathname);
+    if (match) openEdit(match);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [events]);
 
   return (
     <PageGrid>

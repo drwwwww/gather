@@ -73,7 +73,7 @@ const FEATURES = [
     eyebrow: "Service planning",
     title: "A run of show everyone can see.",
     body:
-      "Build the order of service once, save it as a preset, and reuse it every week. Timing, roles, and notes live in one document your worship leader, tech team, and pastor are all reading from.",
+      "Build the order of service once, save it as a template, and reuse it every week. Timing, roles, and notes live in one document your worship leader, tech team, and pastor are all reading from.",
     chips: ["Reusable presets", "Live run times", "Printable run sheets", "One source of truth"],
     image: "/images/modern-sanctuary.jpg",
   },
@@ -100,7 +100,7 @@ const STEPS = [
     n: "02",
     title: "Set your services",
     body:
-      "Tell Gather when you gather and what each service needs. Build a preset once and every following week starts from it instead of a blank page.",
+      "Tell Gather when you gather and what each service needs. Build a template once and every following week starts from it instead of a blank page.",
   },
   {
     n: "03",

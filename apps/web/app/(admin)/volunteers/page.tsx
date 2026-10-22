@@ -1,1057 +1,454 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { format } from "date-fns";
-import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
-import { createPortal } from "react-dom";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { ChevronRight, LayoutGrid, List } from "lucide-react";
 import AdminHeader from "../../../components/admin/AdminHeader";
-import { getCurrentContext, indexProfilesById, listProfilesByChurch } from "../../../lib/supabaseData";
+import Avatar from "../../../components/ui/avatar";
+import { getCurrentContext, listProfilesByChurch } from "../../../lib/supabaseData";
 import { supabase } from "../../../lib/supabaseClient";
-import { nextServiceDate, serviceTimeForDate } from "../../../lib/format";
-import NextServiceReadinessStrip from "../../../components/volunteers/NextServiceReadinessStrip";
-import AssignmentsTable from "../../../components/volunteers/AssignmentsTable";
-import type { BulletinSlotRow, BulletinItemRow } from "../../../components/volunteers/AssignmentsTable";
-import PendingResponsesCard from "../../../components/volunteers/PendingResponsesCard";
-import DeclinedCard from "../../../components/volunteers/DeclinedCard";
-import ScheduleBuilder from "../../../components/volunteers/ScheduleBuilder";
-import { useChurchPlan } from "../../../lib/plan";
-import { PageGrid, PageGridFull, PageGridRowTwoOne } from "../../../components/layout/PageGrid";
-import type { Database, AssignmentStatus } from "@gather/lib";
-type ServicePlanRoleSlotRow = Database["public"]["Tables"]["service_plan_role_slots"]["Row"];
+import { formatTimeString, localDateString } from "../../../lib/format";
 
-type RoleRow = Database["public"]["Tables"]["volunteer_roles"]["Row"];
-type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
+/**
+ * Volunteers = every upcoming service at a glance; changing who serves happens
+ * only on each plan's Service Board. Two views of the same data:
+ * - List (default): one row per service — Linear's project list / Stripe's tables.
+ * - Grid: roles × services with who's in each spot — Planning Center's Matrix.
+ * No per-row action buttons: problems show as a word, and one filter line
+ * narrows the list to services that need attention.
+ */
+
+const WEEKS = 8;
+const ATTENTION_DAYS = 14;
+const VIEW_KEY = "gather.volunteers.view";
+
 type ServiceTimeRow = { id: string; name: string; day_of_week: number; start_time: string | null };
-
-type StoredScheduleSlot = {
-  id: string;
-  roleId: string;
-  count: number;
+type PlanRow = { id: string; title: string | null; service_date: string; start_time: string | null; service_time_id: string | null };
+type Person = { id: string; name: string; email: string; avatarUrl: string | null };
+type Counts = { confirmed: number; waiting: number; declined: number; open: number; total: number };
+type Spot = { personId: string | null; status: string };
+type ServiceRow = {
+  key: string;
+  date: string;
+  serviceName: string;
+  time: string | null;
+  /** "HH:MM" for ordering same-day services. */
+  sortTime: string;
+  plan: PlanRow | null;
+  counts: Counts;
+  team: string[];
+  /** Team spots by role id (Grid view). */
+  spots: Record<string, Spot[]>;
 };
 
-type RoleView = RoleRow & { ministryName?: string | null };
-
-const weekdayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-
-function getLocalDateInputValue(value: Date = new Date()) {
-  const d = new Date(value);
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}`;
-}
-
-function parseYmdLocal(ymd: string): Date {
+const addDays = (ymd: string, days: number) => {
   const [y, m, d] = ymd.split("-").map(Number);
-  return new Date(y, (m ?? 1) - 1, d ?? 1);
-}
+  return localDateString(new Date(y, m - 1, d + days));
+};
+const dayOfWeek = (ymd: string) => new Date(`${ymd}T12:00:00`).getDay();
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+const emptyCounts = (): Counts => ({ confirmed: 0, waiting: 0, declined: 0, open: 0, total: 0 });
+const firstName = (name: string) => name.split(/\s+/)[0] ?? name;
+const needsAttention = (r: ServiceRow) => !r.plan || r.counts.declined > 0 || r.counts.open > 0;
 
-function addDaysYmd(ymd: string, delta: number): string {
-  const d = parseYmdLocal(ymd);
-  d.setDate(d.getDate() + delta);
-  return getLocalDateInputValue(d);
-}
+const SPOT_STYLE: Record<string, string> = {
+  CONFIRMED: "bg-green-50 text-green-800",
+  DECLINED: "bg-red-50 text-red-800 line-through decoration-red-300",
+  WAITING: "bg-amber-50 text-amber-900",
+};
 
 export default function VolunteersPage() {
-
-  const [roles, setRoles] = useState<RoleView[]>([]);
-  const [profiles, setProfiles] = useState<ProfileRow[]>([]);
-  /** YYYY-MM-DD dates that have an active service plan (drives the strip dots). */
-  const [planDates, setPlanDates] = useState<Set<string>>(new Set());
-  const [serviceDate, setServiceDate] = useState(() => getLocalDateInputValue());
-  /** First day (YYYY-MM-DD) of the 7-day strip; chevrons shift this without changing selection until a pill is chosen. */
-  const [dateStripStart, setDateStripStart] = useState(() => addDaysYmd(getLocalDateInputValue(), -3));
-  const [showCalendar, setShowCalendar] = useState(false);
-  const [stripAnim, setStripAnim] = useState<"left" | "right" | null>(null);
-  /** First day of the month shown in the calendar popover (YYYY-MM-01). */
-  const [calendarMonth, setCalendarMonth] = useState(() => getLocalDateInputValue().slice(0, 7) + "-01");
-  const [slotRoleId, setSlotRoleId] = useState("");
-  const [slotCount, setSlotCount] = useState(1);
-  const [slots, setSlots] = useState<StoredScheduleSlot[]>([]);
-  const [showOpenOnly, setShowOpenOnly] = useState(false);
-  const [showPendingOnly, setShowPendingOnly] = useState(false);
-  const [showDeclinedOnly, setShowDeclinedOnly] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [toastError, setToastError] = useState<string | null>(null);
-  const [toastSuccess, setToastSuccess] = useState<string | null>(null);
-  const [toastLeaving, setToastLeaving] = useState(false);
-  const [nudgingId, setNudgingId] = useState<string | null>(null);
-  const [sendingReminders, setSendingReminders] = useState(false);
-  // Bulletin (service plan role slots + run-of-show items) for the selected date
-  const [bulletinPlanId, setBulletinPlanId] = useState<string | null>(null);
-  const [bulletinPlanTitle, setBulletinPlanTitle] = useState<string | null>(null);
-  const [bulletinSlots, setBulletinSlots] = useState<BulletinSlotRow[]>([]);
-  const [bulletinItems, setBulletinItems] = useState<BulletinItemRow[]>([]);
-  const [bulletinLoading, setBulletinLoading] = useState(false);
-  const [serviceTimes, setServiceTimes] = useState<ServiceTimeRow[]>([]);
   const router = useRouter();
-  const { aiEnabled } = useChurchPlan();
-  const initialDateSetRef = useRef(false);
-
-  const profilesById = useMemo(() => indexProfilesById(profiles), [profiles]);
-
-  const dateStripDays = useMemo(
-    () => Array.from({ length: 7 }, (_, i) => addDaysYmd(dateStripStart, i)),
-    [dateStripStart]
-  );
-
-  /** The church's regular service on the selected day (null on a day with no service). */
-  const serviceOnDay = useMemo(() => serviceTimeForDate(serviceTimes, serviceDate), [serviceTimes, serviceDate]);
-
-  const triggerStripAnim = (anim: "left" | "right") => {
-    setStripAnim(null);
-    requestAnimationFrame(() => setStripAnim(anim));
-  };
-
-  const selectServiceDateFromStrip = (ymd: string) => {
-    const diff = dateDiffDays(serviceDate, ymd);
-    if (diff === 0) return;
-    const dir = diff > 0 ? "left" : "right";
-    const absDiff = Math.abs(diff);
-
-    // For large jumps (calendar picker), snap immediately
-    if (absDiff > 7) {
-      setServiceDate(ymd);
-      setDateStripStart(addDaysYmd(ymd, -3));
-      return;
-    }
-
-    // Step through each intermediate date, replaying the slide animation each tick
-    const step = diff > 0 ? 1 : -1;
-    Array.from({ length: absDiff }, (_, i) => addDaysYmd(serviceDate, step * (i + 1))).forEach((date, i) => {
-      setTimeout(() => {
-        triggerStripAnim(dir);
-        setServiceDate(date);
-        setDateStripStart(addDaysYmd(date, -3));
-      }, i * 160);
-    });
-  };
-
-  /** 6-week grid (42 cells) of YYYY-MM-DD covering the month in `calendarMonth`. */
-  const calendarGridDays = useMemo(() => {
-    const first = parseYmdLocal(calendarMonth);
-    const gridStart = new Date(first);
-    gridStart.setDate(first.getDate() - first.getDay()); // back up to Sunday
-    return Array.from({ length: 42 }, (_, i) => {
-      const d = new Date(gridStart);
-      d.setDate(gridStart.getDate() + i);
-      return getLocalDateInputValue(d);
-    });
-  }, [calendarMonth]);
-
-  const openCalendar = () => {
-    setCalendarMonth(serviceDate.slice(0, 7) + "-01");
-    setShowCalendar((v) => !v);
-  };
+  const [rows, setRows] = useState<ServiceRow[]>([]);
+  const [roles, setRoles] = useState<{ id: string; name: string }[]>([]);
+  const [people, setPeople] = useState<Record<string, Person>>({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [view, setView] = useState<"list" | "grid">("list");
+  const [onlyAttention, setOnlyAttention] = useState(false);
 
   useEffect(() => {
-    if (!showCalendar) return;
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setShowCalendar(false);
-    };
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [showCalendar]);
+    try {
+      const saved = localStorage.getItem(VIEW_KEY);
+      if (saved === "grid" || saved === "list") setView(saved);
+    } catch {
+      /* private window — default view */
+    }
+  }, []);
+  const chooseView = (v: "list" | "grid") => {
+    setView(v);
+    try { localStorage.setItem(VIEW_KEY, v); } catch { /* ignore */ }
+  };
 
-  const churchId = useMemo(() => profiles[0]?.church_id ?? "", [profiles]);
-
-
-  const readinessCounts = useMemo(() => {
-    const counts = { total: 0, open: 0, pending: 0, confirmed: 0, declined: 0 };
-    const tally = (status: string) => {
-      counts.total += 1;
-      if (status === "OPEN") counts.open += 1;
-      else if (status === "ASSIGNED") counts.pending += 1;
-      else if (status === "CONFIRMED") counts.confirmed += 1;
-      else if (status === "DECLINED") counts.declined += 1;
-    };
-    for (const s of bulletinSlots) tally(s.status);
-    for (const i of bulletinItems) tally(i.status);
-    return counts;
-  }, [bulletinSlots, bulletinItems]);
-
-  const hasData = readinessCounts.total > 0;
-
-  const pendingItems = useMemo(() => {
-    const slotItems = bulletinSlots
-      .filter((s) => s.status === "ASSIGNED")
-      .map((s) => ({
-        id: s.id,
-        role: s.role_name,
-        assignee: s.assigned_user_id && profilesById[s.assigned_user_id]
-          ? profilesById[s.assigned_user_id]?.full_name || "Assigned"
-          : "Unassigned",
-        avatarUrl: s.assigned_user_id ? profilesById[s.assigned_user_id]?.avatar_url ?? null : null,
-        status: s.status
-      }));
-    const bulletinItemsPending = bulletinItems
-      .filter((i) => i.status === "ASSIGNED")
-      .map((i) => ({
-        id: i.id,
-        role: i.title,
-        assignee: i.assigned_user_id && profilesById[i.assigned_user_id]
-          ? profilesById[i.assigned_user_id]?.full_name || "Assigned"
-          : "Unassigned",
-        avatarUrl: i.assigned_user_id ? profilesById[i.assigned_user_id]?.avatar_url ?? null : null,
-        status: i.status
-      }));
-    return [...slotItems, ...bulletinItemsPending];
-  }, [bulletinSlots, bulletinItems, profilesById]);
-
-  const declinedItems = useMemo(() => {
-    const slotItems = bulletinSlots
-      .filter((s) => s.status === "DECLINED")
-      .map((s) => ({
-        id: s.id,
-        role: s.role_name,
-        detail: s.assigned_user_id && profilesById[s.assigned_user_id]
-          ? profilesById[s.assigned_user_id]?.full_name || "Assigned"
-          : "Unassigned",
-        avatarUrl: s.assigned_user_id ? profilesById[s.assigned_user_id]?.avatar_url ?? null : null
-      }));
-    const bulletinItemsDeclined = bulletinItems
-      .filter((i) => i.status === "DECLINED")
-      .map((i) => ({
-        id: i.id,
-        role: i.title,
-        detail: i.assigned_user_id && profilesById[i.assigned_user_id]
-          ? profilesById[i.assigned_user_id]?.full_name || "Assigned"
-          : "Unassigned",
-        avatarUrl: i.assigned_user_id ? profilesById[i.assigned_user_id]?.avatar_url ?? null : null
-      }));
-    return [...slotItems, ...bulletinItemsDeclined];
-  }, [bulletinSlots, bulletinItems, profilesById]);
-
-  const serviceLabel = useMemo(() => {
-    if (!serviceDate) return "Not scheduled";
-    const day = format(parseYmdLocal(serviceDate), "EEE, MMM d");
-    if (!serviceOnDay) return day;
-    const time = serviceOnDay.start_time ? formatTimeString(serviceOnDay.start_time) : null;
-    return [day, time, serviceOnDay.name].filter(Boolean).join(" · ");
-  }, [serviceDate, serviceOnDay]);
-
-  const refresh = async () => {
+  const load = useCallback(async () => {
     if (!supabase) return;
     const context = await getCurrentContext();
     if (!context) {
       router.push("/login");
       return;
     }
+    const churchId = context.profile.church_id;
+    const today = localDateString();
+    const end = addDays(today, WEEKS * 7);
+    const db = supabase as any;
 
-    const [rolesResult, profilesResult, plansResult] = await Promise.all([
-      supabase.from("volunteer_roles").select("*").eq("church_id", context.profile.church_id).order("name"),
-      listProfilesByChurch(context.profile.church_id),
-      supabase.from("service_plans").select("service_date").eq("church_id", context.profile.church_id)
+    const [plansRes, rolesRes, profiles] = await Promise.all([
+      db.from("service_plans").select("id, title, service_date, start_time, service_time_id")
+        .eq("church_id", churchId).gte("service_date", today).lte("service_date", end).order("service_date"),
+      db.from("volunteer_roles").select("id, name").eq("church_id", churchId).order("name"),
+      listProfilesByChurch(churchId),
     ]);
+    if (plansRes.error) {
+      setError("We couldn't load your upcoming services. Refresh to try again.");
+      setLoading(false);
+      return;
+    }
+    const plans = (plansRes.data ?? []) as PlanRow[];
+    const planIds = plans.map((p) => p.id);
+    const [slotsRes, itemsRes] = planIds.length
+      ? await Promise.all([
+          db.from("service_plan_role_slots").select("plan_id, role_id, assigned_user_id, status, sort_order").in("plan_id", planIds).order("sort_order"),
+          db.from("service_plan_items").select("plan_id, assigned_user_id, assignment_status").in("plan_id", planIds).not("assigned_user_id", "is", null),
+        ])
+      : [{ data: [] }, { data: [] }];
 
-    if (rolesResult.error) { setError(rolesResult.error.message); return; }
+    setRoles((rolesRes.data ?? []) as { id: string; name: string }[]);
+    const byId: Record<string, Person> = {};
+    for (const p of profiles ?? []) {
+      byId[p.id] = { id: p.id, name: p.full_name?.trim() || p.email || "Member", email: p.email ?? "", avatarUrl: (p as { avatar_url?: string | null }).avatar_url ?? null };
+    }
+    setPeople(byId);
 
-    setRoles(
-      ((rolesResult.data ?? []) as RoleRow[]).map((role) => ({
-        ...role,
-        ministryName: null
-      }))
-    );
-    setProfiles(profilesResult ?? []);
-    setServiceTimes(context.serviceTimes as ServiceTimeRow[]);
-    // First load: jump from "today" to the next service day so the bulletin isn't an empty Saturday.
-    if (!initialDateSetRef.current) {
-      initialDateSetRef.current = true;
-      const next = nextServiceDate(context.serviceTimes);
-      if (next !== serviceDate) {
-        setServiceDate(next);
-        setDateStripStart(addDaysYmd(next, -3));
+    const perPlan = new Map<string, { counts: Counts; team: Set<string>; spots: Record<string, Spot[]> }>();
+    const bucket = (planId: string) => {
+      let b = perPlan.get(planId);
+      if (!b) {
+        b = { counts: emptyCounts(), team: new Set(), spots: {} };
+        perPlan.set(planId, b);
       }
-    }
-    setPlanDates(
-      new Set(((plansResult.data ?? []) as { service_date: string }[]).map((p) => p.service_date))
-    );
-  };
-
-  const refreshBulletin = async () => {
-    setBulletinLoading(true);
-    if (!supabase || !churchId || !serviceDate) {
-      setBulletinPlanId(null);
-      setBulletinPlanTitle(null);
-      setBulletinSlots([]);
-      setBulletinItems([]);
-      setBulletinLoading(false);
-      return;
-    }
-
-    // Find the service plan for this service time + date
-    const { data: planData } = await supabase
-      .from("service_plans")
-      .select("id, title")
-      .eq("church_id", churchId)
-      .eq("service_date", serviceDate)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (!planData) {
-      setBulletinPlanId(null);
-      setBulletinPlanTitle(null);
-      setBulletinSlots([]);
-      setBulletinItems([]);
-      setPlanDates((prev) => {
-        if (!prev.has(serviceDate)) return prev;
-        const next = new Set(prev);
-        next.delete(serviceDate);
-        return next;
-      });
-      setBulletinLoading(false);
-      return;
-    }
-
-    setBulletinPlanId(planData.id);
-    setBulletinPlanTitle(planData.title ?? null);
-    setPlanDates((prev) => {
-      if (prev.has(serviceDate)) return prev;
-      const next = new Set(prev);
-      next.add(serviceDate);
-      return next;
-    });
-
-    const [slotRes, itemRes, rolesRes] = await Promise.all([
-      supabase
-        .from("service_plan_role_slots")
-        .select("*")
-        .eq("plan_id", planData.id)
-        .order("sort_order"),
-      supabase
-        .from("service_plan_items")
-        .select("id, title, assigned_user_id, backup_user_id, assignment_status, notes, position")
-        .eq("plan_id", planData.id)
-        .not("assigned_user_id", "is", null)
-        .order("position"),
-      supabase
-        .from("volunteer_roles")
-        .select("id, name")
-        .eq("church_id", churchId),
-    ]);
-
-    const roleNameById: Record<string, string> = {};
-    for (const r of rolesRes.data ?? []) roleNameById[r.id] = r.name;
-
-    setBulletinSlots(
-      (slotRes.data ?? []).map((s: ServicePlanRoleSlotRow) => {
-        const rawStatus = (s.status ?? "OPEN") as AssignmentStatus;
-        // If someone is assigned but status was never advanced past OPEN, treat as ASSIGNED (pending confirmation)
-        const status: AssignmentStatus = s.assigned_user_id && rawStatus === "OPEN" ? "ASSIGNED" : rawStatus;
-        return {
-          id: s.id,
-          role_id: s.role_id,
-          role_name: roleNameById[s.role_id] ?? "Role",
-          assigned_user_id: s.assigned_user_id ?? null,
-          backup_user_id: s.backup_user_id ?? null,
-          status,
-          notes: s.notes ?? null
-        };
-      })
-    );
-
-    type PlanItemRow = { id: string; title: string | null; assigned_user_id: string | null; backup_user_id: string | null; assignment_status: AssignmentStatus | null; notes: string | null; position: number };
-    setBulletinItems(
-      (itemRes.data ?? [] as PlanItemRow[]).map((item: PlanItemRow) => {
-        const rawStatus = (item.assignment_status ?? "OPEN") as AssignmentStatus;
-        const status: AssignmentStatus = item.assigned_user_id && rawStatus === "OPEN" ? "ASSIGNED" : rawStatus;
-        return {
-          id: item.id,
-          title: item.title ?? "Untitled step",
-          assigned_user_id: item.assigned_user_id ?? null,
-          backup_user_id: item.backup_user_id ?? null,
-          status,
-          notes: item.notes ?? null,
-        };
-      })
-    );
-    setBulletinLoading(false);
-  };
-
-  useEffect(() => {
-    refresh();
-  }, []);
-
-  useEffect(() => {
-    if (!roles.length) return;
-    if (roles.some((role) => role.id === slotRoleId)) return;
-    setSlotRoleId(roles[0].id);
-  }, [roles, slotRoleId]);
-
-  useEffect(() => {
-    if (churchId && serviceDate) {
-      refreshBulletin();
-    }
-  }, [churchId, serviceDate]);
-
-  useEffect(() => {
-    const msg = toastError ?? toastSuccess;
-    if (!msg) return;
-    setToastLeaving(false);
-    let hideTimerId: ReturnType<typeof setTimeout> | null = null;
-    const showTimerId = setTimeout(() => {
-      setToastLeaving(true);
-      hideTimerId = setTimeout(() => {
-        setToastError(null);
-        setToastSuccess(null);
-        setToastLeaving(false);
-      }, 250);
-    }, 2500);
-    return () => {
-      clearTimeout(showTimerId);
-      if (hideTimerId) clearTimeout(hideTimerId);
+      return b;
     };
-  }, [toastError, toastSuccess]);
-
-  const handleAddSlot = () => {
-    if (!slotRoleId || slotCount < 1) return;
-    setSlots((prev) => [
-      ...prev,
-      { id: `slot-${Date.now()}-${Math.random().toString(16).slice(2)}`, roleId: slotRoleId, count: slotCount }
-    ]);
-    setSlotCount(1);
-  };
-
-  const handleRemoveSlot = (slotId: string) => {
-    setSlots((prev) => prev.filter((s) => s.id !== slotId));
-  };
-
-  /**
-   * The plan this page is showing, or a new one for the selected day tied to that
-   * day's service time. Asks first on a day with no regular service.
-   */
-  const ensurePlan = async (): Promise<{ id: string } | null> => {
-    if (!supabase || !churchId) return null;
-    if (bulletinPlanId) return { id: bulletinPlanId };
-    if (!serviceOnDay && serviceTimes.length > 0) {
-      const day = format(parseYmdLocal(serviceDate), "EEEE, MMMM d");
-      if (!window.confirm(`${day} isn't one of your service days. Make a plan for it anyway?`)) return null;
+    const normalize = (status: string | null, personId: string | null) =>
+      !personId || status === "OPEN" ? "OPEN" : status === "CONFIRMED" || status === "DECLINED" ? status : "WAITING";
+    const tally = (planId: string, status: string | null, personId: string | null) => {
+      const b = bucket(planId);
+      const st = normalize(status, personId);
+      b.counts.total += 1;
+      if (st === "OPEN") b.counts.open += 1;
+      else if (st === "CONFIRMED") b.counts.confirmed += 1;
+      else if (st === "DECLINED") b.counts.declined += 1;
+      else b.counts.waiting += 1;
+      if (personId && st !== "DECLINED") b.team.add(personId);
+      return st;
+    };
+    for (const s of (slotsRes.data ?? []) as { plan_id: string; role_id: string; assigned_user_id: string | null; status: string | null }[]) {
+      const st = tally(s.plan_id, s.status, s.assigned_user_id);
+      const b = bucket(s.plan_id);
+      (b.spots[s.role_id] ??= []).push({ personId: s.assigned_user_id, status: st });
     }
-    const { data, error: planError } = await supabase
-      .from("service_plans")
-      .insert({
-        church_id: churchId,
-        service_date: serviceDate,
-        title: serviceOnDay?.name || "Service",
-        service_time_id: serviceOnDay?.id ?? null,
-        start_time: serviceOnDay?.start_time?.slice(0, 5) ?? null,
-      } as any)
-      .select("id")
-      .single();
-    if (planError || !data) {
-      setError("We couldn't start a plan for this day. Refresh the page and try again.");
-      return null;
-    }
-    return data as { id: string };
-  };
-
-  const handleGenerateSchedule = async () => {
-    if (!supabase || !slots.length || !churchId) return;
-    setError(null);
-    const plan = await ensurePlan();
-    if (!plan) return;
-
-    const payload = slots.flatMap((slot) =>
-      Array.from({ length: slot.count }, (_, i) => ({
-        plan_id: plan.id,
-        role_id: slot.roleId,
-        sort_order: i,
-        status: "OPEN" as AssignmentStatus,
-        notes: null,
-      }))
-    );
-
-    const { error: insertError } = await supabase.from("service_plan_role_slots").insert(payload);
-    if (insertError) { setError("We couldn't add those spots. Try again."); return; }
-    setSlots([]);
-    refreshBulletin();
-  };
-
-  const handleCopyLastService = async () => {
-    if (!supabase || !serviceDate || !churchId) return;
-    if (bulletinSlots.length > 0 || bulletinItems.length > 0) {
-      setError("This day already has a plan. Open it to make changes.");
-      return;
+    for (const i of (itemsRes.data ?? []) as { plan_id: string; assigned_user_id: string | null; assignment_status: string | null }[]) {
+      tally(i.plan_id, i.assignment_status, i.assigned_user_id);
     }
 
-    const context = await getCurrentContext();
-    if (!context) return;
-    setError(null);
-
-    // Find the most recent prior plan for this service time
-    const { data: prevPlan, error: prevPlanError } = await supabase
-      .from("service_plans")
-      .select("id, service_date")
-      .eq("church_id", context.profile.church_id)
-      .lt("service_date", serviceDate)
-      .order("service_date", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (prevPlanError) { setError("We couldn't load your last service. Try again."); return; }
-    if (!prevPlan) { setToastError("There's no earlier service to copy yet."); return; }
-
-    const { data: prevSlots, error: slotsError } = await supabase
-      .from("service_plan_role_slots")
-      .select("*")
-      .eq("plan_id", prevPlan.id)
-      .order("sort_order");
-
-    if (slotsError) { setError(slotsError.message); return; }
-    if (!prevSlots?.length) { setToastError("Your last service had no team spots to copy."); return; }
-
-    const newPlan = await ensurePlan();
-    if (!newPlan) return;
-
-    const payload = (prevSlots as ServicePlanRoleSlotRow[]).map((slot, i) => ({
-      plan_id: newPlan.id,
-      role_id: slot.role_id,
-      sort_order: i,
-      assigned_user_id: slot.assigned_user_id,
-      backup_user_id: slot.backup_user_id,
-      status: (slot.assigned_user_id ? "ASSIGNED" : "OPEN") as AssignmentStatus,
-      notes: slot.notes ?? null,
-    }));
-
-    const { error: insertError } = await supabase.from("service_plan_role_slots").insert(payload);
-    if (insertError) { setError(insertError.message); return; }
-    refreshBulletin();
-  };
-
-  const handleBulletinSlotUpdate = async (
-    slotId: string,
-    patch: { assigned_user_id?: string | null; backup_user_id?: string | null; status?: AssignmentStatus; notes?: string | null }
-  ) => {
-    if (!supabase) return;
-    let finalPatch = { ...patch };
-    // Auto-reset status when the assigned person changes
-    if ("assigned_user_id" in patch && !("status" in patch)) {
-      finalPatch.status = patch.assigned_user_id ? "ASSIGNED" : "OPEN";
-    }
-    // Auto-promote backup to primary when the primary is marked declined
-    if (finalPatch.status === "DECLINED") {
-      const slot = bulletinSlots.find((s) => s.id === slotId);
-      if (slot?.backup_user_id) {
-        finalPatch = { assigned_user_id: slot.backup_user_id, backup_user_id: null, status: "ASSIGNED" };
+    // Every regular service in the window, matched to its plan (or shown as not planned yet).
+    const serviceTimes = context.serviceTimes as ServiceTimeRow[];
+    const timeById = new Map(serviceTimes.map((t) => [t.id, t]));
+    const used = new Set<string>();
+    const out: ServiceRow[] = [];
+    const makeRow = (date: string, plan: PlanRow | null, st: ServiceTimeRow | undefined): ServiceRow => {
+      const b = plan ? perPlan.get(plan.id) : undefined;
+      const start = plan?.start_time || st?.start_time || null;
+      return {
+        key: plan?.id ?? `${date}-${st?.id ?? "none"}`,
+        date,
+        serviceName: st?.name || plan?.title || "Service",
+        time: start ? formatTimeString(start) : null,
+        sortTime: (start ?? "").slice(0, 5).padStart(5, "0"),
+        plan,
+        counts: b?.counts ?? emptyCounts(),
+        team: b ? [...b.team] : [],
+        spots: b?.spots ?? {},
+      };
+    };
+    for (let d = today; d <= end; d = addDays(d, 1)) {
+      const dow = dayOfWeek(d);
+      const onDay = serviceTimes
+        .filter((t) => t.day_of_week === dow)
+        .sort((a, b) => (a.start_time ?? "").localeCompare(b.start_time ?? ""));
+      for (const st of onDay) {
+        const plan = plans.find((p) => !used.has(p.id) && p.service_date === d && p.service_time_id === st.id)
+          ?? plans.find((p) => !used.has(p.id) && p.service_date === d && !p.service_time_id)
+          ?? null;
+        if (plan) used.add(plan.id);
+        out.push(makeRow(d, plan, st));
       }
     }
-    const { error: updateError } = await supabase
-      .from("service_plan_role_slots")
-      .update(finalPatch)
-      .eq("id", slotId);
-    if (updateError) { setError(updateError.message); return; }
-    refreshBulletin();
-  };
-
-  const handleBulletinSlotDelete = async (slotId: string) => {
-    if (!supabase) return;
-    const { error: deleteError } = await supabase
-      .from("service_plan_role_slots")
-      .delete()
-      .eq("id", slotId);
-    if (deleteError) { setError(deleteError.message); return; }
-    refreshBulletin();
-  };
-
-  const handleBulletinItemUpdate = async (
-    itemId: string,
-    patch: { assigned_user_id?: string | null; backup_user_id?: string | null; status?: AssignmentStatus; notes?: string | null }
-  ) => {
-    if (!supabase) return;
-    const { status, ...rest } = patch;
-    let dbPatch: Record<string, unknown> = { ...rest };
-    // service_plan_items.notes is NOT NULL — never persist null
-    if ("notes" in dbPatch) {
-      const n = dbPatch.notes;
-      dbPatch.notes = n == null || typeof n !== "string" ? "" : n.trim();
+    for (const p of plans) {
+      if (!used.has(p.id)) out.push(makeRow(p.service_date, p, p.service_time_id ? timeById.get(p.service_time_id) : undefined));
     }
-    if (status !== undefined) dbPatch.assignment_status = status;
-    // Auto-reset assignment_status when the assigned person changes
-    if ("assigned_user_id" in patch && status === undefined) {
-      dbPatch.assignment_status = patch.assigned_user_id ? "ASSIGNED" : "OPEN";
-    }
-    // Auto-promote backup to primary when the primary is marked declined
-    if (dbPatch.assignment_status === "DECLINED") {
-      const item = bulletinItems.find((i) => i.id === itemId);
-      if (item?.backup_user_id) {
-        dbPatch = { assigned_user_id: item.backup_user_id, backup_user_id: null, assignment_status: "ASSIGNED" };
-      }
-    }
-    const { error: updateError } = await supabase
-      .from("service_plan_items")
-      .update(dbPatch)
-      .eq("id", itemId);
-    if (updateError) { setError(updateError.message); return; }
-    refreshBulletin();
-  };
-
-  const handleSendReminders = async () => {
-    if (sendingReminders) return;
+    out.sort((a, b) => a.date.localeCompare(b.date) || a.sortTime.localeCompare(b.sortTime));
+    setRows(out);
     setError(null);
-    setSendingReminders(true);
-    try {
-      const res = await fetch("/api/notifications/dispatch", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lookaheadHours: 168 })
-      });
-      const data = (await res.json().catch(() => ({}))) as { dispatched?: number; error?: string };
-      if (!res.ok) { setError(data.error ?? "Failed to send reminders."); return; }
-      const count = data.dispatched ?? 0;
-      setToastSuccess(
-        count > 0
-          ? `${count} reminder${count === 1 ? "" : "s"} sent (schedule + bulletin).`
-          : "No new reminders to send — everyone pending was already notified in the last day."
-      );
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to send reminders.");
-    } finally {
-      setSendingReminders(false);
-    }
-  };
+    setLoading(false);
+  }, [router]);
 
-  const handleNudgeOne = async (row: { id: string; assignee: string }) => {
-    const slot = bulletinSlots.find((s) => s.id === row.id);
-    const item = bulletinItems.find((i) => i.id === row.id);
-    const userId = slot?.assigned_user_id ?? item?.assigned_user_id ?? null;
-    if (!userId) return;
-    setNudgingId(row.id);
-    try {
-      const res = await fetch("/api/notifications/dispatch", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lookaheadHours: 365, userId })
-      });
-      const data = (await res.json().catch(() => ({}))) as { dispatched?: number; error?: string };
-      if (!res.ok) { setToastError(data.error ?? "Failed to send reminder."); }
-      else { setToastSuccess(`Reminder sent to ${row.assignee}.`); }
-    } catch (err) {
-      setToastError(err instanceof Error ? err.message : "Failed to send reminder.");
-    } finally {
-      setNudgingId(null);
-    }
-  };
+  useEffect(() => {
+    void load();
+  }, [load]);
 
+  const soonNeeding = useMemo(() => {
+    const cutoff = addDays(localDateString(), ATTENTION_DAYS);
+    return rows.filter((r) => r.date <= cutoff && needsAttention(r));
+  }, [rows]);
+
+  const visibleRows = useMemo(() => (onlyAttention ? soonNeeding : rows), [onlyAttention, soonNeeding, rows]);
+
+  const totals = useMemo(() => {
+    const planned = rows.filter((r) => r.plan);
+    const confirmed = planned.reduce((n, r) => n + r.counts.confirmed, 0);
+    const total = planned.reduce((n, r) => n + r.counts.total, 0);
+    return { services: rows.length, pct: total ? Math.round((confirmed / total) * 100) : null };
+  }, [rows]);
+
+  // Grid: planned services as columns, roles that appear in them as rows.
+  const gridColumns = useMemo(() => visibleRows.filter((r) => r.plan), [visibleRows]);
+  const gridRoles = useMemo(() => {
+    const used = new Set(gridColumns.flatMap((r) => Object.keys(r.spots)));
+    return roles.filter((r) => used.has(r.id));
+  }, [roles, gridColumns]);
+
+  const planHref = (r: ServiceRow) => (r.plan ? `/admin/service-plans/${r.plan.id}` : `/admin/service-plans?date=${r.date}`);
 
   return (
-    <>
-      {typeof document !== "undefined" && (toastError ?? toastSuccess)
-        ? createPortal(
-            <div
-              className={`fixed left-4 right-4 top-4 z-[9999] max-w-md mx-auto ${toastLeaving ? "toast-alert-leave" : "toast-alert-enter"}`}
-              role="alert"
-            >
-              <div
-                role="alert"
-                className="flex items-center gap-3 rounded-lg border border-[var(--border)] px-4 py-3 shadow-sm"
-                style={
-                  toastSuccess
-                    ? { background: "var(--success)", color: "white", border: "1px solid var(--success-hover)" }
-                    : { background: "var(--danger)", color: "white", border: "1px solid var(--danger-hover)" }
-                }
-              >
-                {toastSuccess ? (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                )}
-                <span>{toastSuccess ?? toastError}</span>
-              </div>
-            </div>,
-            document.body
-          )
-        : null}
-      <PageGrid>
-        <PageGridFull className="animate-fade-in-up">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <AdminHeader
-              size="large"
-              title="Volunteer scheduling"
-              subtitle="See who’s serving, fill open spots, and follow up with your team."
-            />
-            {/* KPI chips */}
-            {hasData && (
-              <div className="flex flex-wrap items-center gap-2">
-                {[
-                  { label: "Confirmed", value: readinessCounts.confirmed, cls: "bg-green-50 text-green-700 ring-green-200" },
-                  { label: "Pending",   value: readinessCounts.pending,   cls: "bg-slate-100 text-slate-600 ring-slate-200" },
-                  { label: "Open",      value: readinessCounts.open,      cls: "bg-amber-50 text-amber-700 ring-amber-200" },
-                  { label: "Declined",  value: readinessCounts.declined,  cls: "bg-red-50 text-red-600 ring-red-200" },
-                ].filter(k => k.value > 0).map(({ label, value, cls }) => (
-                  <span key={label} className={`rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-inset ${cls}`}>
-                    {value} {label}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-        </PageGridFull>
-
-        {/* Redesigned date strip — no outer pill container */}
-        <PageGridFull className="relative z-50 flex justify-center">
-          <div className="w-full max-w-4xl animate-volunteers-toolbar-reveal">
-
-            {/* Section label + dot legend */}
-            <div className="mb-3 flex items-center justify-center gap-4">
-              <p className="text-[11px] font-medium uppercase tracking-widest text-[var(--text-muted)]">Service Date</p>
-              <div className="flex items-center gap-1.5 text-[10px] text-[var(--text-muted)]">
-                <span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-500" aria-hidden />
-                has a service plan
-              </div>
-            </div>
-
-            {/* Arrow + day items */}
-            <div className="flex items-center justify-center gap-2">
-              <button
-                type="button"
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[var(--border)] text-[var(--text-secondary)] transition-colors duration-150 hover:bg-[var(--surface-2)] hover:text-[var(--text-primary)] active:scale-95"
-                aria-label="Show earlier dates"
-                onClick={() => selectServiceDateFromStrip(addDaysYmd(serviceDate, -1))}
-              >
-                <ChevronLeft className="h-4 w-4" strokeWidth={2} />
-              </button>
-
-              <div
-                className={[
-                  "flex gap-0.5 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden",
-                  stripAnim === "left"  ? "animate-strip-slide-left"  :
-                  stripAnim === "right" ? "animate-strip-slide-right" : ""
-                ].join(" ")}
-              >
-                {dateStripDays.map((ymd, i) => {
-                  const isSelected = ymd === serviceDate;
-                  const hasPlan = planDates.has(ymd);
-                  const d = parseYmdLocal(ymd);
-                  const ariaDate = format(d, "EEEE, MMMM d, yyyy");
-                  return (
-                    <button
-                      key={ymd}
-                      type="button"
-                      onClick={() => selectServiceDateFromStrip(ymd)}
-                      aria-label={
-                        isSelected
-                          ? `Selected: ${ariaDate}`
-                          : hasPlan
-                          ? `${ariaDate} — has a service plan`
-                          : `Set date to ${ariaDate}`
-                      }
-                      aria-pressed={isSelected}
-                      style={{ animationDelay: `${i * 45}ms` }}
-                      className={[
-                        "flex min-w-[52px] flex-col items-center gap-1 rounded-xl px-2 py-2",
-                        "motion-safe:animate-volunteers-strip-reveal",
-                        "transition duration-200 ease-out",
-                        isSelected
-                          ? "bg-[#EF9F27] cursor-default scale-[1.0]"
-                          : "cursor-pointer hover:bg-[#FDF3E3] hover:scale-[1.04] hover:shadow-sm active:scale-[0.97]"
-                      ].join(" ")}
-                    >
-                      <span className={[
-                        "text-[10px] font-medium uppercase tracking-wide leading-none",
-                        isSelected ? "text-white/80" : "text-[var(--text-muted)]"
-                      ].join(" ")}>
-                        {format(d, "EEE")}
-                      </span>
-                      <span className={[
-                        "text-[15px] font-medium leading-none tabular-nums",
-                        isSelected ? "text-white" : "text-[var(--text-primary)]"
-                      ].join(" ")}>
-                        {d.getDate()}
-                      </span>
-                      {/* Dot — marks days that have an active service plan */}
-                      <span
-                        aria-hidden
-                        className={[
-                          "h-1.5 w-1.5 rounded-full",
-                          isSelected ? (hasPlan ? "bg-white/70" : "invisible") : hasPlan ? "bg-[#EF9F27]" : "invisible"
-                        ].join(" ")}
-                      />
-                    </button>
-                  );
-                })}
-              </div>
-
-              <button
-                type="button"
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[var(--border)] text-[var(--text-secondary)] transition-colors duration-150 hover:bg-[var(--surface-2)] hover:text-[var(--text-primary)] active:scale-95"
-                aria-label="Show later dates"
-                onClick={() => selectServiceDateFromStrip(addDaysYmd(serviceDate, 1))}
-              >
-                <ChevronRight className="h-4 w-4" strokeWidth={2} />
-              </button>
-            </div>
-
-            {/* Service time info line — inline below strip */}
-            <div className="mt-3 flex min-h-8 items-center justify-center gap-2 text-sm animate-volunteers-service-time-reveal">
-              {planDates.has(serviceDate) || serviceOnDay ? (
-                <>
-                  <CalendarDays className="h-4 w-4 shrink-0 text-[#EF9F27]" aria-hidden />
-                  <span className="font-semibold text-[var(--text-primary)]">{serviceLabel}</span>
-                </>
-              ) : (
-                <span className="text-sm text-[var(--text-muted)]">No service on this day</span>
-              )}
-
-              {/* Calendar picker — opens a centered modal */}
-              <button
-                type="button"
-                className={[
-                  "flex h-7 w-7 items-center justify-center rounded-full border border-[var(--border)] transition-colors",
-                  showCalendar
-                    ? "bg-[#FDF3E3] text-[#EF9F27]"
-                    : "text-[var(--text-muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text-secondary)]"
-                ].join(" ")}
-                onClick={openCalendar}
-                aria-label="Open calendar"
-                aria-expanded={showCalendar}
-              >
-                <CalendarDays className="h-3.5 w-3.5" aria-hidden />
-              </button>
-
-              {typeof document !== "undefined" && showCalendar
-                ? createPortal(
-                    <div
-                      className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 p-4"
-                      role="dialog"
-                      aria-modal="true"
-                      aria-label="Choose service date"
-                      onClick={() => setShowCalendar(false)}
-                    >
-                      <div
-                        className="w-[420px] max-w-[calc(100vw-2rem)] rounded-2xl border border-[var(--border)] bg-[var(--surface-container-lowest)] p-4 shadow-xl"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {/* Month header */}
-                        <div className="mb-3 flex items-center justify-between">
-                          <button
-                            type="button"
-                            className="flex h-8 w-8 items-center justify-center rounded-full text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-2)]"
-                            aria-label="Previous month"
-                            onClick={() => {
-                              const d = parseYmdLocal(calendarMonth);
-                              d.setMonth(d.getMonth() - 1);
-                              setCalendarMonth(getLocalDateInputValue(d).slice(0, 7) + "-01");
-                            }}
-                          >
-                            <ChevronLeft className="h-4 w-4" strokeWidth={2} />
-                          </button>
-                          <span className="text-base font-semibold text-[var(--text-primary)]">
-                            {format(parseYmdLocal(calendarMonth), "MMMM yyyy")}
-                          </span>
-                          <button
-                            type="button"
-                            className="flex h-8 w-8 items-center justify-center rounded-full text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-2)]"
-                            aria-label="Next month"
-                            onClick={() => {
-                              const d = parseYmdLocal(calendarMonth);
-                              d.setMonth(d.getMonth() + 1);
-                              setCalendarMonth(getLocalDateInputValue(d).slice(0, 7) + "-01");
-                            }}
-                          >
-                            <ChevronRight className="h-4 w-4" strokeWidth={2} />
-                          </button>
-                        </div>
-
-                        {/* Weekday headers */}
-                        <div className="mb-1 grid grid-cols-7 gap-1">
-                          {["S", "M", "T", "W", "T", "F", "S"].map((w, i) => (
-                            <span
-                              key={i}
-                              className="flex h-6 items-center justify-center text-[11px] font-semibold uppercase text-[var(--text-muted)]"
-                            >
-                              {w}
-                            </span>
-                          ))}
-                        </div>
-
-                        {/* Day grid */}
-                        <div className="grid grid-cols-7 gap-1">
-                          {calendarGridDays.map((ymd) => {
-                            const d = parseYmdLocal(ymd);
-                            const inMonth = ymd.slice(0, 7) === calendarMonth.slice(0, 7);
-                            const isSelected = ymd === serviceDate;
-                            const isToday = ymd === getLocalDateInputValue();
-                            const hasPlan = planDates.has(ymd);
-                            return (
-                              <button
-                                key={ymd}
-                                type="button"
-                                onClick={() => {
-                                  selectServiceDateFromStrip(ymd);
-                                  setShowCalendar(false);
-                                }}
-                                aria-label={format(d, "EEEE, MMMM d, yyyy")}
-                                aria-pressed={isSelected}
-                                className={[
-                                  "relative flex h-9 w-full items-center justify-center rounded-lg text-sm tabular-nums transition-colors",
-                                  isSelected
-                                    ? "bg-[#EF9F27] font-semibold text-white"
-                                    : inMonth
-                                    ? "text-[var(--text-primary)] hover:bg-[#FDF3E3]"
-                                    : "text-[var(--text-muted)] opacity-50 hover:bg-[var(--surface-2)]",
-                                  !isSelected && isToday ? "ring-1 ring-inset ring-[#EF9F27]" : ""
-                                ].join(" ")}
-                              >
-                                {d.getDate()}
-                                {hasPlan && !isSelected ? (
-                                  <span
-                                    aria-hidden
-                                    className="absolute bottom-1 left-1/2 h-1 w-1 -translate-x-1/2 rounded-full bg-[#EF9F27]"
-                                  />
-                                ) : null}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>,
-                    document.body
-                  )
-                : null}
-            </div>
-          </div>
-        </PageGridFull>
-
-        {error ? (
-          <PageGridFull>
-            <div role="alert" className="flex items-start justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-              <span>{error}</span>
-              <button type="button" onClick={() => setError(null)} className="shrink-0 rounded-lg px-2 text-red-700 transition-colors hover:bg-red-100">Dismiss</button>
-            </div>
-          </PageGridFull>
-        ) : null}
-
-        <PageGridRowTwoOne
-          split="wideMain"
-          className="animate-fade-in-up [animation-delay:80ms]"
-          main={
-            <div className="space-y-10">
-              {bulletinLoading ? (
-                <BulletinSkeleton />
-              ) : hasData ? (
-                <AssignmentsTable
-                  profiles={profiles}
-                  showOpenOnly={showOpenOnly}
-                  showPendingOnly={showPendingOnly}
-                  showDeclinedOnly={showDeclinedOnly}
-                  searchTerm={searchTerm}
-                  onToggleOpenOnly={setShowOpenOnly}
-                  onTogglePendingOnly={setShowPendingOnly}
-                  onToggleDeclinedOnly={setShowDeclinedOnly}
-                  onSearchChange={setSearchTerm}
-                  onGenerateSchedule={handleGenerateSchedule}
-                  onCopyLast={handleCopyLastService}
-                  bulletinPlanTitle={bulletinPlanTitle}
-                  bulletinPlanHref={bulletinPlanId ? `/admin/service-plans/${bulletinPlanId}` : null}
-                  aiFillHref={aiEnabled && bulletinPlanId && bulletinSlots.some((s) => !s.assigned_user_id) ? `/admin/service-plans/${bulletinPlanId}?ai=1` : null}
-                  bulletinSlots={bulletinSlots}
-                  onBulletinSlotUpdate={handleBulletinSlotUpdate}
-                  onBulletinSlotDelete={handleBulletinSlotDelete}
-                  bulletinItems={bulletinItems}
-                  onBulletinItemUpdate={handleBulletinItemUpdate}
-                  onRefresh={refreshBulletin}
-                />
-              ) : (
-                <ScheduleBuilder
-                  roles={roles}
-                  slotRoleId={slotRoleId}
-                  slotCount={slotCount}
-                  slots={slots}
-                  onSlotRoleChange={setSlotRoleId}
-                  onSlotCountChange={setSlotCount}
-                  onAddSlot={handleAddSlot}
-                  onRemoveSlot={handleRemoveSlot}
-                  onGenerateSchedule={handleGenerateSchedule}
-                  onCopyLast={handleCopyLastService}
-                />
-              )}
-            </div>
-          }
-          side={
-            <NextServiceReadinessStrip
-              serviceLabel={serviceLabel || "Not scheduled"}
-              totalSlots={readinessCounts.total}
-              openSlots={readinessCounts.open}
-              pendingConfirmations={readinessCounts.pending}
-              confirmedCount={readinessCounts.confirmed}
-              declinedCount={readinessCounts.declined}
-              bulletinPlanHref={bulletinPlanId ? `/admin/service-plans/${bulletinPlanId}` : null}
-              onGenerate={handleGenerateSchedule}
-              onCopyLast={handleCopyLastService}
-              onSendReminders={handleSendReminders}
-              sendingReminders={sendingReminders}
-            />
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <AdminHeader
+          size="large"
+          title="Volunteers"
+          subtitle={
+            loading
+              ? "Every upcoming service at a glance."
+              : `Next ${WEEKS} weeks: ${plural(totals.services, "service", "services")}${totals.pct != null ? `, ${totals.pct}% of spots confirmed` : ""}. Open a service to change who's serving.`
           }
         />
-
-        {(pendingItems.length > 0 || declinedItems.length > 0) && (
-          <PageGridFull>
-            <div className={`grid gap-6 ${pendingItems.length > 0 && declinedItems.length > 0 ? "md:grid-cols-2" : "grid-cols-1"}`}>
-              {pendingItems.length > 0 && (
-                <PendingResponsesCard items={pendingItems} onFollowUp={handleSendReminders} onNudge={handleNudgeOne} nudgingId={nudgingId} />
-              )}
-              {declinedItems.length > 0 && (
-                <DeclinedCard items={declinedItems} />
-              )}
-            </div>
-          </PageGridFull>
-        )}
-      </PageGrid>
-    </>
-  );
-}
-
-function dateDiffDays(from: string, to: string): number {
-  return Math.round((parseYmdLocal(to).getTime() - parseYmdLocal(from).getTime()) / 86400000);
-}
-
-function BulletinSkeleton() {
-  return (
-    <div className="card card-elevated animate-pulse p-6">
-      <div className="mb-6 flex items-center justify-between">
-        <div className="h-5 w-40 rounded-full bg-[var(--surface-2)]" />
-        <div className="h-8 w-28 rounded-lg bg-[var(--surface-2)]" />
+        <div role="tablist" aria-label="View" className="flex rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-0.5">
+          {([["list", "List", List], ["grid", "Grid", LayoutGrid]] as const).map(([key, label, Icon]) => (
+            <button
+              key={key}
+              type="button"
+              role="tab"
+              aria-selected={view === key}
+              onClick={() => chooseView(key)}
+              className={`flex h-8 items-center gap-1.5 rounded-[10px] px-3 text-sm font-medium transition-colors ${
+                view === key ? "bg-[var(--surface)] text-[var(--text-primary)] shadow-sm" : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+              }`}
+            >
+              <Icon className="h-3.5 w-3.5" aria-hidden /> {label}
+            </button>
+          ))}
+        </div>
       </div>
-      <div className="space-y-3">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="flex items-center gap-4 rounded-xl bg-[var(--surface)] p-4">
-            <div className="h-9 w-9 shrink-0 rounded-full bg-[var(--surface-2)]" />
-            <div className="flex-1 space-y-2">
-              <div className="h-3.5 w-32 rounded-full bg-[var(--surface-2)]" />
-              <div className="h-3 w-20 rounded-full bg-[var(--surface-2)]" />
-            </div>
-            <div className="h-6 w-20 rounded-full bg-[var(--surface-2)]" />
+
+      {error ? (
+        <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{error}</div>
+      ) : null}
+
+      {/* One quiet line instead of an action list. */}
+      {!loading ? (
+        soonNeeding.length > 0 ? (
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+            <span className="h-2 w-2 shrink-0 rounded-full bg-amber-500" aria-hidden />
+            <span className="text-[var(--text-secondary)]">
+              {plural(soonNeeding.length, "service", "services")} in the next two weeks {soonNeeding.length === 1 ? "needs" : "need"} attention
+            </span>
+            <button
+              type="button"
+              onClick={() => setOnlyAttention((v) => !v)}
+              aria-pressed={onlyAttention}
+              className="rounded-lg px-2 py-1 font-medium text-amber-800 transition-colors hover:bg-amber-50"
+            >
+              {onlyAttention ? "Show all services" : "Show only those"}
+            </button>
           </div>
-        ))}
-      </div>
+        ) : (
+          <p className="flex items-center gap-2 text-sm text-[var(--text-secondary)]">
+            <span className="h-2 w-2 rounded-full bg-green-500" aria-hidden /> Everything&apos;s covered for the next two weeks.
+          </p>
+        )
+      ) : null}
+
+      {loading ? (
+        <div className="space-y-2">{[0, 1, 2, 3, 4].map((i) => <div key={i} className="h-14 animate-pulse rounded-xl bg-[var(--surface-2)]" />)}</div>
+      ) : rows.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-[var(--border)] px-6 py-10 text-center">
+          <p className="text-sm font-medium text-[var(--text-primary)]">No services in the next {WEEKS} weeks</p>
+          <p className="mt-1 text-sm text-[var(--text-muted)]">Add your regular service times in Settings, or start a plan for any date.</p>
+          <div className="mt-4 flex justify-center gap-2">
+            <Link href="/account" className="btn btn-secondary h-9 px-3 text-sm no-underline">Service times</Link>
+            <Link href="/admin/service-plans" className="btn btn-primary h-9 px-3 text-sm no-underline">Start a plan</Link>
+          </div>
+        </div>
+      ) : view === "list" ? (
+        <ListView rows={visibleRows} people={people} planHref={planHref} />
+      ) : (
+        <GridView columns={gridColumns} roles={gridRoles} people={people} planHref={planHref} unplanned={visibleRows.length - gridColumns.length} />
+      )}
     </div>
   );
 }
 
-function formatTimeString(value: string) {
-  const [hours, minutes] = value.split(":").map(Number);
-  const date = new Date();
-  date.setHours(hours || 0, minutes || 0, 0, 0);
-  return new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit" }).format(date);
+function NeedsCell({ r }: { r: ServiceRow }) {
+  if (!r.plan) return <span className="text-[var(--text-muted)]">Not planned yet</span>;
+  const c = r.counts;
+  if (c.total === 0) return <span className="text-[var(--text-muted)]">No team spots</span>;
+  if (c.declined) return <span className="font-medium text-red-700">{c.declined} can&apos;t make it</span>;
+  if (c.open) return <span className="text-[var(--text-secondary)]">{plural(c.open, "open spot", "open spots")}</span>;
+  if (c.waiting) return <span className="text-[var(--text-secondary)]">{c.waiting} waiting</span>;
+  return <span className="font-medium text-green-700">All set</span>;
 }
 
-function buildServiceDateTime(serviceDate: string, startTime: string) {
-  if (!serviceDate || !startTime) return null;
-  const [year, month, day] = serviceDate.split("-").map(Number);
-  const [hours, minutes] = startTime.split(":").map(Number);
-  if (!year || !month || !day) return null;
-  // Use local-date constructor to avoid UTC-midnight-offset shifting the date back one day
-  const date = new Date(year, month - 1, day, hours || 0, minutes || 0, 0, 0);
-  if (Number.isNaN(date.getTime())) return null;
-  return date;
+function ListView({ rows, people, planHref }: { rows: ServiceRow[]; people: Record<string, Person>; planHref: (r: ServiceRow) => string }) {
+  return (
+    <div className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
+      <div className="hidden grid-cols-[96px_minmax(0,1.4fr)_minmax(180px,1fr)_150px_128px_20px] gap-4 border-b border-[var(--border)] px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] md:grid">
+        <span>Date</span><span>Service</span><span>Confirmed</span><span>Needs</span><span>Team</span><span />
+      </div>
+      <ul className="m-0 list-none divide-y divide-[var(--divider)] p-0">
+        {rows.map((r) => {
+          const c = r.counts;
+          const share = (n: number) => (c.total ? `${(n / c.total) * 100}%` : "0%");
+          const d = new Date(`${r.date}T12:00:00`);
+          return (
+            <li key={r.key} className="list-none">
+              <Link
+                href={planHref(r)}
+                className="group grid grid-cols-[96px_minmax(0,1fr)] items-center gap-x-4 gap-y-1 px-4 py-3 no-underline transition-colors hover:bg-[var(--surface-2)] md:grid-cols-[96px_minmax(0,1.4fr)_minmax(180px,1fr)_150px_128px_20px]"
+              >
+                <span className="text-sm tabular-nums text-[var(--text-secondary)]">
+                  {d.toLocaleDateString([], { weekday: "short" })} {d.toLocaleDateString([], { month: "short", day: "numeric" })}
+                </span>
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-semibold text-[var(--text-primary)]">
+                    {r.serviceName}
+                    {r.time ? <span className="font-normal text-[var(--text-muted)]"> · {r.time}</span> : null}
+                  </span>
+                  {r.plan?.title && r.plan.title !== r.serviceName ? (
+                    <span className="block truncate text-xs text-[var(--text-muted)]">{r.plan.title}</span>
+                  ) : null}
+                </span>
+                <span className="col-span-2 md:col-span-1">
+                  {r.plan && c.total > 0 ? (
+                    <span className="flex items-center gap-2">
+                      <span className="flex h-1.5 w-24 shrink-0 overflow-hidden rounded-full bg-[var(--surface-2)]" aria-hidden>
+                        <span className="bg-green-500" style={{ width: share(c.confirmed) }} />
+                        <span className="bg-amber-300" style={{ width: share(c.waiting) }} />
+                        <span className="bg-red-400" style={{ width: share(c.declined) }} />
+                      </span>
+                      <span className="text-xs tabular-nums text-[var(--text-secondary)]">{c.confirmed} of {c.total}</span>
+                    </span>
+                  ) : (
+                    <span className="text-xs text-[var(--text-muted)]">—</span>
+                  )}
+                </span>
+                <span className="col-span-2 text-sm md:col-span-1"><NeedsCell r={r} /></span>
+                <span className="hidden -space-x-2 md:flex">
+                  {r.team.slice(0, 4).map((id) => (
+                    <span key={id} className="rounded-full ring-2 ring-[var(--surface)]">
+                      <Avatar name={people[id]?.name ?? "Member"} email={people[id]?.email ?? ""} imageUrl={people[id]?.avatarUrl ?? null} size={26} className="bg-amber-100 text-[9px] font-semibold text-amber-800" />
+                    </span>
+                  ))}
+                  {r.team.length > 4 ? (
+                    <span className="flex h-[26px] w-[26px] items-center justify-center rounded-full bg-[var(--surface-2)] text-[9px] font-semibold text-[var(--text-secondary)] ring-2 ring-[var(--surface)]">+{r.team.length - 4}</span>
+                  ) : null}
+                </span>
+                <ChevronRight className="hidden h-4 w-4 text-[var(--text-muted)] transition-transform group-hover:translate-x-0.5 md:block" aria-hidden />
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
 }
 
+function GridView({
+  columns,
+  roles,
+  people,
+  planHref,
+  unplanned,
+}: {
+  columns: ServiceRow[];
+  roles: { id: string; name: string }[];
+  people: Record<string, Person>;
+  planHref: (r: ServiceRow) => string;
+  unplanned: number;
+}) {
+  if (columns.length === 0) {
+    return <p className="rounded-2xl border border-dashed border-[var(--border)] px-6 py-10 text-center text-sm text-[var(--text-muted)]">No planned services to show yet.</p>;
+  }
+  return (
+    <div className="space-y-2">
+      <div className="overflow-x-auto rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
+        <table className="w-full border-collapse text-sm">
+          <thead>
+            <tr>
+              <th scope="col" className="sticky left-0 z-10 min-w-[150px] border-b border-r border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Role</th>
+              {columns.map((r) => {
+                const d = new Date(`${r.date}T12:00:00`);
+                return (
+                  <th key={r.key} scope="col" className="min-w-[130px] border-b border-[var(--border)] px-3 py-2 text-left align-bottom font-normal">
+                    <Link href={planHref(r)} className="block rounded-lg px-1 py-0.5 no-underline transition-colors hover:bg-[var(--surface-2)]">
+                      <span className="block text-xs font-semibold text-[var(--text-primary)]">
+                        {d.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })}
+                      </span>
+                      <span className="block truncate text-[11px] text-[var(--text-muted)]">{r.serviceName}{r.time ? ` · ${r.time}` : ""}</span>
+                    </Link>
+                  </th>
+                );
+              })}
+            </tr>
+          </thead>
+          <tbody>
+            {roles.map((role) => (
+              <tr key={role.id} className="group/row">
+                <th scope="row" className="sticky left-0 z-10 border-b border-r border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-left text-sm font-medium text-[var(--text-primary)]">
+                  {role.name}
+                </th>
+                {columns.map((r) => {
+                  const spots = r.spots[role.id] ?? [];
+                  return (
+                    <td key={r.key} className="border-b border-[var(--divider)] px-3 py-1.5 align-top">
+                      <Link href={planHref(r)} className="flex min-h-[28px] flex-wrap items-center gap-1 no-underline" aria-label={`${role.name}, ${r.serviceName} ${r.date}`}>
+                        {spots.length === 0 ? (
+                          <span className="text-xs text-[var(--text-muted)]">·</span>
+                        ) : (
+                          spots.map((s, i) =>
+                            s.personId ? (
+                              <span key={i} className={`rounded-md px-1.5 py-0.5 text-xs font-medium ${SPOT_STYLE[s.status] ?? SPOT_STYLE.WAITING}`} title={people[s.personId]?.name}>
+                                {firstName(people[s.personId]?.name ?? "Member")}
+                              </span>
+                            ) : (
+                              <span key={i} className="rounded-md border border-dashed border-[var(--border)] px-1.5 py-0.5 text-xs text-[var(--text-muted)]">Open</span>
+                            )
+                          )
+                        )}
+                      </Link>
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[var(--text-muted)]">
+        <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-green-100 ring-1 ring-green-300" /> Confirmed</span>
+        <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-amber-100 ring-1 ring-amber-300" /> Waiting</span>
+        <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-red-100 ring-1 ring-red-300" /> Can&apos;t make it</span>
+        {unplanned > 0 ? <span>{plural(unplanned, "service isn't", "services aren't")} planned yet, so not shown here.</span> : null}
+      </p>
+    </div>
+  );
+}

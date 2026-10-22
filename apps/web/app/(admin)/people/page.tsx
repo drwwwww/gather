@@ -52,6 +52,13 @@ export default function PeoplePage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
   const [sortBy, setSortBy] = useState<SortBy>("NEWEST");
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
+  // Search links here with ?member=<id> — open that person's details.
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("member");
+    if (!id) return;
+    setSelectedMemberId(id);
+    window.history.replaceState(null, "", window.location.pathname);
+  }, []);
   const router = useRouter();
 
   const refresh = async () => {

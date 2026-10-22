@@ -30,6 +30,7 @@ function roleLabel(role: string): string {
     people — from one place, reachable from Home's search icon. */
 export default function SearchScreen({ navigation }: any) {
   const { profile } = useAuth();
+  const showEmails = profile?.role === "ADMIN";
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [events, setEvents] = useState<EventResult[]>([]);
@@ -69,7 +70,7 @@ export default function SearchScreen({ navigation }: any) {
         .from("profiles")
         .select("id, full_name, email, role, avatar_url")
         .eq("church_id", churchId)
-        .or(`full_name.ilike.${like},email.ilike.${like}`)
+        .or(showEmails ? `full_name.ilike.${like},email.ilike.${like}` : `full_name.ilike.${like}`)
         .order("full_name", { ascending: true })
         .limit(8),
       loadBlockedIds(),
@@ -78,7 +79,7 @@ export default function SearchScreen({ navigation }: any) {
     setAnnouncements((announcementsRes.data as AnnouncementResult[]) ?? []);
     setMembers(((membersRes.data as MemberResult[]) ?? []).filter((m) => !blocked.has(m.id)));
     setLoading(false);
-  }, [profile?.church_id]);
+  }, [profile?.church_id, showEmails]);
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -209,9 +210,9 @@ export default function SearchScreen({ navigation }: any) {
                     <Avatar imageUri={m.avatar_url} name={m.full_name} email={m.email} seed={m.id} size={38} />
                     <View style={{ flex: 1, minWidth: 0 }}>
                       <Text style={styles.rowTitle} numberOfLines={2}>
-                        {m.full_name?.trim() || m.email?.split("@")[0] || "Member"}
+                        {m.full_name?.trim() || (showEmails ? m.email?.split("@")[0] : null) || "Member"}
                       </Text>
-                      {m.email ? <Text style={styles.rowMeta} numberOfLines={1}>{m.email}</Text> : null}
+                      {showEmails && m.email ? <Text style={styles.rowMeta} numberOfLines={1}>{m.email}</Text> : null}
                     </View>
                     <Pill label={roleLabel(m.role)} tone={m.role === "ADMIN" ? "amber" : m.role === "SERVICE" ? "success" : "neutral"} />
                   </Pressable>

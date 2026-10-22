@@ -118,7 +118,7 @@ export default function SearchPage() {
               </div>
               <button
                 type="submit"
-                className="flex h-9 items-center rounded-xl bg-amber-500 px-4 text-sm font-semibold text-white transition-colors hover:bg-amber-600"
+                className="btn btn-primary h-9 px-4 text-sm"
               >
                 Search
               </button>

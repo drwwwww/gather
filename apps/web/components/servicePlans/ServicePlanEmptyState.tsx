@@ -25,13 +25,13 @@ export default function ServicePlanEmptyState({
       <div>
         <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>No plan created for {friendlyDate}</p>
         <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>
-          {hasPresets ? "Start with a preset or reuse last week." : "Create a preset to generate plans faster, or copy last week's plan."}
+          {hasPresets ? "Start from a template or reuse last week." : "Save a template to plan faster, or copy last week's plan."}
         </p>
       </div>
       <div className="flex flex-wrap justify-center gap-2 mt-2">
         {hasPresets ? (
           <Button variant="primaryGradient" onClick={onGenerate} disabled={generateDisabled}>
-            Generate from preset
+            Use this template
           </Button>
         ) : (
           <Link
@@ -48,7 +48,7 @@ export default function ServicePlanEmptyState({
       </div>
       {hasPresets && (
         <Link href="/admin/service-presets" className="inline-flex items-center justify-center h-[34px] px-3 rounded-xl font-medium text-sm bg-transparent text-[var(--primary)] border-0 hover:bg-[var(--surface-2)] transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2 mt-2">
-          Manage presets
+          Manage templates
         </Link>
       )}
     </div>

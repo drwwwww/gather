@@ -125,7 +125,7 @@ export default function SearchResults({ query, profiles, events, announcements }
             return (
               <Link
                 key={p.id}
-                href="/people"
+                href={`/people?member=${p.id}`}
                 className="flex items-center gap-3 px-4 py-3 no-underline transition-colors hover:bg-[var(--surface-2)]"
               >
                 <Avatar name={p.full_name} email={p.email} imageUrl={p.avatar_url} size={32}
@@ -159,7 +159,7 @@ export default function SearchResults({ query, profiles, events, announcements }
           events.map((ev) => (
             <Link
               key={ev.id}
-              href="/events"
+              href={`/events?open=${ev.id}`}
               className="flex flex-col gap-0.5 px-4 py-3 no-underline transition-colors hover:bg-[var(--surface-2)]"
             >
               <p className="text-sm font-medium text-[var(--text-primary)]">{ev.title}</p>
@@ -186,7 +186,7 @@ export default function SearchResults({ query, profiles, events, announcements }
           announcements.map((a) => (
             <Link
               key={a.id}
-              href="/announcements"
+              href={`/announcements?open=${a.id}`}
               className="flex flex-col gap-0.5 px-4 py-3 no-underline transition-colors hover:bg-[var(--surface-2)]"
             >
               <p className="text-sm font-medium text-[var(--text-primary)]">{a.title}</p>

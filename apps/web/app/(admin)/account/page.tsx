@@ -365,7 +365,7 @@ export default function AccountPage() {
 
       {toast && (
         <PageGridFull>
-          <div className={`fixed right-6 top-20 z-50 rounded-xl border px-4 py-3 text-sm shadow-lg ${toast.tone === "error" ? "border-red-200 bg-red-50 text-red-600" : "border-green-200 bg-green-50 text-green-700"}`}>
+          <div className={`fixed right-6 top-6 z-50 rounded-xl border px-4 py-3 text-sm shadow-lg ${toast.tone === "error" ? "border-red-200 bg-red-50 text-red-600" : "border-green-200 bg-green-50 text-green-700"}`}>
             {toast.message}
           </div>
         </PageGridFull>

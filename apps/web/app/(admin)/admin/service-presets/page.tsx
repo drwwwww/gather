@@ -236,7 +236,7 @@ export default function ServicePresetsPage() {
     if (!supabase || !churchId) return;
     const trimmedName = name.trim();
     if (!trimmedName) {
-      setError("Preset name is required.");
+      setError("Give the template a name.");
       return;
     }
     setSavingPresetId(presetId);
@@ -355,7 +355,7 @@ export default function ServicePresetsPage() {
           </div>
           <div>
             <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>Access restricted</p>
-            <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>Only admins can manage service presets.</p>
+            <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>Only admins can manage service templates.</p>
           </div>
         </div>
       </main>
@@ -366,8 +366,9 @@ export default function ServicePresetsPage() {
     <PageGrid>
       <PageGridFull className="animate-fade-in-up">
         <AdminHeader
-          title="Service Presets"
-          subtitle="Create reusable run-of-show templates by service time."
+          title="Service templates"
+          subtitle="Reusable orders of service. Start any week's plan from one in a click."
+          back={{ href: "/admin/service-plans", label: "Service plans" }}
         />
       </PageGridFull>
       <PageGridFull className="animate-fade-in-up [animation-delay:100ms] opacity-0">

@@ -257,7 +257,7 @@ export default function ServiceBoard({
   return (
     <div className="space-y-4">
       {/* ── Sticky readiness bar ── */}
-      <div className="sticky top-14 z-30 -mx-1 rounded-2xl border border-[var(--border)] bg-[var(--surface)]/95 px-4 py-3 shadow-[0_8px_24px_-18px_rgba(40,30,10,0.4)] backdrop-blur">
+      <div className="sticky top-3 z-30 -mx-1 rounded-2xl border border-[var(--border)] bg-[var(--surface)]/95 px-4 py-3 shadow-[0_8px_24px_-18px_rgba(40,30,10,0.4)] backdrop-blur">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <div className="min-w-0 flex-1 basis-56">
             <input

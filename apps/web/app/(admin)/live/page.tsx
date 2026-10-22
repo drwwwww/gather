@@ -455,7 +455,7 @@ export default function LivePage() {
         </>
       )}
       {toast && (
-        <div role="status" className="fixed right-6 top-20 z-50 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm shadow-lg">
+        <div role="status" className="fixed right-6 top-6 z-50 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm shadow-lg">
           <p className={toast.tone === "error" ? "text-red-600" : "text-green-700"}>{toast.message}</p>
         </div>
       )}

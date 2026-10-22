@@ -182,7 +182,7 @@ export default function ServicePlansPage() {
       const defaultPreset = (data ?? []).find((preset: PresetWithCount) => preset.is_default);
       setSelectedPresetId(defaultPreset?.id ?? data?.[0]?.id ?? "");
     } catch (err) {
-      pushToast(err instanceof Error ? err.message : "Unable to load presets.", "error");
+      pushToast(err instanceof Error ? err.message : "Couldn't load your templates.", "error");
     } finally {
       setLoadingPresets(false);
     }
@@ -235,8 +235,11 @@ export default function ServicePlansPage() {
       }
       setChurchId(context.profile.church_id);
       setServiceTimes(context.serviceTimes as any);
-      // Open on the next service day, not today — a plan made on a blank Saturday has no service to belong to.
-      const startDate = nextServiceDate(context.serviceTimes);
+      // Open on ?date= (Volunteers → "Start plan"), else the next service day — a plan made
+      // on a blank Saturday has no service to belong to.
+      const linked = new URLSearchParams(window.location.search).get("date");
+      const startDate = linked && /^\d{4}-\d{2}-\d{2}$/.test(linked) ? linked : nextServiceDate(context.serviceTimes);
+      if (linked) window.history.replaceState(null, "", window.location.pathname);
       if (startDate !== serviceDate) setServiceDate(startDate);
       await Promise.all([
         loadRoles(context.profile.church_id),
@@ -483,7 +486,7 @@ export default function ServicePlansPage() {
               href="/admin/service-presets"
               className="btn btn-secondary btn-sm"
             >
-              Manage presets
+              Templates
             </Link>
           }
         />
@@ -525,7 +528,7 @@ export default function ServicePlansPage() {
         <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface-container-low)] px-5 py-3">
           <div className="flex flex-col gap-0.5">
             <span className="text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">Start from</span>
-            <span className="text-[10px] text-[var(--text-muted)]">Presets are reusable run-of-show templates you apply to a specific date.</span>
+            <span className="text-[10px] text-[var(--text-muted)]">Templates are reusable orders of service. Pick one to fill this date's plan.</span>
           </div>
 
           {/* Preset custom dropdown — portal-rendered to escape stacking context */}
@@ -538,7 +541,7 @@ export default function ServicePlansPage() {
               }}
               className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-sm font-medium text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-2)] disabled:opacity-50 focus:outline-none"
             >
-              <span>{selectedPreset ? `${selectedPreset.name} (${selectedPreset.stepCount} steps)` : (loadingPresets ? "Loading…" : "No presets")}</span>
+              <span>{selectedPreset ? `${selectedPreset.name} (${selectedPreset.stepCount} steps)` : (loadingPresets ? "Loading…" : "No templates yet")}</span>
               <ChevronDown className={`h-3.5 w-3.5 text-[var(--text-muted)] transition-transform duration-150 ${presetOpen ? "rotate-180" : ""}`} />
             </button>
             {presetOpen && typeof document !== "undefined" && createPortal(
@@ -693,7 +696,7 @@ export default function ServicePlansPage() {
 
       {toast && (
         <PageGridFull>
-          <div className="fixed right-6 top-20 z-50 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm shadow-lg">
+          <div className="fixed right-6 top-6 z-50 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm shadow-lg">
             <p className={toast.tone === "error" ? "text-red-600" : "text-green-700"}>{toast.message}</p>
           </div>
         </PageGridFull>

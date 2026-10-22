@@ -1,13 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { useRouter } from "next/navigation";
 import AdminHeader from "../../../components/admin/AdminHeader";
 import { getCurrentContext } from "../../../lib/supabaseData";
 import { supabase } from "../../../lib/supabaseClient";
 import AnnouncementComposer from "../../../components/announcements/AnnouncementComposer";
-import RecentAnnouncementsList from "../../../components/announcements/RecentAnnouncementsList";
+import AnnouncementBrowser from "../../../components/announcements/AnnouncementBrowser";
 import type { AnnouncementTemplate } from "../../../components/announcements/AnnouncementTemplates";
 import { PageGrid, PageGridFull } from "../../../components/layout/PageGrid";
 import type { Database } from "@gather/lib";
@@ -332,6 +332,19 @@ export default function AnnouncementsPage() {
     setComposerOpen(true);
   };
 
+  // Search links here with ?open=<id> — open that post once the list has loaded.
+  const openedFromLinkRef = useRef(false);
+  useEffect(() => {
+    if (openedFromLinkRef.current || announcements.length === 0) return;
+    const id = new URLSearchParams(window.location.search).get("open");
+    if (!id) return;
+    openedFromLinkRef.current = true;
+    window.history.replaceState(null, "", window.location.pathname);
+    const match = announcements.find((a) => a.id === id);
+    if (match) openEdit(match);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [announcements]);
+
   return (
     <PageGrid>
       {/* Page header */}
@@ -340,45 +353,18 @@ export default function AnnouncementsPage() {
           <AdminHeader
             size="large"
             title="Announcements"
-            subtitle="Share news, updates, and encouragement with your church community."
+            subtitle="Share news with your church. Pick a post to see it the way members do."
           />
           <button
             type="button"
-            className="btn btn-primary-gradient flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold"
+            className="btn btn-primary h-10 gap-2 px-4 text-sm"
             onClick={openComposer}
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
               <path d="M12 5v14M5 12h14" />
             </svg>
-            New Announcement
+            New announcement
           </button>
-        </div>
-      </PageGridFull>
-
-      {/* Stats row */}
-      <PageGridFull className="animate-fade-in-up [animation-delay:50ms]">
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
-          <div className="stitch-section-card space-y-3">
-            <span className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Published</span>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-[var(--text-primary)]">{published.length}</span>
-              <span className="text-sm text-[var(--text-muted)]">total</span>
-            </div>
-          </div>
-          <div className="stitch-section-card space-y-3">
-            <span className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Scheduled</span>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-[var(--text-primary)]">{scheduled.length}</span>
-              <span className="text-sm text-[var(--text-muted)]">this week</span>
-            </div>
-          </div>
-          <div className="stitch-section-card space-y-3">
-            <span className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Drafts</span>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-[var(--text-primary)]">{drafts.length}</span>
-              <span className="text-sm text-[var(--text-muted)]">in progress</span>
-            </div>
-          </div>
         </div>
       </PageGridFull>
 
@@ -427,11 +413,9 @@ export default function AnnouncementsPage() {
               </p>
             </div>
           ) : (
-            <RecentAnnouncementsList
+            <AnnouncementBrowser
               announcements={tabLists[activeTab] ?? []}
-              loading={false}
               listRefreshing={listRefreshing || listMutationPending}
-              onSelect={openEdit}
               onEdit={openEdit}
               onDuplicate={(a) => { handleDuplicate(a); setComposerOpen(true); }}
               onDelete={handleDeleteAnnouncement}

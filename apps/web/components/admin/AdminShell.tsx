@@ -1,15 +1,16 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Search, LayoutDashboard, Users, CalendarCheck, ClipboardList,
   Layers, Megaphone, Calendar, Bell, Settings, LogOut, Radio, HeartPulse,
 } from "lucide-react";
 import { supabase } from "../../lib/supabaseClient";
 import Avatar from "../ui/avatar";
+import CommandPalette, { type PaletteDestination } from "./CommandPalette";
 
 function avatarFromUserMetadata(meta: unknown): string | null {
   if (!meta || typeof meta !== "object") return null;
@@ -31,8 +32,8 @@ const NAV_GROUPS = [
     label: "Planning",
     items: [
       { href: "/volunteers",            label: "Volunteers",      icon: CalendarCheck   },
+      // Templates (service presets) live inside Service Plans, not in the nav.
       { href: "/admin/service-plans",   label: "Service Plans",   icon: ClipboardList   },
-      { href: "/admin/service-presets", label: "Service Presets", icon: Layers          },
     ],
   },
   {
@@ -49,6 +50,14 @@ const NAV_GROUPS = [
       { href: "/events",                label: "Events",          icon: Calendar        },
     ],
   },
+];
+
+/** Everything ⌘K can jump to, including pages that aren't in the nav. */
+const PALETTE_DESTINATIONS: PaletteDestination[] = [
+  ...NAV_GROUPS.flatMap((g) => g.items.map(({ href, label, icon }) => ({ href, label, icon }))),
+  { href: "/admin/service-presets", label: "Service templates", icon: Layers },
+  { href: "/notifications", label: "Notifications", icon: Bell },
+  { href: "/account", label: "Settings", icon: Settings },
 ];
 
 function NavItem({
@@ -82,24 +91,17 @@ function NavItem({
 export default function AdminShell({ children }: { children: ReactNode }) {
   const [displayName, setDisplayName] = useState("Admin");
   const [churchName, setChurchName] = useState("Gather");
-  const [searchTerm, setSearchTerm] = useState("");
+  const [paletteOpen, setPaletteOpen] = useState(false);
   const [notificationCount, setNotificationCount] = useState(0);
   const [notificationScope, setNotificationScope] = useState<{ userId: string; churchId: string } | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState("");
-  const searchInputRef = useRef<HTMLInputElement>(null);
   const [shortcutLabel, setShortcutLabel] = useState("Ctrl K");
   useEffect(() => {
     if (/Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent)) setShortcutLabel("⌘K");
   }, []);
   const router = useRouter();
-  const searchParams = useSearchParams();
   const pathname = usePathname();
-
-  useEffect(() => {
-    const query = searchParams.get("q")?.trim();
-    if (query && query !== searchTerm) setSearchTerm(query);
-  }, [searchParams]);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -158,23 +160,26 @@ export default function AdminShell({ children }: { children: ReactNode }) {
   }, [notificationScope]);
 
 
-  // ⌘K / Ctrl+K or "/" jumps to search from anywhere (not while typing in a field).
+  // ⌘K / Ctrl+K or "/" opens search from anywhere (not while typing in a field).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
       const typing = !!target && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName));
       if ((e.key === "k" && (e.metaKey || e.ctrlKey)) || (e.key === "/" && !typing)) {
         e.preventDefault();
-        searchInputRef.current?.focus();
-        searchInputRef.current?.select();
+        setPaletteOpen((v) => !v);
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const isActive = (href: string) =>
-    href === "/admin" ? pathname === href : pathname?.startsWith(href) ?? false;
+  const isActive = (href: string) => {
+    if (href === "/admin") return pathname === href;
+    // Templates are part of Service Plans.
+    if (href === "/admin/service-plans" && pathname?.startsWith("/admin/service-presets")) return true;
+    return pathname?.startsWith(href) ?? false;
+  };
 
   return (
     <div className="min-h-screen bg-[var(--app-canvas)]">
@@ -184,23 +189,35 @@ export default function AdminShell({ children }: { children: ReactNode }) {
           className="fixed left-0 top-0 z-[55] flex flex-col border-r border-[var(--border)] bg-[var(--bg)]"
           style={{ width: "var(--sidebar-w)", height: "100vh" }}
         >
-          {/* Brand — same h-14 as the top header so their bottom borders form one line */}
-          <div className="flex h-14 shrink-0 items-center gap-2.5 border-b border-[var(--border)] px-4">
+          {/* Church identity */}
+          <div className="flex shrink-0 items-center gap-2.5 px-4 pb-2 pt-4">
             <img
               src="/logo.png"
-              alt="Gather"
+              alt=""
               className="h-8 w-8 shrink-0 rounded-xl object-cover select-none"
             />
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-[var(--text-primary)]">Gather</p>
-              {churchName && (
-                <p className="truncate text-[10px] text-[var(--text-muted)]">{churchName}</p>
-              )}
+              <p className="line-clamp-2 text-[13px] font-semibold leading-tight text-[var(--text-primary)]" title={churchName}>{churchName}</p>
+              <p className="truncate text-[10px] leading-tight text-[var(--text-muted)]">Gather</p>
             </div>
           </div>
 
+          {/* Search — opens the ⌘K panel */}
+          <div className="shrink-0 px-2 pb-1 pt-2">
+            <button
+              type="button"
+              onClick={() => setPaletteOpen(true)}
+              aria-keyshortcuts="Control+K Meta+K /"
+              className="sidebar-item group flex w-full items-center gap-3 rounded-xl px-3 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-2)] hover:text-[var(--text-primary)]"
+            >
+              <Search className="h-4 w-4 shrink-0 text-[var(--text-muted)] group-hover:text-[var(--text-secondary)]" aria-hidden />
+              <span className="min-w-0 flex-1 truncate text-left">Search</span>
+              <kbd className="shrink-0 rounded-md border border-[var(--border)] bg-[var(--surface)] px-1.5 py-0.5 font-['Rubik',sans-serif] text-[10px] font-medium text-[var(--text-muted)]">{shortcutLabel}</kbd>
+            </button>
+          </div>
+
           {/* Main nav */}
-          <nav aria-label="Main navigation" className="sidebar-nav min-h-0 flex-1 overflow-y-auto px-2 py-3">
+          <nav aria-label="Main navigation" className="sidebar-nav min-h-0 flex-1 overflow-y-auto px-2 pb-3 pt-1">
             {/* Groups spread to fill the column (up to a cap), so there's no dead space under the last link. */}
             <div className="sidebar-groups flex min-h-full flex-col justify-between">
               {NAV_GROUPS.map((group, gi) => (
@@ -263,57 +280,6 @@ export default function AdminShell({ children }: { children: ReactNode }) {
           className="flex min-h-screen min-w-0 flex-1 flex-col bg-[var(--app-canvas)] font-['Rubik',sans-serif]"
           style={{ marginLeft: "var(--sidebar-w)" }}
         >
-          {/* Header */}
-          <header className="sticky top-0 z-[60] flex h-14 shrink-0 items-center justify-between gap-4 border-b border-[var(--border)] bg-[var(--bg)] px-6 sm:px-8">
-            {/* Search */}
-            <form
-              className="min-w-0 flex-1"
-              onSubmit={(e) => {
-                e.preventDefault();
-                const trimmed = searchTerm.trim();
-                if (trimmed) router.push(`/admin/search?q=${encodeURIComponent(trimmed)}`);
-              }}
-              role="search"
-            >
-              <div className="relative flex h-9 max-w-sm items-center overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 focus-within:border-amber-300 focus-within:ring-2 focus-within:ring-amber-100 transition">
-                <Search className="mr-2 h-4 w-4 shrink-0 text-[var(--text-muted)]" aria-hidden />
-                <input
-                  ref={searchInputRef}
-                  type="search"
-                  className="h-full min-w-0 flex-1 border-0 bg-transparent p-0 text-sm text-[var(--text-primary)] outline-none ring-0 placeholder:text-[var(--text-muted)] focus:ring-0"
-                  placeholder="Search members, events, or plans…"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  aria-label="Search"
-                  aria-keyshortcuts="Control+K Meta+K /"
-                />
-                <kbd className="ml-2 hidden shrink-0 rounded-md border border-[var(--border)] bg-[var(--surface)] px-1.5 py-0.5 font-['Rubik',sans-serif] text-[10px] font-medium text-[var(--text-muted)] sm:inline">{shortcutLabel}</kbd>
-              </div>
-            </form>
-
-            {/* Right: notification bell + avatar */}
-            <div className="flex shrink-0 items-center gap-2">
-              <Link
-                href="/notifications"
-                className="relative flex h-9 w-9 items-center justify-center rounded-xl text-[var(--text-muted)] transition-colors hover:bg-[var(--surface-2)] hover:text-[var(--text-primary)]"
-                aria-label={`Notifications${notificationCount > 0 ? ` — ${notificationCount} unread` : ""}`}
-              >
-                <Bell className="h-4.5 w-4.5" />
-                {notificationCount > 0 && (
-                  <span className="absolute right-1.5 top-1.5 flex h-[7px] w-[7px] items-center justify-center rounded-full bg-red-500" />
-                )}
-              </Link>
-              <Link href="/account" aria-label="Account settings" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-shadow hover:ring-2 hover:ring-amber-300 focus-visible:ring-2 focus-visible:ring-amber-400">
-                <Avatar
-                  name={displayName}
-                  email={userEmail}
-                  imageUrl={avatarUrl}
-                  size={36}
-                  className="bg-amber-100 text-[11px] font-bold text-amber-700"
-                />
-              </Link>
-            </div>
-          </header>
 
           <div className="flex min-h-0 flex-1 flex-col">{children}</div>
 
@@ -328,6 +294,12 @@ export default function AdminShell({ children }: { children: ReactNode }) {
           </footer>
         </main>
       </div>
+      <CommandPalette
+        open={paletteOpen}
+        onClose={() => setPaletteOpen(false)}
+        churchId={notificationScope?.churchId ?? null}
+        destinations={PALETTE_DESTINATIONS}
+      />
     </div>
   );
 }

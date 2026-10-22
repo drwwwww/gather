@@ -110,7 +110,7 @@ export default function PresetList({
             className="btn btn-primary-gradient btn-sm flex items-center gap-2"
           >
             <Plus className="h-4 w-4" />
-            New preset
+            New template
           </button>
         </div>
       </div>
@@ -134,8 +134,8 @@ export default function PresetList({
                 <ListPlus className="h-6 w-6 text-[var(--text-muted)]" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-[var(--text-primary)]">No presets yet</p>
-                <p className="mt-1 text-xs text-[var(--text-muted)]">Create a blank preset or start from one of the templates below.</p>
+                <p className="text-sm font-semibold text-[var(--text-primary)]">No templates yet</p>
+                <p className="mt-1 text-xs text-[var(--text-muted)]">Start a blank one, or begin from a common order of service below.</p>
               </div>
               <button
                 type="button"
@@ -182,7 +182,7 @@ export default function PresetList({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-4">
-              <h2 className="text-base font-bold text-[var(--text-primary)]">New preset</h2>
+              <h2 className="text-base font-bold text-[var(--text-primary)]">New template</h2>
               <button
                 type="button"
                 onClick={() => setCreateOpen(false)}
