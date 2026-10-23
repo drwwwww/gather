@@ -87,7 +87,7 @@ export default function SignUpScreen({ navigation }: any) {
   };
 
   return (
-    <DawnLayout tagline="Join your church on Gather">
+    <DawnLayout tagline="Join your church">
           {success ? (
             <View style={{ alignItems: "center" }}>
               <View style={styles.successBadge}>
