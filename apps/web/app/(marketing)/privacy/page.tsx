@@ -122,7 +122,7 @@ const SECTIONS: LegalSection[] = [
         <p>
           The website uses a sign-in cookie so you stay logged in, and your browser&apos;s local storage for small
           preferences. If a page errors, our error-reporting tool may temporarily use session storage to record a
-          masked replay of that session. We count visits to the public website with Vercel Web Analytics, which
+          masked replay of that session. We count page visits to the website and web app with Vercel Web Analytics, which
           doesn&apos;t use cookies or identify you; if you arrived through a link with a referral code, that code is
           kept in local storage and saved with your account when you sign up, so we know how you heard about us.
           We don&apos;t use advertising, analytics, or third-party tracking cookies.

@@ -22,7 +22,7 @@ export const LEGAL_DOCS: { key: LegalDocKey; href: string; label: string }[] = [
 /** Every third party that touches personal data, shown on /privacy and /dpa. */
 export const SUBPROCESSORS = [
   { name: "Supabase", purpose: "Database, sign-in, and photo storage", data: "All account, profile, and church data", location: "United States" },
-  { name: "Vercel", purpose: "Hosting for the website and web app, and anonymous visit counts on the public website (Vercel Web Analytics, no cookies)", data: "Web requests, including IP address (not stored by the analytics)", location: "United States" },
+  { name: "Vercel", purpose: "Hosting for the website and web app, and anonymous page-visit counts (Vercel Web Analytics, no cookies)", data: "Web requests, including IP address (not stored by the analytics)", location: "United States" },
   { name: "Brevo", purpose: "Sending email (reminders, receipts, demo replies)", data: "Name, email address, message content", location: "European Union" },
   { name: "Expo", purpose: "Delivering push notifications to the mobile app", data: "Push token, notification text", location: "United States" },
   { name: "Sentry", purpose: "Crash and error reports", data: "Device and app details, masked screen replays around an error", location: "United States" },

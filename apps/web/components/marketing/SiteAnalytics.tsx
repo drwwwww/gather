@@ -1,17 +1,15 @@
 "use client";
 
 import { useEffect } from "react";
-import { Analytics } from "@vercel/analytics/react";
 import { captureAttribution } from "../../lib/attribution";
 
 /**
- * Public-site measurement: Vercel Web Analytics (cookieless page views,
- * referrers, countries — no cookie banner needed) plus first-party sign-up
- * attribution from `?ref=` / `utm_*` links.
+ * First-party sign-up attribution from `?ref=` / `utm_*` links. Page views come
+ * from Vercel Web Analytics (`<Analytics />` in the root layout).
  */
 export default function SiteAnalytics() {
   useEffect(() => {
     captureAttribution();
   }, []);
-  return <Analytics />;
+  return null;
 }
