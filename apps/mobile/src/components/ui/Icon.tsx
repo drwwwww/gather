@@ -50,7 +50,12 @@ export type AppIconName =
   | "bookmarkFilled"
   | "directions"
   | "calendarPlus"
-  | "share";
+  | "share"
+  | "pray"
+  | "pin"
+  | "food"
+  | "parking"
+  | "baby";
 
 const iconMap: Record<AppIconName, React.ComponentProps<typeof MaterialCommunityIcons>["name"]> = {
   church: "church-outline",
@@ -101,6 +106,11 @@ const iconMap: Record<AppIconName, React.ComponentProps<typeof MaterialCommunity
   directions: "directions",
   calendarPlus: "calendar-plus",
   share: "share-variant-outline",
+  pray: "hands-pray",
+  pin: "pin-outline",
+  food: "silverware-fork-knife",
+  parking: "parking",
+  baby: "baby-face-outline",
 };
 
 export function Icon({

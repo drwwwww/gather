@@ -218,9 +218,10 @@ export default function EventsPage() {
         }
       } else {
         const occurrences = expandRepeats(startAtValue, endAtValue, formValues.repeat, formValues.repeatCount);
-        const { error: insertError } = await supabase
+        const { data: insertedEvents, error: insertError } = await supabase
           .from("events")
-          .insert(occurrences.map((o) => ({ ...base, start_at: o.start, end_at: o.end })));
+          .insert(occurrences.map((o) => ({ ...base, start_at: o.start, end_at: o.end })))
+          .select("id, start_at");
         if (insertError) {
           setError(insertError.message);
           return false;
@@ -240,6 +241,9 @@ export default function EventsPage() {
             audience: base.audience,
             publish_at: new Date().toISOString(),
             ...(base.image_url ? { image_url: base.image_url } : {}),
+            // An Event post: the app shows the event's date, place and RSVP (first date of a series).
+            kind: "EVENT",
+            event_id: [...((insertedEvents ?? []) as { id: string; start_at: string }[])].sort((x, y) => x.start_at.localeCompare(y.start_at))[0]?.id ?? null,
           } as never);
           if (annError) {
             // The event itself saved — say so rather than failing the whole action.

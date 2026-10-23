@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { hueForSeed } from "../../lib/areas";
 
 /** Two-letter initials from a name, falling back to the email's local part. */
 export function initialsFor(name?: string | null, email?: string | null): string {
@@ -35,13 +36,20 @@ export default function Avatar({
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
   const showImage = !!imageUrl && failedUrl !== imageUrl;
   const label = (name ?? "").trim() || email || "Member";
+  // Initials wear a stable area tint per person (same person, same colour everywhere).
+  const tone = hueForSeed((email || name || "member").toLowerCase());
 
   return (
     <span
       className={`relative inline-flex shrink-0 select-none items-center justify-center overflow-hidden rounded-full font-semibold ${
         showImage ? "bg-[var(--surface-2)]" : className
       }`}
-      style={{ width: size, height: size, fontSize: Math.max(10, Math.round(size * 0.36)) }}
+      style={{
+        width: size,
+        height: size,
+        fontSize: Math.max(10, Math.round(size * 0.36)),
+        ...(showImage ? null : { background: tone.tint, color: tone.ink }),
+      }}
       aria-hidden={showImage ? undefined : true}
     >
       {showImage ? (

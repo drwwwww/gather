@@ -25,29 +25,29 @@ const NAV_GROUPS = [
     label: null,
     items: [
       { href: "/admin",                 label: "Dashboard",       icon: LayoutDashboard },
-      { href: "/live",                  label: "Live Service",    icon: Radio           },
+      { href: "/live",                  label: "Live Service",    icon: Radio },
     ],
   },
   {
     label: "Planning",
     items: [
-      { href: "/volunteers",            label: "Volunteers",      icon: CalendarCheck   },
+      { href: "/volunteers",            label: "Volunteers",      icon: CalendarCheck },
       // Templates (service presets) live inside Service Plans, not in the nav.
-      { href: "/admin/service-plans",   label: "Service Plans",   icon: ClipboardList   },
+      { href: "/admin/service-plans",   label: "Service Plans",   icon: ClipboardList },
     ],
   },
   {
     label: "People",
     items: [
-      { href: "/people",                label: "People",          icon: Users           },
-      { href: "/insights",              label: "Team Health",     icon: HeartPulse      },
+      { href: "/people",                label: "People",          icon: Users },
+      { href: "/insights",              label: "Team Health",     icon: HeartPulse },
     ],
   },
   {
     label: "Communication",
     items: [
-      { href: "/announcements",         label: "Announcements",   icon: Megaphone       },
-      { href: "/events",                label: "Events",          icon: Calendar        },
+      { href: "/announcements",         label: "Announcements",   icon: Megaphone },
+      { href: "/events",                label: "Events",          icon: Calendar },
     ],
   },
 ];
@@ -70,14 +70,14 @@ function NavItem({
       href={href}
       className={`sidebar-item group relative flex items-center gap-3 rounded-xl px-3 text-sm font-medium no-underline transition-colors duration-150 ${
         isActive
-          ? "bg-amber-50 text-amber-800"
+          ? "bg-[var(--nav-pill-active-bg)] font-semibold text-[var(--text-primary)]"
           : "text-[var(--text-secondary)] hover:bg-[var(--surface-2)] hover:text-[var(--text-primary)]"
       }`}
     >
       {isActive && (
         <span className="pointer-events-none absolute bottom-1.5 left-0 top-1.5 w-[3px] rounded-full bg-amber-500" aria-hidden />
       )}
-      <Icon className={`h-4 w-4 shrink-0 ${isActive ? "text-amber-600" : "text-[var(--text-muted)] group-hover:text-[var(--text-secondary)]"}`} aria-hidden />
+      <Icon className={`h-4 w-4 shrink-0 ${isActive ? "text-[var(--text-primary)]" : "text-[var(--text-muted)] group-hover:text-[var(--text-secondary)]"}`} aria-hidden />
       <span className="min-w-0 flex-1 truncate">{label}</span>
       {badge != null && badge > 0 && (
         <span className="flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">

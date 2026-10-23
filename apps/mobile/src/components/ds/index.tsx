@@ -16,10 +16,16 @@ import {
   StyleProp,
   Animated,
   Easing,
+  PanResponder,
+  AccessibilityInfo,
+  type ImageSourcePropType,
+  type GestureResponderEvent,
+  type PanResponderGestureState,
 } from "react-native";
 import { SafeAreaView, Edge, useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Icon, AppIconName } from "../ui/Icon";
+import { hueForSeed } from "../../theme/areas";
 import { palette, font, gradient, radius, shadow, space, type } from "../../theme/ds";
 
 /* ───────────────────────────────────────────── Text */
@@ -330,13 +336,6 @@ export function BrandMark({
 
 /* ───────────────────────────────────────────── Avatar */
 
-const AVATAR_TONES = [
-  { bg: "#FDECCE", fg: "#B7770A" },
-  { bg: "#E4F4EC", fg: "#0E8A54" },
-  { bg: "#E8EBFB", fg: "#4657C4" },
-  { bg: "#F7E7F2", fg: "#A6428E" },
-  { bg: "#EFEBF8", fg: "#6B5DBF" },
-];
 
 export function initialsOf(name?: string | null, fallback?: string | null): string {
   const src = name?.trim() || fallback?.split("@")[0] || "";
@@ -382,14 +381,12 @@ export function Avatar({
   }
 
   const inits = initialsOf(name, email);
-  let colors = AVATAR_TONES[0];
+  let colors: { bg: string; fg: string };
   if (tone === "amber") {
     colors = { bg: palette.amberSoft, fg: palette.amberDeep };
   } else {
-    const key = seed || name || email || "?";
-    let h = 0;
-    for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
-    colors = AVATAR_TONES[h % AVATAR_TONES.length];
+    const hue = hueForSeed(email || name || seed || "?");
+    colors = { bg: hue.tint, fg: hue.ink };
   }
   return (
     <View
@@ -706,9 +703,28 @@ export function Reveal({
 
 /* ───────────────────────────────────────────── Toast */
 
+/**
+ * In-app banner (iOS in-app notification / Slack / Instagram pattern): compact,
+ * content-led, one line of context + one line of content.
+ * - Leading visual is the content itself — the post's photo, or the event's date
+ *   tile — not a generic icon. Falls back to an icon chip.
+ * - `eyebrow` names what it is ("News", "New event") in its area colour; the title
+ *   is the thing (the post's title), `subtitle` a one-line preview.
+ * - Tap opens it; swipe up (or wait 5 s) dismisses. No × — a 18pt close glyph was a
+ *   sub-44pt target and duplicated the swipe. Holding a finger on it pauses the timer.
+ * - Announced to screen readers; Reduce Motion fades instead of sliding.
+ */
 export type ToastPayload = {
   title: string;
   subtitle?: string;
+  /** Short label above the title, e.g. "News". */
+  eyebrow?: string;
+  /** Colour for the eyebrow / date tile / icon chip. */
+  accent?: { tint: string; ink: string };
+  /** A thumbnail (remote `{ uri }` or a `require()`d asset). */
+  image?: ImageSourcePropType;
+  /** A calendar tile instead of a thumbnail. */
+  date?: { month: string; day: string };
   icon?: AppIconName;
   onPress?: () => void;
 };
@@ -745,37 +761,93 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
+const TOAST_MS = 5000;
+
 function ToastHost({ toast, onDismiss }: { toast: QueuedToast | null; onDismiss: () => void }) {
   const insets = useSafeAreaInsets();
   const anim = React.useRef(new Animated.Value(0)).current;
+  const drag = React.useRef(new Animated.Value(0)).current;
   const [rendered, setRendered] = React.useState<QueuedToast | null>(null);
+  const [reduceMotion, setReduceMotion] = React.useState(false);
   const hideRef = React.useRef<() => void>(() => {});
+  const timerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  React.useEffect(() => {
+    AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion).catch(() => {});
+  }, []);
+
+  const startTimer = React.useCallback(() => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => hideRef.current(), TOAST_MS);
+  }, []);
+  const pauseTimer = () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+  };
 
   React.useEffect(() => {
     if (!toast) return;
     let dismissed = false;
     setRendered(toast);
+    drag.setValue(0);
     anim.setValue(0);
-    Animated.spring(anim, { toValue: 1, useNativeDriver: true, damping: 16, mass: 0.9, stiffness: 180 }).start();
+    Animated.spring(anim, { toValue: 1, useNativeDriver: true, damping: 22, mass: 0.8, stiffness: 260 }).start();
+    AccessibilityInfo.announceForAccessibility([toast.eyebrow, toast.title, toast.subtitle].filter(Boolean).join(". "));
 
-    const hide = () => {
+    hideRef.current = () => {
       if (dismissed) return;
       dismissed = true;
-      Animated.timing(anim, { toValue: 0, duration: 220, easing: Easing.in(Easing.cubic), useNativeDriver: true }).start(() => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      Animated.timing(anim, { toValue: 0, duration: 200, easing: Easing.in(Easing.cubic), useNativeDriver: true }).start(() => {
         setRendered(null);
         onDismiss();
       });
     };
-    hideRef.current = hide;
 
-    const t = setTimeout(hide, 3800);
-    return () => clearTimeout(t);
+    startTimer();
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [toast]);
 
+  // One responder for the whole banner: a tap opens it, a flick up dismisses it,
+  // a downward pull rubber-bands back. (A Pressable inside a PanResponder fought
+  // over the touch and swipes never registered.)
+  const [pressed, setPressed] = React.useState(false);
+  const renderedRef = React.useRef<QueuedToast | null>(null);
+  renderedRef.current = rendered;
+  const pan = React.useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => {
+        pauseTimer();
+        setPressed(true);
+      },
+      onPanResponderMove: (_e: GestureResponderEvent, g: PanResponderGestureState) => drag.setValue(g.dy < 0 ? g.dy : g.dy / 4),
+      onPanResponderRelease: (_e: GestureResponderEvent, g: PanResponderGestureState) => {
+        setPressed(false);
+        if (g.dy < -24 || g.vy < -0.4) {
+          hideRef.current();
+        } else if (Math.abs(g.dx) < 8 && Math.abs(g.dy) < 8) {
+          renderedRef.current?.onPress?.();
+          hideRef.current();
+        } else {
+          Animated.spring(drag, { toValue: 0, useNativeDriver: true, damping: 20, stiffness: 300 }).start();
+          startTimer();
+        }
+      },
+      onPanResponderTerminate: () => {
+        setPressed(false);
+        Animated.spring(drag, { toValue: 0, useNativeDriver: true }).start();
+        startTimer();
+      },
+    })
+  ).current;
+
   if (!rendered) return null;
 
-  const translateY = anim.interpolate({ inputRange: [0, 1], outputRange: [-48, 0] });
+  const slide = anim.interpolate({ inputRange: [0, 1], outputRange: [reduceMotion ? 0 : -(insets.top + 80), 0] });
+  const accent = rendered.accent ?? { tint: palette.sunken, ink: palette.inkSoft };
 
   return (
     <Animated.View
@@ -783,25 +855,52 @@ function ToastHost({ toast, onDismiss }: { toast: QueuedToast | null; onDismiss:
       style={{
         position: "absolute",
         top: 0, left: 0, right: 0,
-        paddingTop: insets.top + 8,
-        paddingHorizontal: space.gutter,
-        opacity: anim,
-        transform: [{ translateY }],
+        paddingTop: insets.top + 6,
+        paddingHorizontal: 10,
+        opacity: reduceMotion ? anim : 1,
+        transform: [{ translateY: Animated.add(slide, drag) }],
       }}
     >
-      <Pressable
-        onPress={() => { rendered.onPress?.(); hideRef.current(); }}
-        style={({ pressed }: { pressed: boolean }) => [styles.toastCard, pressed && { opacity: 0.9 }]}
+      <View
+        {...pan.panHandlers}
+        accessible
+        accessibilityRole="button"
+        accessibilityHint={rendered.onPress ? "Opens it. Swipe up to dismiss." : "Swipe up to dismiss."}
+        accessibilityActions={[{ name: "activate" }, { name: "escape" }, { name: "dismiss", label: "Dismiss" }]}
+        onAccessibilityAction={(e: { nativeEvent: { actionName: string } }) => {
+          if (e.nativeEvent.actionName === "activate") rendered.onPress?.();
+          hideRef.current();
+        }}
+        style={[styles.toastCard, pressed && { transform: [{ scale: 0.98 }] }]}
       >
-        <IconChip name={rendered.icon ?? "sparkle"} tone="white" size={50} iconSize={24} />
+        {rendered.image ? (
+          <Image source={rendered.image} style={styles.toastThumb} resizeMode="cover" accessibilityIgnoresInvertColors />
+        ) : rendered.date ? (
+          <View style={[styles.toastThumb, styles.toastDate, { backgroundColor: accent.tint }]}>
+            <Text style={[styles.toastDateMonth, { color: accent.ink }]}>{rendered.date.month}</Text>
+            <Text style={[styles.toastDateDay, { color: accent.ink }]}>{rendered.date.day}</Text>
+          </View>
+        ) : (
+          <View style={[styles.toastThumb, styles.toastDate, { backgroundColor: accent.tint }]}>
+            <Icon name={rendered.icon ?? "notifications"} size={20} color={accent.ink} />
+          </View>
+        )}
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={styles.toastTitle} numberOfLines={1}>{rendered.title}</Text>
-          {rendered.subtitle ? <Text style={styles.toastSubtitle} numberOfLines={1}>{rendered.subtitle}</Text> : null}
+          <View style={styles.toastTop}>
+            {rendered.eyebrow ? (
+              <Text style={[styles.toastEyebrow, { color: rendered.accent ? accent.ink : palette.inkSoft }]} numberOfLines={1}>
+                {rendered.eyebrow}
+              </Text>
+            ) : null}
+            <Text style={styles.toastNow}>now</Text>
+          </View>
+          <Text style={styles.toastTitle} numberOfLines={1} maxFontSizeMultiplier={1.4}>{rendered.title}</Text>
+          {rendered.subtitle ? (
+            <Text style={styles.toastSubtitle} numberOfLines={1} maxFontSizeMultiplier={1.4}>{rendered.subtitle}</Text>
+          ) : null}
         </View>
-        <Pressable onPress={() => hideRef.current()} hitSlop={10} accessibilityLabel="Dismiss">
-          <Icon name="close" size={18} color={palette.inkMuted} />
-        </Pressable>
-      </Pressable>
+      </View>
+      <View style={styles.toastGrabber} />
     </Animated.View>
   );
 }
@@ -920,16 +1019,30 @@ const styles = StyleSheet.create({
   toastCard: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 14,
+    gap: 12,
     backgroundColor: palette.surface,
-    borderRadius: radius.xl,
-    padding: 16,
-    paddingRight: 16,
-    minHeight: 76,
-    ...shadow.lg,
+    borderRadius: 20,
+    paddingVertical: 11,
+    paddingLeft: 11,
+    paddingRight: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: "rgba(28,25,23,0.08)",
+    shadowColor: "#1C1917",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 24,
+    elevation: 8,
   },
-  toastTitle: { fontFamily: font.bold, fontSize: 16.5, color: palette.ink },
-  toastSubtitle: { fontFamily: font.regular, fontSize: 14, color: palette.inkMuted, marginTop: 2 },
+  toastThumb: { width: 44, height: 44, borderRadius: 12, backgroundColor: palette.sunken },
+  toastDate: { alignItems: "center", justifyContent: "center" },
+  toastDateMonth: { fontFamily: font.bold, fontSize: 9, letterSpacing: 0.6, lineHeight: 11 },
+  toastDateDay: { fontFamily: font.bold, fontSize: 17, lineHeight: 20 },
+  toastTop: { flexDirection: "row", alignItems: "center", gap: 8 },
+  toastEyebrow: { flexShrink: 1, fontFamily: font.semibold, fontSize: 12, lineHeight: 16 },
+  toastNow: { marginLeft: "auto", fontFamily: font.regular, fontSize: 12, lineHeight: 16, color: palette.inkMuted },
+  toastTitle: { fontFamily: font.semibold, fontSize: 15, lineHeight: 20, color: palette.ink, marginTop: 1 },
+  toastSubtitle: { fontFamily: font.regular, fontSize: 13.5, lineHeight: 18, color: palette.inkSoft },
+  toastGrabber: { alignSelf: "center", width: 36, height: 4, borderRadius: 2, backgroundColor: "rgba(28,25,23,0.12)", marginTop: 6 },
 
   centerOverlay: {
     position: "absolute",

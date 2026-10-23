@@ -8,6 +8,7 @@ import { EmptySeat, StatusAvatar, STATUS_WORD, type SlotStatus } from "./StatusA
 import PeoplePicker, { type PickerTarget } from "./PeoplePicker";
 import { useBoardData } from "./useBoardData";
 import { supabase } from "../../lib/supabaseClient";
+import { hueAt } from "../../lib/areas";
 import { newRowId, type PlanItemDraft, type PlanRoleSlotDraft } from "../../lib/db/servicePlans";
 
 type Role = { id: string; name: string; ministry_id?: string | null };
@@ -215,6 +216,11 @@ export default function ServiceBoard({
 
   /* ── Team grouped by ministry ── */
   const ministryName = useMemo(() => new Map(ministries.map((m) => [m.id, m.name])), [ministries]);
+  // Ministries take area colours in a fixed order, so each keeps its colour on every plan.
+  const ministryHue = (name: string) => {
+    const i = ministries.findIndex((m) => m.name === name);
+    return i >= 0 ? hueAt(i) : null;
+  };
   const staffed = roles.filter((r) => slots.some((s) => s.role_id === r.id));
   const unstaffed = roles.filter((r) => !slots.some((s) => s.role_id === r.id));
   const groups = useMemo(() => {
@@ -427,7 +433,10 @@ export default function ServiceBoard({
               return (
                 <div key={group}>
                   <p className="mb-1 flex justify-between text-[10.5px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                    <span>{group}</span>
+                    <span className="flex items-center gap-1.5" style={ministryHue(group) ? { color: ministryHue(group)!.ink } : undefined}>
+                      <span aria-hidden className="h-2 w-2 rounded-full" style={{ background: ministryHue(group)?.mark ?? "var(--border)" }} />
+                      {group}
+                    </span>
                     <span className={filled < seats.length ? "text-amber-700" : "text-emerald-700"}>{filled} / {seats.length}</span>
                   </p>
                   <ul>

@@ -6,24 +6,25 @@
 
 /* Theme tokens */
 :root {
-  /* Backgrounds — one warm neutral ramp. These previously ran three
-     different hues (67.8 / 17.2 / 34.3), so a warm cream card could sit
-     against a pink-tinted grey; stacked surfaces read as muddy rather
-     than calm. Lightness steps are unchanged, only the hue is unified. */
-  --bg: oklch(98.6% 0.002 67.8);
-  --surface: oklch(97.2% 0.004 70);
-  --surface-2: oklch(93.8% 0.007 70);
+  /* Backgrounds — near-neutral, Tailwind "stone" ramp (chroma ≈ 0.001–0.004).
+     Modern admin canvases are either white or an off-white with almost no hue:
+     Vercel Geist #fafafa page / #fff cards, Polaris #f1f1f1 / #fff, Primer #f6f8fa
+     muted, Radix sand2 #f9f9f8. The old warm paper (#f8f7f4, hue ~70) read brown
+     at full-screen size, so warmth now comes from amber, Rubik and the stone text
+     colours — not from the backdrop. Raised = lighter: pure white cards on the page. */
+  --bg: #fafaf9;
+  --surface: #ffffff;
+  --surface-2: #f5f5f4;
 
-  /* Text */
+  /* Text — muted is #78716c (4.8:1 on white); #a8a29e was 2.5:1 and failed WCAG AA. */
   --text-primary: #1c1917;
   --text-secondary: #57534e;
-  --text-muted: #a8a29e;
+  --text-muted: #78716c;
 
-  /* Borders — warm greys. Cool blue-greys (#e5e7eb/#f1f5f9) against the
-     warm surfaces above were the main source of the "off" grey. */
-  --border: #e7e2da;
+  /* Borders — same stone ramp; never cool blue-greys against these surfaces. */
+  --border: #e7e5e4;
   --border-width: 1px;
-  --divider: #f2eee8;
+  --divider: #f0efed;
 
   /* UI dimensions & radii */
   --radius-selector: 2rem;
@@ -45,18 +46,17 @@
   --surface-container: var(--surface);
   --surface-container-high: var(--surface-2);
   --on-surface: var(--text-primary);
-  --outline-variant: #d8c3ad;
+  --outline-variant: #d6d3d1;
 
-  /* Admin nav active pill — muted greige (barely warm), not pale yellow */
-  --nav-pill-active-bg: oklch(94.2% 0.012 78);
+  /* Admin nav active pill — one step darker than hover (#f5f5f4), neutral */
+  --nav-pill-active-bg: #eeedeb;
   --nav-active-foreground: #f59e0b;
   --sidebar-canvas: var(--surface);
   --app-canvas: var(--bg);
 
   /* Neutral elevation only (no amber-tinted glow) */
-  /* Warm-toned shadow: a blue-black shadow over warm surfaces greys them out. */
-  --shadow-organic: 0 12px 28px -6px rgba(60, 45, 30, 0.07);
-  --shadow-elevated-hover: 0 16px 36px -8px rgba(60, 45, 30, 0.10);
+  --shadow-organic: 0 12px 28px -6px rgba(28, 25, 23, 0.06);
+  --shadow-elevated-hover: 0 16px 36px -8px rgba(28, 25, 23, 0.09);
 
   /* Status */
   --success: oklch(72.3% 0.219 149.579);
@@ -65,6 +65,16 @@
   --danger: oklch(57.7% 0.245 27.325);
   --danger-hover: oklch(50% 0.22 27);
   --info: oklch(62.3% 0.214 259.815);
+
+  /* Area colours (lib/areas.ts): brand stays amber; these say WHERE you are.
+     mark = icons/dots/charts, tint = backgrounds, ink = text on the tint (≥4.5:1).
+     Fixed order teal · clay · blue · olive · plum — validated for colour-blind
+     separation and contrast on the paper surface. Never used for status. */
+  --area-teal-mark: #009B90;  --area-teal-tint: #E0F2EF;  --area-teal-ink: #0B5E57;
+  --area-clay-mark: #D46A2E;  --area-clay-tint: #FBE8DE;  --area-clay-ink: #8A3A12;
+  --area-blue-mark: #3466B8;  --area-blue-tint: #E4ECF8;  --area-blue-ink: #1E447F;
+  --area-olive-mark: #6E8F2E; --area-olive-tint: #EBF0DD; --area-olive-ink: #44591A;
+  --area-plum-mark: #A0529F;  --area-plum-tint: #F4E6F3;  --area-plum-ink: #6B2F6A;
 
     /* Sidebar sizing system */
   --sidebar-w: 200px;

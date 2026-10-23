@@ -12,6 +12,8 @@ import FeaturePlaceholderScreen from "../screens/FeaturePlaceholderScreen";
 import GuidedTourScreen from "../screens/GuidedTourScreen";
 import RequestToServeScreen from "../screens/RequestToServeScreen";
 import DeleteAccountScreen from "../screens/DeleteAccountScreen";
+import AssignmentDetailScreen from "../screens/AssignmentDetailScreen";
+import AwayDatesScreen from "../screens/AwayDatesScreen";
 import AppOverlays from "../components/app/AppOverlays";
 import OfflineBanner from "../components/app/OfflineBanner";
 import { ToastProvider } from "../components/ds";
@@ -48,6 +50,8 @@ export default function AppNavigator({ showServe = false }: AppNavigatorProps) {
           <Stack.Screen name="GuidedTour" component={GuidedTourScreen} presentation="modal" />
           <Stack.Screen name="RequestToServe" component={RequestToServeScreen} />
           <Stack.Screen name="DeleteAccount" component={DeleteAccountScreen} />
+          <Stack.Screen name="AssignmentDetail" component={AssignmentDetailScreen} />
+          <Stack.Screen name="AwayDates" component={AwayDatesScreen} />
         </Stack.Navigator>
         <AppOverlays />
         <OfflineBanner />

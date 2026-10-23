@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Bell, Check, CheckCheck, AlertTriangle, Info, PartyPopper, Clock } from "lucide-react";
+import { AREA, type Area } from "../../../lib/areas";
 import { getCurrentContext } from "../../../lib/supabaseData";
 import { supabase } from "../../../lib/supabaseClient";
 import { formatRelativeTime, formatShortDate } from "../../../lib/format";
@@ -21,6 +22,14 @@ const TONE_META = {
 } as const;
 
 type ToneKey = keyof typeof TONE_META;
+
+const AREA_BY_TYPE: Record<string, Area> = {
+  ASSIGNMENT_NEW: "services", ASSIGNMENT_REMINDER: "services", STEP_THANKS: "services", STEP_PROGRESS: "services",
+  SERVICE_STARTING: "services", SERVICE_RECAP: "services", SERVICE_COMPLETE: "services", ASSIGNMENT_MISSED: "services", CARE_NOTE: "services",
+  EVENT_NEW: "events",
+  ANNOUNCEMENT_NEW: "news",
+  SERVE_REQUEST: "people",
+};
 
 function renderMeta(notification: NotificationRow): { title: string; tone: ToneKey; detail?: string } {
   if (notification.type === "SERVE_REQUEST") {
@@ -243,12 +252,14 @@ export default function NotificationsPage() {
               {filtered.map((notification) => {
                 const meta = renderMeta(notification);
                 const { icon: ToneIcon, bg, text } = TONE_META[meta.tone];
+                // Status tones (confirmed / can't make it / warning) keep their meaning; everything else wears its area.
+                const area = meta.tone === "info" || meta.tone === "default" ? AREA[AREA_BY_TYPE[notification.type] ?? "services"] : null;
                 const isUnread = !notification.read_at;
                 return (
-                  <li key={notification.id} className={`group flex items-start gap-4 px-5 py-4 transition-colors hover:bg-[var(--surface-container-low)] ${isUnread ? "bg-amber-50/30" : ""}`}>
+                  <li key={notification.id} className={`group flex items-start gap-4 px-5 py-4 transition-colors hover:bg-[var(--surface-container-low)] ${isUnread ? "bg-[var(--surface-container-low)]" : ""}`}>
                     {/* Icon */}
-                    <div className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${bg}`}>
-                      <ToneIcon className={`h-4 w-4 ${text}`} />
+                    <div className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${area ? "" : bg}`} style={area ? { background: area.tint } : undefined}>
+                      <ToneIcon className={`h-4 w-4 ${area ? "" : text}`} style={area ? { color: area.ink } : undefined} />
                     </div>
 
                     {/* Content */}

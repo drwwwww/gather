@@ -33,6 +33,7 @@ import {
 } from "../lib/churchImagery";
 import { supabase } from "../supabase";
 import { useAuth } from "../context/AuthContext";
+import { AREA, eventHue } from "../theme/areas";
 
 /* ────────────────────────────────────────────── types + helpers */
 
@@ -450,6 +451,7 @@ export default function HomeScreen({ navigation }: any) {
                 <ListRow
                   key={e.id}
                   event={e}
+                  index={i}
                   last={i === arr.length - 1}
                   onPress={() => navigation.navigate("EventDetail", { eventId: e.id })}
                 />
@@ -551,8 +553,8 @@ function OfferCard({ assignment, onOpen }: { assignment: AssignmentPreview; onOp
     <Animated.View style={press.style}>
       <Pressable onPress={onOpen} onPressIn={press.onPressIn} onPressOut={press.onPressOut} style={styles.offerCard}>
         <View style={styles.offerHead}>
-          <View style={styles.offerIcon}>
-            <Icon name="serve" size={16} color={palette.amberDeep} />
+          <View style={[styles.offerIcon, { backgroundColor: AREA.services.tint }]}>
+            <Icon name="serve" size={16} color={AREA.services.ink} />
           </View>
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text style={styles.offerTitle} numberOfLines={2}>
@@ -622,16 +624,17 @@ function BrowseTile({
   );
 }
 
-function ListRow({ event, last, onPress }: { event: EventPreview; last: boolean; onPress: () => void }) {
+function ListRow({ event, index, last, onPress }: { event: EventPreview; index: number; last: boolean; onPress: () => void }) {
   const { month, day } = dateParts(event.start_at);
+  const hue = eventHue(index);
   return (
     <Pressable
       onPress={onPress}
       style={({ pressed }: { pressed: boolean }) => [styles.listRow, !last && styles.listRowBorder, pressed && { opacity: 0.6 }]}
     >
-      <View style={styles.listDate}>
-        <Text style={styles.listDay}>{day}</Text>
-        <Text style={styles.listMonth}>{month}</Text>
+      <View style={[styles.listDate, { backgroundColor: hue.tint }]}>
+        <Text style={[styles.listDay, { color: hue.ink }]}>{day}</Text>
+        <Text style={[styles.listMonth, { color: hue.ink, opacity: 0.75 }]}>{month}</Text>
       </View>
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text style={styles.listTitle} numberOfLines={2}>

@@ -1,4 +1,5 @@
 /** Shared route types only — avoids Metro circular imports between navigators. */
+import type { ServeRow } from "../lib/serving";
 
 export type AuthStackParamList = {
   SignIn: undefined;
@@ -30,4 +31,6 @@ export type AppStackParamList = {
   GuidedTour: undefined;
   RequestToServe: undefined;
   DeleteAccount: undefined;
+  AssignmentDetail: { row: ServeRow };
+  AwayDates: undefined;
 };

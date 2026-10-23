@@ -7,6 +7,8 @@ import { format } from "date-fns";
 import ImageUpload from "./ImageUpload";
 import AnnouncementTemplates, { type AnnouncementTemplate } from "./AnnouncementTemplates";
 import { formatShortWeekdayDateTime } from "../../lib/format";
+import AnnouncementTypeFields from "./AnnouncementTypeFields";
+import type { AnnouncementExtras } from "../../lib/announcements";
 
 type PublishMode = "NOW" | "SCHEDULE";
 
@@ -24,6 +26,8 @@ type AnnouncementComposerProps = {
   submitVariant?: "publish" | "draft" | null;
   imageUrl: string | null;
   churchId: string;
+  extras: AnnouncementExtras;
+  onExtrasChange: (next: AnnouncementExtras) => void;
   onTitleChange: (value: string) => void;
   onBodyChange: (value: string) => void;
   onAudienceChange: (value: string) => void;
@@ -310,14 +314,16 @@ function AnnouncementPhonePreview({ title, body, audience, imageUrl }: { title: 
 export default function AnnouncementComposer({
   title, body, audience, publishMode, scheduleDate, scheduleTime,
   timezoneLabel, isEditing, isSubmitting = false, submitVariant = null,
-  imageUrl, churchId,
+  imageUrl, churchId, extras, onExtrasChange,
   onTitleChange, onBodyChange, onAudienceChange, onPublishModeChange,
   onScheduleDateChange, onScheduleTimeChange, onImageUrlChange,
   onPrimary, onSaveDraft, onCancelEdit, onTemplateSelect,
 }: AnnouncementComposerProps) {
   const hasContent = title.trim().length > 0 && body.trim().length > 0;
   const scheduleReady = scheduleDate && scheduleTime;
-  const canPrimary = hasContent && (publishMode === "NOW" || scheduleReady) && !isSubmitting;
+  const typeReady =
+    (extras.kind !== "EVENT" || !!extras.eventId) && (extras.kind !== "SIGNUP" || extras.slots.some((sl) => sl.label.trim()));
+  const canPrimary = hasContent && typeReady && (publishMode === "NOW" || scheduleReady) && !isSubmitting;
   const bodyLength = body.length;
 
   const scheduleLabel = useMemo(() => {
@@ -333,6 +339,8 @@ export default function AnnouncementComposer({
       <div className="flex min-h-0 flex-1 divide-x divide-[var(--border)]">
         {/* Left: form */}
         <div className="flex w-full flex-col gap-5 overflow-y-auto p-6 md:w-3/5">
+          <AnnouncementTypeFields value={extras} onChange={onExtrasChange} churchId={churchId} disabled={isSubmitting} DatePicker={InlineDatePicker} />
+
           {/* Headline */}
           <div className="space-y-1.5">
             <label className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Headline</label>

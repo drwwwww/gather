@@ -4,7 +4,7 @@ import { supabase } from "../supabase";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../components/ds";
 import { getLastSeenAt, setLastSeenAt } from "../lib/localFlags";
-import { navigate } from "../navigation/navigationRef";
+import { announcementToast, digestToast, eventToast } from "../lib/toasts";
 
 /**
  * "What happened while you were gone" — checked on cold start and whenever the
@@ -36,11 +36,11 @@ export function useReopenDigest() {
           return;
         }
 
-        type EventRow = { id: string; title: string };
+        type EventRow = { id: string; title: string; start_at: string | null; location: string | null };
         type AnnouncementRow = { id: string; title: string; body: string | null; publish_at: string | null; image_url: string | null };
 
         const [eventsRes, announcementsRes] = await Promise.all([
-          client.from("events").select("id, title").eq("church_id", churchId).gt("created_at", since).order("created_at", { ascending: false }),
+          client.from("events").select("id, title, start_at, location").eq("church_id", churchId).gt("created_at", since).order("created_at", { ascending: false }),
           client.from("announcements").select("id, title, body, publish_at, image_url").eq("church_id", churchId).gt("created_at", since).order("created_at", { ascending: false }),
         ]);
 
@@ -53,29 +53,12 @@ export function useReopenDigest() {
         if (total === 0) return;
 
         if (total > 2) {
-          showToast({
-            title: "Multiple updates",
-            subtitle: `${total} new events and announcements while you were away`,
-            icon: "sparkle",
-            onPress: () => navigate(events.length >= announcements.length ? "Events" : "Announcements"),
-          });
+          showToast(digestToast(events.length, announcements.length, true));
           return;
         }
 
-        for (const e of events) {
-          showToast({ title: "New event", subtitle: e.title, icon: "events", onPress: () => navigate("EventDetail", { eventId: e.id }) });
-        }
-        for (const a of announcements) {
-          showToast({
-            title: "New announcement",
-            subtitle: a.title,
-            icon: "announcements",
-            onPress: () =>
-              navigate("AnnouncementsDetail", {
-                announcement: { id: a.id, title: a.title, body: a.body ?? "", publish_at: a.publish_at, image_url: a.image_url },
-              }),
-          });
-        }
+        for (const e of events) showToast(eventToast(e));
+        for (const a of announcements) showToast(announcementToast(a));
       } finally {
         checkingRef.current = false;
       }

@@ -11,6 +11,7 @@ import AnnouncementBrowser from "../../../components/announcements/AnnouncementB
 import type { AnnouncementTemplate } from "../../../components/announcements/AnnouncementTemplates";
 import { PageGrid, PageGridFull } from "../../../components/layout/PageGrid";
 import type { Database } from "@gather/lib";
+import { emptyExtras, extrasColumns, loadExtras, saveSignupParts, type AnnouncementExtras } from "../../../lib/announcements";
 
 type Announcement = Database["public"]["Tables"]["announcements"]["Row"];
 
@@ -55,6 +56,7 @@ export default function AnnouncementsPage() {
   const [timezoneLabel, setTimezoneLabel] = useState("");
   const [activeTab, setActiveTab] = useState<string>("Published");
   const [composerOpen, setComposerOpen] = useState(false);
+  const [extras, setExtras] = useState<AnnouncementExtras>(emptyExtras);
   const router = useRouter();
 
   const pushToast = (message: string, tone: "success" | "error") => {
@@ -112,6 +114,7 @@ export default function AnnouncementsPage() {
     setScheduleTime("");
     setEditingId(null);
     setPreviewMode("EDIT");
+    setExtras(emptyExtras());
   };
 
   const handleSubmit = async (statusOverride?: AnnouncementStatus) => {
@@ -147,7 +150,8 @@ export default function AnnouncementsPage() {
             body: trimmedBody,
             audience: audience as Announcement["audience"],
             publish_at: publishAt,
-            ...(imageUrl ? { image_url: imageUrl } as any : {})
+            ...(imageUrl ? { image_url: imageUrl } as any : {}),
+            ...(extrasColumns(extras) as any),
           })
           .eq("id", editingId)
           .select("*")
@@ -159,6 +163,8 @@ export default function AnnouncementsPage() {
           return;
         }
         setAnnouncements((prev) => mergeAnnouncementRow(prev, updated as Announcement));
+        const partsError = await saveSignupParts(supabase, updated.id, cid, extras);
+        if (partsError) pushToast(`Saved, but the sign-up slots didn't: ${partsError}`, "error");
       } else {
         const { data: inserted, error: insertError } = await supabase
           .from("announcements")
@@ -168,7 +174,8 @@ export default function AnnouncementsPage() {
             body: trimmedBody,
             audience: audience as Announcement["audience"],
             publish_at: publishAt,
-            ...(imageUrl ? { image_url: imageUrl } as any : {})
+            ...(imageUrl ? { image_url: imageUrl } as any : {}),
+            ...(extrasColumns(extras) as any),
           })
           .select("*")
           .single();
@@ -179,6 +186,8 @@ export default function AnnouncementsPage() {
           return;
         }
         setAnnouncements((prev) => mergeAnnouncementRow(prev, inserted as Announcement));
+        const partsError = await saveSignupParts(supabase, inserted.id, cid, extras);
+        if (partsError) pushToast(`Posted, but the sign-up slots didn't save: ${partsError}`, "error");
       }
 
       pushToast(
@@ -214,6 +223,8 @@ export default function AnnouncementsPage() {
       setScheduleTime("");
     }
     setPreviewMode("EDIT");
+    setExtras(emptyExtras());
+    void loadExtras(supabase, announcement as any).then(setExtras);
   };
 
   const handleDuplicate = (announcement: Announcement) => {
@@ -226,6 +237,9 @@ export default function AnnouncementsPage() {
     setScheduleDate("");
     setScheduleTime("");
     setPreviewMode("EDIT");
+    setExtras(emptyExtras());
+    // A copy starts with fresh slots — nobody's sign-ups carry over.
+    void loadExtras(supabase, announcement as any, { keepIds: false }).then(setExtras);
   };
 
   const handleDeleteAnnouncement = async (announcement: Announcement) => {
@@ -462,6 +476,8 @@ export default function AnnouncementsPage() {
                 submitVariant={submitVariant}
                 imageUrl={imageUrl}
                 churchId={churchId ?? ""}
+                extras={extras}
+                onExtrasChange={setExtras}
                 onTitleChange={setTitle}
                 onBodyChange={setBody}
                 onAudienceChange={setAudience}

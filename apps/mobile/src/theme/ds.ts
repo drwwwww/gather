@@ -1,7 +1,8 @@
 /**
- * Gather Design System — "Warm paper"
- * Flat warm-paper ground (one warm hue, ~70, matching the web admin), white cards,
- * amber accent. Home adds a soft morning-light glow; sign-in is the amber "Dawn".
+ * Gather Design System
+ * Near-neutral ground (Tailwind "stone", like the web admin and iOS grouped lists),
+ * white cards, amber accent, five area colours (theme/areas.ts). Home adds a soft
+ * morning-light glow; sign-in is the amber "Dawn".
  *
  * Rubik loads in App.tsx as weight-specific families (Rubik_400Regular …); the plain
  * "Rubik" name is not registered, so we reference the real family names here.
@@ -16,28 +17,29 @@ export const font = {
 } as const;
 
 export const palette = {
-  // Warm paper base + surfaces (one warm hue — never drift into lavender/cool grays)
-  bg: "#F6F4EF",
+  // Near-neutral base: white cards sit on stone-100 (iOS grouped-list pattern).
+  // The old warm paper (#F6F4EF) read brown at full-screen size.
+  bg: "#F5F5F4",
   surface: "#FFFFFF",
   glass: "rgba(255,255,255,0.62)",
   glassStrong: "rgba(255,255,255,0.85)",
   glassBorder: "rgba(255,255,255,0.75)",
-  sunken: "#EFEBE3",
-  overlay: "rgba(31,27,20,0.42)",
+  sunken: "#EEEDEB",
+  overlay: "rgba(28,25,23,0.42)",
 
-  // Ink (warm near-black)
-  ink: "#1F1B14",
-  inkSoft: "#6B6457",
-  inkMuted: "#A29B8D",
+  // Ink (stone). inkMuted is 4.8:1 on white — the old #A29B8D was 2.6:1 and failed AA.
+  ink: "#1C1917",
+  inkSoft: "#57534E",
+  inkMuted: "#78716C",
   onDark: "#FFFFFF",
   onDarkSoft: "rgba(255,255,255,0.72)",
   onDarkFaint: "rgba(255,255,255,0.42)",
 
   // Hairlines
-  line: "#E6E1D7",
-  lineSoft: "#F0ECE4",
+  line: "#E7E5E4",
+  lineSoft: "#F0EFED",
 
-  // Brand amber (sacred — accent / active / CTA only)
+  // Brand amber — used sparingly: logo, the one primary CTA, active tab
   amber: "#F59E0B",
   amberDeep: "#E07E00",
   amberBright: "#FDB84D",
@@ -57,10 +59,10 @@ export const palette = {
 } as const;
 
 export const gradient = {
-  /** Flat warm paper (kept as a gradient tuple for older callers). */
-  ambient: ["#F6F4EF", "#F6F4EF", "#F6F4EF"] as const,
+  /** Flat page ground (kept as a gradient tuple for older callers). */
+  ambient: ["#F5F5F4", "#F5F5F4", "#F5F5F4"] as const,
   /** Home's "morning light": soft amber fading into the paper. */
-  glow: ["rgba(253,226,176,0.95)", "rgba(253,233,198,0.55)", "rgba(246,244,239,0)"] as const,
+  glow: ["rgba(253,226,176,0.95)", "rgba(253,233,198,0.55)", "rgba(245,245,244,0)"] as const,
   /** Sign-in "Dawn": amber sunrise into cream (matches the web auth transition). */
   dawn: ["#F59E0B", "#FBC86A", "#FDE7C2", "#FBFAF7"] as const,
   /** Primary CTA / accent tiles */
@@ -92,24 +94,24 @@ export const space = {
   gutter: 20,
 } as const;
 
-/** Soft, warm-tinted elevation (brown-black shadow, never lavender). */
+/** Soft, neutral elevation. */
 export const shadow = {
   sm: {
-    shadowColor: "#3B2F1E",
+    shadowColor: "#1C1917",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.07,
     shadowRadius: 12,
     elevation: 2,
   },
   md: {
-    shadowColor: "#3B2F1E",
+    shadowColor: "#1C1917",
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.09,
     shadowRadius: 24,
     elevation: 5,
   },
   lg: {
-    shadowColor: "#3B2F1E",
+    shadowColor: "#1C1917",
     shadowOffset: { width: 0, height: 16 },
     shadowOpacity: 0.13,
     shadowRadius: 40,

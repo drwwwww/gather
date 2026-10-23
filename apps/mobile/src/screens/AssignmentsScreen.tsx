@@ -1,397 +1,224 @@
 import { useCallback, useState } from "react";
-import { View, Text, ScrollView, Pressable, RefreshControl, StyleSheet, Alert, Platform } from "react-native";
+import { View, Text, ScrollView, Pressable, RefreshControl, StyleSheet } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useFocusEffect } from "@react-navigation/native";
 import { Icon } from "../components/ui/Icon";
-import {
-  Screen, Pill, EmptyState, Loader, IconChip, LinearGradient,
-  palette, font, gradient, radius, shadow, space,
-} from "../components/ds";
+import { Screen, EmptyState, Loader, palette, font, radius, shadow, space } from "../components/ds";
 import ConfirmCelebration, { type CelebrationStat } from "../components/app/ConfirmCelebration";
-import AwayDatesCard from "../components/app/AwayDatesCard";
+import AnswerButtons from "../components/app/AnswerButtons";
 import { supabase } from "../supabase";
 import { useAuth } from "../context/AuthContext";
+import { AREA } from "../theme/areas";
+import {
+  type ServeRow, dateParts, loadMyServing, localToday, needsAnswer, readyBy, respondTo, serviceLine, withLine,
+} from "../lib/serving";
 
-type Source = "bulletin_part" | "bulletin_role";
-type AssignmentRow = {
-  key: string; source: Source; bulletinSlotId?: string; bulletinItemId?: string;
-  scheduled_date: string; status: string;
-  titleLine: string; service_label: string; isBackup?: boolean;
-};
+type AwayRow = { start_date: string; end_date: string; note: string | null };
 
-function localTodayString(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-const weekdayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-
-function formatDateLabel(dateStr: string): string {
-  const d = new Date(dateStr + "T00:00:00");
-  const month = d.toLocaleString("en-US", { month: "short" });
-  return `${weekdayNames[d.getDay()]}, ${month} ${d.getDate()}`;
-}
-/** "9:00 AM" — the day is already in the group heading above each row. */
-function formatClock(startTime: string): string {
-  const [h, m] = startTime.split(":").map(Number);
-  const hour = h > 12 ? h - 12 : h === 0 ? 12 : h;
-  const ampm = h >= 12 ? "PM" : "AM";
-  return `${hour}:${String(m || 0).padStart(2, "0")} ${ampm}`;
-}
-function serviceLabelFor(
-  _dateStr: string,
-  startTime: string | null,
-  serviceName: string | undefined
-): string {
-  // No made-up "9:00" when a plan has no start time — just leave the time off.
-  const time = startTime ? formatClock(startTime) : null;
-  return [serviceName, time].filter(Boolean).join(" · ") || "Service";
-}
-function subtitleFor(a: AssignmentRow): string {
-  if (a.source === "bulletin_part") return a.isBackup ? "Backup for this part of the service" : "Part of the service";
-  return a.isBackup ? "Backup on the team" : "On the team";
-}
-
-export default function AssignmentsScreen() {
+/**
+ * Serve — answer first, then your schedule (Planning Center "Schedule" / shift apps).
+ * 1. Requests that need an answer, as cards with two equal buttons.
+ * 2. Everything coming up as a compact list; a row opens the assignment.
+ * 3. Away dates and "serve on another team" as plain rows.
+ */
+export default function AssignmentsScreen({ navigation }: any) {
   const { user, profile } = useAuth();
-  const [assignments, setAssignments] = useState<AssignmentRow[]>([]);
+  const [rows, setRows] = useState<ServeRow[]>([]);
+  const [teammates, setTeammates] = useState<Record<string, string[]>>({});
+  const [away, setAway] = useState<AwayRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const [rowError, setRowError] = useState<{ key: string; message: string } | null>(null);
-  const [celebration, setCelebration] = useState<{
-    roleLine: string;
-    stats: CelebrationStat[];
-  } | null>(null);
+  const [celebration, setCelebration] = useState<{ roleLine: string; stats: CelebrationStat[] } | null>(null);
 
   const load = useCallback(async () => {
     if (!supabase || !user?.id || !profile?.church_id) {
-      setAssignments([]); setLoading(false); setRefreshing(false);
+      setRows([]); setLoading(false); setRefreshing(false);
       return;
     }
-    const today = localTodayString();
-    const { data: plansData, error: plansErr } = await supabase
-      .from("service_plans")
-      .select("id, service_date, start_time, service_time_id")
-      .eq("church_id", profile.church_id)
-      .gte("service_date", today)
-      .order("service_date", { ascending: true })
-      .limit(40);
-    if (plansErr) console.error("[Serve] service_plans error:", plansErr.message);
-
-    const plans = (plansData ?? []) as { id: string; service_date: string; start_time: string | null; service_time_id: string | null }[];
-    const planIds = plans.map((p) => p.id);
-    const planById = new Map(plans.map((p) => [p.id, p]));
-
-    // A church can hold more than one service on the same date (e.g. a 9:00
-    // and an 11:00 Sunday) — the date alone doesn't say which one an
-    // assignment belongs to, so the service's own name has to come along too.
-    const serviceTimeIds = [...new Set(plans.map((p) => p.service_time_id).filter((id): id is string => !!id))];
-    const serviceTimesRes = serviceTimeIds.length
-      ? await supabase.from("service_times").select("id, name").in("id", serviceTimeIds)
-      : { data: [] as { id: string; name: string }[] };
-    const serviceNameById = new Map((serviceTimesRes.data ?? []).map((s) => [s.id, s.name]));
-
-    type ItemRow = { id: string; title: string; plan_id: string; assignment_status: string | null; assigned_user_id: string | null; backup_user_id: string | null };
-    type SlotRow = { id: string; role_id: string; plan_id: string; status: string; assigned_user_id: string | null; backup_user_id: string | null };
-
-    let planItems: ItemRow[] = [];
-    let planSlots: SlotRow[] = [];
-
-    if (planIds.length > 0) {
-      const itemsRes = await supabase
-        .from("service_plan_items")
-        .select("id, title, plan_id, assignment_status, assigned_user_id, backup_user_id")
-        .in("plan_id", planIds)
-        .or(`assigned_user_id.eq.${user.id},backup_user_id.eq.${user.id}`);
-      if (itemsRes.error) {
-        const { data: fb, error: fbErr } = await supabase
-          .from("service_plan_items")
-          .select("id, title, plan_id, assigned_user_id, backup_user_id")
-          .in("plan_id", planIds)
-          .or(`assigned_user_id.eq.${user.id},backup_user_id.eq.${user.id}`);
-        if (fbErr) console.error("[Serve] service_plan_items error:", fbErr.message);
-        else planItems = (fb ?? []).map((r: any) => ({ ...r, assignment_status: null }));
-      } else {
-        planItems = (itemsRes.data ?? []) as ItemRow[];
-      }
-      const slotsRes = await supabase
-        .from("service_plan_role_slots")
-        .select("id, role_id, plan_id, status, assigned_user_id, backup_user_id")
-        .in("plan_id", planIds)
-        .or(`assigned_user_id.eq.${user.id},backup_user_id.eq.${user.id}`);
-      if (slotsRes.error) console.error("[Serve] role_slots error:", slotsRes.error.message);
-      else planSlots = (slotsRes.data ?? []) as SlotRow[];
-    }
-
-    const allRoleIds = [...new Set(planSlots.map((s) => s.role_id))];
-    const rolesRes = allRoleIds.length
-      ? await supabase.from("volunteer_roles").select("id, name").in("id", allRoleIds)
-      : { data: [] as { id: string; name: string }[], error: null };
-    const rolesMap = new Map((rolesRes.data ?? []).map((r) => [r.id, r.name]));
-
-    const merged: AssignmentRow[] = [];
-    for (const item of planItems) {
-      const plan = planById.get(item.plan_id);
-      if (!plan) continue;
-      const isBackup = item.backup_user_id === user.id && item.assigned_user_id !== user.id;
-      merged.push({
-        key: `i-${item.id}${isBackup ? "-b" : ""}`, source: "bulletin_part", bulletinItemId: item.id,
-        scheduled_date: plan.service_date,
-        status: item.assignment_status ?? "ASSIGNED", titleLine: item.title?.trim() || "Service part",
-        service_label: serviceLabelFor(plan.service_date, plan.start_time, plan.service_time_id ? serviceNameById.get(plan.service_time_id) : undefined),
-        isBackup,
-      });
-    }
-    for (const slot of planSlots) {
-      const plan = planById.get(slot.plan_id);
-      if (!plan) continue;
-      const isBackup = slot.backup_user_id === user.id && slot.assigned_user_id !== user.id;
-      merged.push({
-        key: `r-${slot.id}${isBackup ? "-b" : ""}`, source: "bulletin_role", bulletinSlotId: slot.id,
-        scheduled_date: plan.service_date, status: slot.status,
-        titleLine: rolesMap.get(slot.role_id) ?? "Role",
-        service_label: serviceLabelFor(plan.service_date, plan.start_time, plan.service_time_id ? serviceNameById.get(plan.service_time_id) : undefined),
-        isBackup,
-      });
-    }
-    merged.sort((a, b) => {
-      const d = a.scheduled_date.localeCompare(b.scheduled_date);
-      if (d !== 0) return d;
-      const order: Record<Source, number> = { bulletin_role: 0, bulletin_part: 1 };
-      return order[a.source] - order[b.source];
-    });
-    const filtered = merged.filter((row) => !(row.status === "DECLINED" && row.scheduled_date < today));
-    setAssignments(filtered.slice(0, 60));
+    const [data, awayRes] = await Promise.all([
+      loadMyServing(supabase, user.id, profile.church_id),
+      (supabase as any)
+        .from("volunteer_unavailability")
+        .select("start_date, end_date, note")
+        .eq("user_id", user.id)
+        .gte("end_date", localToday())
+        .order("start_date"),
+    ]);
+    // A backup row mirrors the person serving; once they've said no it isn't yours to show.
+    setRows(data.rows.filter((r) => !(r.status === "DECLINED" && r.isBackup)));
+    setTeammates(data.teammates);
+    setAway((awayRes.data ?? []) as AwayRow[]);
     setLoading(false); setRefreshing(false);
   }, [user?.id, profile?.church_id]);
 
   useFocusEffect(useCallback(() => { setLoading(true); void load(); }, [load]));
 
-  /** Only celebrate a confirmation — declining should stay quiet and neutral. */
-  const celebrateConfirm = (a: AssignmentRow) => {
-    // Backup rows mirror someone else's status — count only what's yours.
-    const mine = assignments.filter((r) => !r.isBackup);
-    const confirmedAfter = mine.filter(
-      (r) => r.status === "CONFIRMED" || r.key === a.key
-    ).length;
-    const remaining = mine.filter(
-      (r) => r.key !== a.key && (r.status === "ASSIGNED" || r.status === "OPEN")
-    ).length;
-    const upcomingServices = new Set(
-      mine.filter((r) => r.status === "CONFIRMED" || r.key === a.key).map((r) => r.scheduled_date)
-    ).size;
+  const requests = rows.filter(needsAnswer);
+  const upcoming = rows.filter((r) => !needsAnswer(r));
 
-    setCelebration({
-      roleLine: `${a.titleLine} · ${a.service_label}`,
-      stats: [
-        { label: "Confirmed", value: confirmedAfter, icon: "checkCircle", tone: "success" },
-        { label: "Services", value: upcomingServices, icon: "calendar", tone: "amber" },
-        { label: "Still pending", value: remaining, icon: "clock", tone: "info" },
-      ],
-    });
-  };
-
-  const respondToAssignment = async (a: AssignmentRow, response: "CONFIRMED" | "DECLINED") => {
-    if (!supabase || !user?.id || savingKey) return;
-    setSavingKey(a.key); setRowError(null);
-    const sourceMap: Record<Source, string> = { bulletin_role: "plan_role_slot", bulletin_part: "plan_item" };
-    const idMap: Record<Source, string | undefined> = { bulletin_role: a.bulletinSlotId, bulletin_part: a.bulletinItemId };
-    const p_id = idMap[a.source];
-    if (!p_id) { setRowError({ key: a.key, message: "Missing assignment ID." }); setSavingKey(null); return; }
-
-    const { data: rpcData, error: rpcError } = await supabase.rpc("respond_assignment", { p_source: sourceMap[a.source], p_id, p_response: response });
-    if (rpcError) {
-      // No direct-table fallback: answering goes through respond_assignment
-      // only, which is where the backup/primary and past-service rules live.
-      setRowError({ key: a.key, message: "Couldn't save your answer. Check your connection and try again." });
-      setSavingKey(null);
-      return;
-    }
-    if (rpcData?.error) {
-      console.error("[Serve] respond_assignment error:", rpcData.error);
-      const errStr = String(rpcData.error);
-      if (errStr === "not found") { setSavingKey(null); setRowError(null); setLoading(true); void load(); return; }
-      setRowError({ key: a.key, message: errStr === "permission denied" ? "You are no longer assigned to this role." : errStr });
-      setSavingKey(null);
-      return;
-    }
-    const promoted = rpcData?.promoted === true;
-    // Declining as primary (backup took over) or stepping down as backup removes you from it.
-    if (response === "DECLINED" && (promoted || a.isBackup)) setAssignments((prev) => prev.filter((row) => row.key !== a.key));
-    else setAssignments((prev) => prev.map((row) => (row.key === a.key ? { ...row, status: response } : row)));
-    if (response === "CONFIRMED" && !a.isBackup) celebrateConfirm(a);
+  const answer = async (r: ServeRow, response: "CONFIRMED" | "DECLINED") => {
+    if (!supabase || savingKey) return;
+    setSavingKey(r.key); setRowError(null);
+    const { error, promoted } = await respondTo(supabase, r, response);
     setSavingKey(null);
-  };
-
-  /** Changing a "yes" is a real event for the team — ask first, natively. */
-  const changeToDecline = (a: AssignmentRow) => {
-    const body = `You'll be taken off ${a.titleLine} for ${formatDateLabel(a.scheduled_date)}. Your backup steps in if there is one; otherwise your admin sees the gap.`;
-    // react-native-web's Alert is a no-op — the browser preview needs a real prompt.
-    if (Platform.OS === "web") {
-      if (window.confirm(`Can't make it?
-
-${body}`)) void respondToAssignment(a, "DECLINED");
-      return;
+    if (error) { setRowError({ key: r.key, message: error }); return; }
+    if (response === "DECLINED" && promoted) setRows((list) => list.filter((x) => x.key !== r.key));
+    else setRows((list) => list.map((x) => (x.key === r.key ? { ...x, status: response } : x)));
+    if (response === "CONFIRMED") {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      const mine = rows.filter((x) => !x.isBackup);
+      setCelebration({
+        roleLine: `${r.title} · ${dateParts(r.date).short}`,
+        stats: [
+          { label: "Confirmed", value: mine.filter((x) => x.status === "CONFIRMED" || x.key === r.key).length, icon: "checkCircle", tone: "success" },
+          { label: "Services", value: new Set(mine.filter((x) => x.status === "CONFIRMED" || x.key === r.key).map((x) => x.planId)).size, icon: "calendar", tone: "amber" },
+          { label: "Still to answer", value: mine.filter((x) => x.key !== r.key && needsAnswer(x)).length, icon: "clock", tone: "info" },
+        ],
+      });
     }
-    Alert.alert(
-      "Can't make it?",
-      body,
-      [
-        { text: "Keep me on", style: "cancel" },
-        {
-          text: "I can't make it",
-          style: "destructive",
-          onPress: () => {
-            if (Platform.OS !== "web") void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-            void respondToAssignment(a, "DECLINED");
-          },
-        },
-      ]
-    );
   };
 
-  const grouped = assignments.reduce<{ date: string; rows: AssignmentRow[] }[]>((acc, row) => {
-    const last = acc[acc.length - 1];
-    if (last && last.date === row.scheduled_date) last.rows.push(row);
-    else acc.push({ date: row.scheduled_date, rows: [row] });
-    return acc;
-  }, []);
-  // Only primaries owe an answer; a backup's row mirrors the primary's status.
-  const pendingCount = assignments.filter((a) => !a.isBackup && (a.status === "ASSIGNED" || a.status === "OPEN")).length;
+  const awayLine = (() => {
+    if (away.length === 0) return "None yet — tap to add";
+    const first = away[0];
+    const range = first.start_date === first.end_date
+      ? dateParts(first.start_date).short
+      : `${dateParts(first.start_date).short} – ${dateParts(first.end_date).short}`;
+    const label = first.note?.trim() ? `${first.note.trim()} · ${range}` : range;
+    return away.length > 1 ? `${label} and ${away.length - 1} more` : label;
+  })();
 
   return (
     <Screen>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Your Schedule</Text>
-        {pendingCount > 0 ? <Pill label={`${pendingCount} pending`} tone="amber" /> : null}
-      </View>
-
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingHorizontal: space.gutter, paddingTop: 12, paddingBottom: space.xxl }}
+        contentContainerStyle={{ paddingHorizontal: space.base, paddingTop: 8, paddingBottom: space.xxl }}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); void load(); }} tintColor={palette.amber} />}
       >
+        <View style={styles.head}>
+          <Text style={styles.title} accessibilityRole="header">Serve</Text>
+          {!loading ? (
+            <Text style={styles.sub}>
+              {requests.length > 0
+                ? `${requests.length} ${requests.length === 1 ? "request needs" : "requests need"} your answer`
+                : rows.length > 0 ? "You're all set" : "Nothing scheduled yet"}
+            </Text>
+          ) : null}
+        </View>
+
         {loading ? (
           <Loader />
-        ) : assignments.length === 0 ? (
-          <>
-            {user?.id && profile?.church_id ? (
-              <AwayDatesCard churchId={profile.church_id} userId={user.id} scheduledDates={new Set()} />
-            ) : null}
-            <EmptyState icon="schedule" title="No upcoming assignments" body="Your volunteer schedule and bulletin roles will show up here." />
-          </>
         ) : (
           <>
-            {pendingCount > 0 ? (
-              <View style={styles.statusCard}>
-                <IconChip name="alertImportant" />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.statusHl}>{pendingCount} need{pendingCount === 1 ? "s" : ""} a response</Text>
-                  <Text style={styles.statusBd}>Confirm or decline so your team knows.</Text>
-                </View>
-              </View>
-            ) : (
-              <View style={styles.allDone}>
-                <Icon name="checkCircle" size={22} color={palette.success} />
-                <Text style={styles.allDoneTxt}>All assignments confirmed</Text>
-              </View>
-            )}
-
-            {user?.id && profile?.church_id ? (
-              <AwayDatesCard
-                churchId={profile.church_id}
-                userId={user.id}
-                scheduledDates={new Set(assignments.filter((a) => !a.isBackup && a.status !== "DECLINED").map((a) => a.scheduled_date))}
-              />
-            ) : null}
-
-            <View style={{ gap: 28 }}>
-              {grouped.map(({ date, rows }) => (
-                <View key={date}>
-                  <Text style={styles.groupLabel}>{formatDateLabel(date)}</Text>
-                  <View style={{ gap: 12 }}>
-                    {rows.map((a) => {
-                      const needsResponse = !a.isBackup && a.status !== "CONFIRMED" && a.status !== "DECLINED";
-                      const saving = savingKey === a.key;
-                      return (
-                        <View key={a.key} style={styles.card}>
-                          <View style={styles.cardTop}>
-                            <View style={{ flex: 1, marginRight: 10 }}>
-                              <Text style={styles.cardTitle}>{a.titleLine}</Text>
-                              <Text style={styles.cardSub}>{subtitleFor(a)}</Text>
-                            </View>
-                            {a.isBackup ? <Pill label="Backup" tone="neutral" />
-                              : a.status === "CONFIRMED" ? <Pill label="Confirmed" tone="success" />
-                              : a.status === "DECLINED" ? <Pill label="Declined" tone="danger" />
-                              : <Pill label="Pending" tone="amber" />}
-                          </View>
-                          <View style={styles.timeRow}>
-                            <View style={{ marginTop: 2 }}><Icon name="clock" size={14} color={palette.inkMuted} /></View>
-                            <Text style={styles.timeTxt}>{a.service_label}</Text>
-                          </View>
-                          {rowError?.key === a.key ? <Text style={styles.rowError}>{rowError.message}</Text> : null}
-                          {needsResponse ? (
-                            <>
-                              <View style={styles.divider} />
-                              <View style={styles.actions}>
-                                <Pressable onPress={() => void respondToAssignment(a, "CONFIRMED")} disabled={!!savingKey} style={({ pressed }) => [styles.confirmBtn, { opacity: savingKey ? 0.55 : pressed ? 0.9 : 1 }]}>
-                                  <LinearGradient colors={gradient.amber} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.confirmFill}>
-                                    <Text style={styles.confirmTxt}>{saving ? "Saving…" : "Confirm"}</Text>
-                                  </LinearGradient>
-                                </Pressable>
-                                <Pressable onPress={() => void respondToAssignment(a, "DECLINED")} disabled={!!savingKey} style={({ pressed }) => [styles.declineBtn, { opacity: savingKey ? 0.55 : pressed ? 0.85 : 1 }]}>
-                                  <Text style={styles.declineTxt}>{saving ? "Saving…" : "Decline"}</Text>
-                                </Pressable>
-                              </View>
-                            </>
-                          ) : !a.isBackup && a.status === "CONFIRMED" ? (
-                            <>
-                              <View style={styles.divider} />
-                              <Pressable
-                                onPress={() => changeToDecline(a)}
-                                disabled={!!savingKey}
-                                accessibilityRole="button"
-                                accessibilityLabel={`Can't make it to ${a.titleLine}`}
-                                style={({ pressed }: { pressed: boolean }) => [styles.stepDown, { opacity: savingKey ? 0.55 : pressed ? 0.7 : 1 }]}
-                              >
-                                <Text style={styles.changeTxt}>{saving ? "Saving…" : "Can't make it anymore?"}</Text>
-                              </Pressable>
-                            </>
-                          ) : !a.isBackup && a.status === "DECLINED" ? (
-                            <>
-                              <View style={styles.divider} />
-                              <Text style={styles.backupNote}>You said you can't make it. Plans changed?</Text>
-                              <Pressable
-                                onPress={() => void respondToAssignment(a, "CONFIRMED")}
-                                disabled={!!savingKey}
-                                accessibilityRole="button"
-                                accessibilityLabel={`I can make it to ${a.titleLine} after all`}
-                                style={({ pressed }: { pressed: boolean }) => [styles.stepDown, { opacity: savingKey ? 0.55 : pressed ? 0.7 : 1 }]}
-                              >
-                                <Text style={styles.rejoinTxt}>{saving ? "Saving…" : "I can make it after all"}</Text>
-                              </Pressable>
-                            </>
-                          ) : a.isBackup ? (
-                            <>
-                              <View style={styles.divider} />
-                              <Text style={styles.backupNote}>You'll be asked to step in if the person serving can't make it.</Text>
-                              <Pressable
-                                onPress={() => void respondToAssignment(a, "DECLINED")}
-                                disabled={!!savingKey}
-                                accessibilityRole="button"
-                                style={({ pressed }: { pressed: boolean }) => [styles.stepDown, { opacity: savingKey ? 0.55 : pressed ? 0.7 : 1 }]}
-                              >
-                                <Text style={styles.stepDownTxt}>{saving ? "Saving…" : "Step down as backup"}</Text>
-                              </Pressable>
-                            </>
+            {requests.length > 0 ? (
+              <View style={{ gap: 12 }}>
+                {requests.map((r) => {
+                  const p = dateParts(r.date);
+                  const ready = readyBy(r.startTime);
+                  const team = withLine(teammates[r.planId]);
+                  return (
+                    <View key={r.key} style={styles.request}>
+                      <Pressable
+                        onPress={() => navigation.navigate("AssignmentDetail", { row: r })}
+                        accessibilityRole="button"
+                        accessibilityHint="Opens the details"
+                        style={styles.requestTop}
+                      >
+                        <View style={[styles.dateTile, { backgroundColor: AREA.services.tint }]}>
+                          <Text style={[styles.dateMon, { color: AREA.services.ink }]}>{p.monthShort.toUpperCase()}</Text>
+                          <Text style={[styles.dateDay, { color: AREA.services.ink }]}>{p.day}</Text>
+                        </View>
+                        <View style={{ flex: 1, minWidth: 0 }}>
+                          <Text style={styles.reqTitle}>{r.title}</Text>
+                          <Text style={styles.reqMeta}>{p.weekdayShort} · {serviceLine(r)}</Text>
+                          {ready || team ? (
+                            <Text style={styles.reqMeta}>{[ready ? `Be ready by ${ready}` : null, team].filter(Boolean).join(" · ")}</Text>
                           ) : null}
                         </View>
-                      );
-                    })}
-                  </View>
+                      </Pressable>
+                      {rowError?.key === r.key ? <Text style={styles.error}>{rowError.message}</Text> : null}
+                      <View style={{ marginTop: 14 }}>
+                        <AnswerButtons busy={savingKey === r.key} onYes={() => void answer(r, "CONFIRMED")} onNo={() => void answer(r, "DECLINED")} />
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            ) : null}
+
+            {upcoming.length > 0 ? (
+              <>
+                <Text style={styles.section} accessibilityRole="header">Coming up</Text>
+                <View style={styles.group}>
+                  {upcoming.map((r, i) => {
+                    const p = dateParts(r.date);
+                    const status = r.isBackup
+                      ? { label: "Backup", color: palette.inkSoft }
+                      : r.status === "DECLINED"
+                        ? { label: "Can't make it", color: palette.dangerInk }
+                        : { label: "Going", color: palette.successInk };
+                    const ready = readyBy(r.startTime);
+                    return (
+                      <Pressable
+                        key={r.key}
+                        onPress={() => navigation.navigate("AssignmentDetail", { row: r })}
+                        accessibilityRole="button"
+                        accessibilityLabel={`${r.isBackup ? "Backup, " : ""}${r.title}, ${p.long}, ${status.label}`}
+                        style={({ pressed }: { pressed: boolean }) => [styles.listRow, i > 0 && styles.listRowBorder, pressed && { backgroundColor: palette.sunken }]}
+                      >
+                        <View style={styles.listDate}>
+                          <Text style={styles.listDow}>{p.weekdayShort.toUpperCase()}</Text>
+                          <Text style={styles.listDay}>{p.short}</Text>
+                        </View>
+                        <View style={{ flex: 1, minWidth: 0 }}>
+                          <Text style={styles.listTitle} numberOfLines={2}>{r.isBackup ? `Backup · ${r.title}` : r.title}</Text>
+                          <Text style={styles.listMeta} numberOfLines={2}>
+                            {r.isBackup ? "You're on call if they can't make it" : [serviceLine(r), ready ? `ready by ${ready}` : null].filter(Boolean).join(" · ")}
+                          </Text>
+                        </View>
+                        <View style={styles.statusWrap}>
+                          {status.label === "Going" ? <Icon name="check" size={14} color={status.color} /> : null}
+                          <Text style={[styles.statusTxt, { color: status.color }]}>{status.label}</Text>
+                        </View>
+                      </Pressable>
+                    );
+                  })}
                 </View>
-              ))}
+              </>
+            ) : null}
+
+            {rows.length === 0 ? (
+              <EmptyState icon="schedule" title="Nothing scheduled yet" body="When your team asks you to serve, it shows up here for you to answer." />
+            ) : null}
+
+            <View style={{ gap: 10, marginTop: 24 }}>
+              <Pressable
+                onPress={() => navigation.navigate("AwayDates")}
+                accessibilityRole="button"
+                style={({ pressed }: { pressed: boolean }) => [styles.linkRow, pressed && { opacity: 0.85 }]}
+              >
+                <Icon name="calendar" size={20} color={palette.inkSoft} />
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={styles.linkTitle}>Dates you're away</Text>
+                  <Text style={styles.linkSub} numberOfLines={1}>{awayLine}</Text>
+                </View>
+                <Icon name="chevronRight" size={18} color={palette.inkMuted} />
+              </Pressable>
+              <Pressable
+                onPress={() => navigation.navigate("RequestToServe")}
+                accessibilityRole="button"
+                style={({ pressed }: { pressed: boolean }) => [styles.linkRow, pressed && { opacity: 0.85 }]}
+              >
+                <Icon name="add" size={20} color={palette.inkSoft} />
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={styles.linkTitle}>Serve on another team</Text>
+                  <Text style={styles.linkSub} numberOfLines={1}>Ask to join a team you're not on yet</Text>
+                </View>
+                <Icon name="chevronRight" size={18} color={palette.inkMuted} />
+              </Pressable>
             </View>
           </>
         )}
@@ -408,35 +235,35 @@ ${body}`)) void respondToAssignment(a, "DECLINED");
   );
 }
 
+const card = { backgroundColor: palette.surface, borderRadius: 20, ...shadow.sm } as const;
+
 const styles = StyleSheet.create({
-  header: { height: 56, paddingHorizontal: space.gutter, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  headerTitle: { fontFamily: font.bold, fontSize: 22, color: palette.ink, letterSpacing: -0.4 },
+  head: { paddingHorizontal: 4, paddingTop: 8, marginBottom: 16 },
+  title: { fontFamily: font.bold, fontSize: 28, letterSpacing: -0.5, color: palette.ink },
+  sub: { fontFamily: font.regular, fontSize: 15, color: palette.inkSoft, marginTop: 2 },
 
-  backupNote: { fontFamily: font.regular, fontSize: 13, lineHeight: 19, color: palette.inkSoft },
-  stepDown: { alignSelf: "flex-start", minHeight: 44, justifyContent: "center", marginTop: 4 },
-  stepDownTxt: { fontFamily: font.semibold, fontSize: 14, color: palette.dangerInk },
-  changeTxt: { fontFamily: font.semibold, fontSize: 14, color: palette.inkSoft },
-  rejoinTxt: { fontFamily: font.semibold, fontSize: 14, color: palette.amberInk },
-  statusCard: { backgroundColor: palette.surface, borderRadius: radius.xl, padding: 18, flexDirection: "row", alignItems: "center", gap: 14, marginBottom: 24, ...shadow.md },
-  statusHl: { fontFamily: font.bold, fontSize: 17, color: palette.ink, letterSpacing: -0.2 },
-  statusBd: { fontFamily: font.regular, fontSize: 13, color: palette.inkSoft, marginTop: 2 },
-  allDone: { backgroundColor: palette.successSoft, borderRadius: radius.xl, padding: 18, flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 24 },
-  allDoneTxt: { fontFamily: font.semibold, fontSize: 15, color: palette.successInk, flex: 1 },
+  request: { ...card, padding: 16 },
+  requestTop: { flexDirection: "row", gap: 14 },
+  dateTile: { width: 48, height: 52, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  dateMon: { fontFamily: font.bold, fontSize: 10, letterSpacing: 0.6 },
+  dateDay: { fontFamily: font.bold, fontSize: 20, lineHeight: 22 },
+  reqTitle: { fontFamily: font.semibold, fontSize: 17, color: palette.ink },
+  reqMeta: { fontFamily: font.regular, fontSize: 14, lineHeight: 19, color: palette.inkSoft, marginTop: 2 },
+  error: { fontFamily: font.regular, fontSize: 13, color: palette.dangerInk, marginTop: 10 },
 
-  groupLabel: { fontFamily: font.bold, fontSize: 11, textTransform: "uppercase", letterSpacing: 1.6, color: palette.inkMuted, marginBottom: 14 },
+  section: { fontFamily: font.bold, fontSize: 20, letterSpacing: -0.3, color: palette.ink, marginTop: 28, marginBottom: 10, marginHorizontal: 4 },
+  group: { ...card, overflow: "hidden" },
+  listRow: { flexDirection: "row", alignItems: "center", gap: 14, paddingVertical: 14, paddingHorizontal: 18, minHeight: 64 },
+  listRowBorder: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: palette.line },
+  listDate: { width: 56 },
+  listDow: { fontFamily: font.bold, fontSize: 12, color: palette.inkSoft },
+  listDay: { fontFamily: font.semibold, fontSize: 15, color: palette.ink },
+  listTitle: { fontFamily: font.semibold, fontSize: 16, color: palette.ink },
+  listMeta: { fontFamily: font.regular, fontSize: 14, color: palette.inkSoft, marginTop: 1 },
+  statusWrap: { flexDirection: "row", alignItems: "center", gap: 4 },
+  statusTxt: { fontFamily: font.semibold, fontSize: 13 },
 
-  card: { backgroundColor: palette.surface, borderRadius: radius.xl, padding: 20, ...shadow.sm },
-  cardTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 },
-  cardTitle: { fontFamily: font.bold, fontSize: 17, color: palette.ink, lineHeight: 22 },
-  cardSub: { fontFamily: font.regular, fontSize: 13, lineHeight: 18, color: palette.inkSoft, marginTop: 3 },
-  timeRow: { flexDirection: "row", alignItems: "flex-start", gap: 7 },
-  timeTxt: { fontFamily: font.regular, fontSize: 13, lineHeight: 18, color: palette.inkSoft, flex: 1 },
-  rowError: { fontFamily: font.regular, fontSize: 12, color: palette.danger, marginTop: 8 },
-  divider: { height: StyleSheet.hairlineWidth, backgroundColor: palette.line, marginTop: 16, marginBottom: 14 },
-  actions: { flexDirection: "row", gap: 10 },
-  confirmBtn: { flex: 1, borderRadius: radius.md, overflow: "hidden" },
-  confirmFill: { paddingVertical: 15, alignItems: "center", justifyContent: "center" },
-  confirmTxt: { fontFamily: font.bold, fontSize: 14, color: palette.onDark },
-  declineBtn: { flex: 1, backgroundColor: palette.sunken, borderRadius: radius.md, paddingVertical: 15, alignItems: "center", justifyContent: "center" },
-  declineTxt: { fontFamily: font.bold, fontSize: 14, color: palette.ink },
+  linkRow: { ...card, borderRadius: radius.lg, flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 14, paddingHorizontal: 18, minHeight: 64 },
+  linkTitle: { fontFamily: font.semibold, fontSize: 16, color: palette.ink },
+  linkSub: { fontFamily: font.regular, fontSize: 14, color: palette.inkSoft, marginTop: 1 },
 });

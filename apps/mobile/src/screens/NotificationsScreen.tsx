@@ -8,6 +8,21 @@ import {
 import { supabase } from "../supabase";
 import { useAuth } from "../context/AuthContext";
 import { openForNotification } from "../hooks/usePushTaps";
+import { Icon, type AppIconName } from "../components/ui/Icon";
+import { AREA } from "../theme/areas";
+
+/** Icon + colour per type, like the web inbox: answers keep their status colour, everything else wears its area. */
+function lookFor(type: string): { icon: AppIconName; bg: string; fg: string } {
+  if (type === "ASSIGNMENT_CONFIRMED" || type === "STEP_THANKS" || type === "SERVICE_RECAP")
+    return { icon: "checkCircle", bg: palette.successSoft, fg: palette.successInk };
+  if (type === "ASSIGNMENT_DECLINED") return { icon: "alertImportant", bg: palette.dangerSoft, fg: palette.dangerInk };
+  if (type === "EVENT_NEW") return { icon: "events", bg: AREA.events.tint, fg: AREA.events.ink };
+  if (type === "ANNOUNCEMENT_NEW") return { icon: "announcements", bg: AREA.news.tint, fg: AREA.news.ink };
+  if (type === "SERVE_REQUEST") return { icon: "members", bg: AREA.people.tint, fg: AREA.people.ink };
+  if (type === "CARE_NOTE") return { icon: "wave", bg: AREA.services.tint, fg: AREA.services.ink };
+  if (type === "SERVICE_STARTING" || type === "STEP_PROGRESS") return { icon: "clock", bg: AREA.services.tint, fg: AREA.services.ink };
+  return { icon: "serve", bg: AREA.services.tint, fg: AREA.services.ink };
+}
 
 type NotificationRow = { id: string; type: string; payload: Record<string, unknown>; sent_at: string | null; read_at: string | null };
 
@@ -166,6 +181,7 @@ export default function NotificationsScreen({ navigation }: any) {
             {items.map((n) => {
               const detail = detailFor(n);
               const isUnread = !n.read_at;
+              const look = lookFor(n.type);
               return (
                 <Pressable
                   key={n.id}
@@ -176,7 +192,9 @@ export default function NotificationsScreen({ navigation }: any) {
                   }}
                 >
                   <View style={[styles.card, !isUnread && styles.cardRead]}>
-                    <View style={[styles.accent, { backgroundColor: isUnread ? palette.amber : palette.line }]} />
+                    <View style={[styles.iconWrap, { backgroundColor: look.bg }]}>
+                      <Icon name={look.icon} size={18} color={look.fg} />
+                    </View>
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.title, !isUnread && styles.titleRead]}>{titleFor(n)}</Text>
                       {detail ? <Text style={styles.detail}>{detail}</Text> : null}
@@ -186,7 +204,7 @@ export default function NotificationsScreen({ navigation }: any) {
                         </Text>
                       ) : null}
                     </View>
-                    {isUnread ? <View style={styles.newBadge}><Text style={styles.newBadgeTxt}>New</Text></View> : null}
+                    {isUnread ? <View style={styles.unreadDot} accessibilityLabel="Unread" /> : null}
                   </View>
                 </Pressable>
               );
@@ -205,11 +223,10 @@ const styles = StyleSheet.create({
   markAllTxt: { fontFamily: font.semibold, fontSize: 13, color: palette.inkSoft },
   card: { backgroundColor: palette.surface, borderRadius: radius.lg, padding: 16, flexDirection: "row", alignItems: "flex-start", gap: 12, ...shadow.sm },
   cardRead: { backgroundColor: palette.glass, shadowOpacity: 0, elevation: 0 },
-  accent: { width: 4, borderRadius: 2, alignSelf: "stretch" },
+  iconWrap: { width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center" },
   title: { fontFamily: font.bold, fontSize: 15, color: palette.ink, marginBottom: 4 },
   titleRead: { fontFamily: font.semibold, color: palette.inkSoft },
   detail: { fontFamily: font.regular, fontSize: 13, color: palette.inkSoft, marginBottom: 6, lineHeight: 18 },
   time: { fontFamily: font.regular, fontSize: 11, color: palette.inkMuted, marginTop: 2 },
-  newBadge: { backgroundColor: palette.amberSofter, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
-  newBadgeTxt: { fontFamily: font.bold, fontSize: 11, color: palette.amberDeep },
+  unreadDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: palette.amber, marginTop: 6 },
 });

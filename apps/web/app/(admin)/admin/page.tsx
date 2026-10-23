@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { AREA } from "../../../lib/areas";
 import {
   Clock, Users, UserRound, TicketCheck, TrendingUp,
   ClipboardList, Megaphone, Calendar, Plus, Bell,
@@ -280,63 +281,63 @@ export default function AdminEntryPage() {
       </section>
 
       {/* ── Next service hero ─────────────────────────────────────── */}
-      <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 border border-amber-200">
+      <section className="overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--surface)]">
         <div className="flex flex-col gap-4 px-5 py-4 sm:flex-row sm:items-center sm:px-6 sm:py-5">
 
           {/* Date block */}
           {heroDisplayDate ? (
             <div className="flex flex-row items-center gap-5 sm:flex-col sm:items-center sm:gap-1 sm:min-w-[80px] sm:text-center">
-              <div className="flex flex-col items-center justify-center rounded-2xl bg-amber-500 px-3.5 py-2.5 shadow-md sm:px-4 sm:py-3">
-                <span className="text-[10px] font-black uppercase tracking-widest text-amber-100">
+              <div className="flex flex-col items-center justify-center rounded-2xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 sm:px-4 sm:py-3">
+                <span className="text-[10px] font-black uppercase tracking-widest text-amber-700">
                   {format(heroDisplayDate ?? new Date(), "MMM")}
                 </span>
-                <span className="text-3xl font-black leading-none text-white sm:text-4xl">
+                <span className="text-3xl font-black leading-none text-amber-900 sm:text-4xl">
                   {format(heroDisplayDate ?? new Date(), "d")}
                 </span>
-                <span className="text-[10px] font-bold uppercase text-amber-100">
+                <span className="text-[10px] font-bold uppercase text-amber-700">
                   {format(heroDisplayDate ?? new Date(), "EEE")}
                 </span>
               </div>
               {countdown && (
-                <div className="flex items-center gap-1 text-xs font-semibold text-amber-700 sm:mt-2">
+                <div className="flex items-center gap-1 text-xs font-semibold text-[var(--text-secondary)] sm:mt-2">
                   <Clock className="h-3.5 w-3.5" />
                   {countdown}
                 </div>
               )}
             </div>
           ) : (
-            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-amber-200">
-              <Calendar className="h-8 w-8 text-amber-600" />
+            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-[var(--surface-2)]">
+              <Calendar className="h-8 w-8 text-[var(--text-muted)]" />
             </div>
           )}
 
           {/* Service details */}
           <div className="flex-1 min-w-0">
             <div className="mb-1 flex flex-wrap items-center gap-2">
-              <span className="rounded-full bg-amber-200/60 px-3 py-0.5 text-[10px] font-bold uppercase tracking-widest text-amber-900">
+              <span className="rounded-full bg-[var(--surface-2)] px-3 py-0.5 text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">
                 Upcoming Service
               </span>
               {heroBlurb && (
-                <span className="text-xs text-amber-800/60">{heroBlurb}</span>
+                <span className="text-xs text-[var(--text-muted)]">{heroBlurb}</span>
               )}
             </div>
-            <h2 className="mb-1 text-xl font-bold tracking-tight text-amber-950 sm:text-2xl">{heroTitle}</h2>
-            <p className="mb-4 text-sm font-medium text-amber-800/70">{serviceWhen}</p>
+            <h2 className="mb-1 text-xl font-bold tracking-tight text-[var(--text-primary)] sm:text-2xl">{heroTitle}</h2>
+            <p className="mb-4 text-sm font-medium text-[var(--text-secondary)]">{serviceWhen}</p>
 
             {/* Readiness bar */}
             {totalRoster > 0 && (
               <div className="mb-4 space-y-1.5">
-                <div className="flex items-center justify-between text-xs font-medium text-amber-800/70">
+                <div className="flex items-center justify-between text-xs font-medium text-[var(--text-secondary)]">
                   <span>{rosterMix.confirmed} of {totalRoster} confirmed</span>
-                  <span className="font-bold text-amber-900">{confirmedPct}%</span>
+                  <span className="font-bold text-[var(--text-primary)]">{confirmedPct}%</span>
                 </div>
-                <div className="relative h-2 w-full overflow-hidden rounded-full bg-amber-200/60">
+                <div className="relative h-2 w-full overflow-hidden rounded-full bg-[var(--surface-2)]">
                   {/* Pending layer: assigned but not confirmed */}
-                  <div className="absolute inset-y-0 left-0 rounded-full bg-amber-400/50 transition duration-500" style={{ width: `${filledPct}%` }} />
+                  <div className="absolute inset-y-0 left-0 rounded-full bg-amber-300 transition duration-500" style={{ width: `${filledPct}%` }} />
                   {/* Confirmed layer: sits on top of pending */}
                   <div className="absolute inset-y-0 left-0 rounded-full bg-emerald-500 transition duration-500" style={{ width: `${confirmedPct}%` }} />
                 </div>
-                <p className="text-[10px] text-amber-700/60">
+                <p className="text-[10px] text-[var(--text-muted)]">
                   {rosterMix.open > 0 ? `${rosterMix.open} open slot${rosterMix.open !== 1 ? "s" : ""} · ` : ""}
                   {rosterMix.declined > 0 ? `${rosterMix.declined} declined · ` : ""}
                   {rosterMix.assigned > 0 ? `${rosterMix.assigned} awaiting reply` : "All assigned"}
@@ -349,18 +350,18 @@ export default function AdminEntryPage() {
               <div className="mb-4 flex items-center gap-2.5">
                 <div className="flex -space-x-2">
                   {avatarPreview.map((row) => (
-                    <span key={row.id} title={row.assignee} className="rounded-full ring-2 ring-amber-100">
+                    <span key={row.id} title={row.assignee} className="rounded-full ring-2 ring-[var(--surface)]">
                       <Avatar name={row.assignee} imageUrl={row.avatarUrl} size={32}
                         className={`text-[10px] font-bold ${avatarColor(row.assignee)}`} />
                     </span>
                   ))}
                   {extraAvatars > 0 && (
-                    <span className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-amber-100 bg-amber-200 text-[10px] font-bold text-amber-800">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-[var(--surface)] bg-[var(--surface-2)] text-[10px] font-bold text-[var(--text-secondary)]">
                       +{extraAvatars}
                     </span>
                   )}
                 </div>
-                <span className="text-xs font-medium text-amber-800/70">
+                <span className="text-xs font-medium text-[var(--text-secondary)]">
                   {avatarPeople.length} team {avatarPeople.length === 1 ? "member" : "members"} scheduled
                 </span>
               </div>
@@ -374,11 +375,11 @@ export default function AdminEntryPage() {
                 <ChevronRight className="h-4 w-4" />
               </Link>
               <Link href="/live"
-                className="inline-flex items-center gap-2 rounded-xl border border-amber-300 bg-white/60 px-4 py-2 text-sm font-semibold text-amber-800 no-underline transition hover:bg-white hover:-translate-y-px active:translate-y-0">
+                className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--text-primary)] no-underline transition hover:bg-[var(--surface-2)] hover:-translate-y-px active:translate-y-0">
                 Live Service
               </Link>
               <Link href="/volunteers"
-                className="inline-flex items-center gap-2 rounded-xl border border-amber-300 bg-white/60 px-4 py-2 text-sm font-semibold text-amber-800 no-underline transition hover:bg-white hover:-translate-y-px active:translate-y-0">
+                className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-semibold text-[var(--text-primary)] no-underline transition hover:bg-[var(--surface-2)] hover:-translate-y-px active:translate-y-0">
                 Volunteers
               </Link>
             </div>
@@ -397,7 +398,7 @@ export default function AdminEntryPage() {
             { href: "/volunteers",    icon: Bell,        label: "Manage volunteers" },
           ].map(({ href, icon: Icon, label }) => (
             <Link key={href} href={href}
-              className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-sm font-medium text-[var(--text-secondary)] no-underline transition-colors hover:border-amber-200 hover:bg-amber-50 hover:text-amber-800">
+              className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-sm font-medium text-[var(--text-secondary)] no-underline transition-colors hover:border-[var(--outline-variant)] hover:bg-[var(--surface-2)] hover:text-[var(--text-primary)]">
               <Icon className="h-4 w-4" />
               {label}
             </Link>
@@ -408,19 +409,20 @@ export default function AdminEntryPage() {
       {/* ── KPI row ───────────────────────────────────────────────── */}
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {[
-          { href: "/people",    icon: Users,       label: "Members",          value: memberCount,        trend: newMembersThisMonth > 0 ? `+${newMembersThisMonth} this month` : "No new this month",       positive: newMembersThisMonth > 0, accent: "border-l-violet-400 bg-violet-50/30" },
-          { href: "/volunteers",icon: UserRound,   label: "Volunteers active", value: volunteersEngaged, trend: newVolunteersThisMonth > 0 ? `+${newVolunteersThisMonth} added` : "Same as last month",      positive: newVolunteersThisMonth > 0, accent: "border-l-blue-400 bg-blue-50/30" },
-          { href: "/events",    icon: TicketCheck, label: "Upcoming RSVPs",   value: totalRsvps,         trend: rsvpEventCount > 0 ? `across ${rsvpEventCount} event${rsvpEventCount !== 1 ? "s" : ""}` : "No upcoming events", positive: false, accent: "border-l-emerald-400 bg-emerald-50/30" },
-        ].map(({ href, icon: Icon, label, value, trend, positive, accent }) => (
+          { href: "/people",    icon: Users,       label: "Members",          value: memberCount,        trend: newMembersThisMonth > 0 ? `+${newMembersThisMonth} this month` : "No new this month",       positive: newMembersThisMonth > 0, area: AREA.people },
+          { href: "/volunteers",icon: UserRound,   label: "Volunteers active", value: volunteersEngaged, trend: newVolunteersThisMonth > 0 ? `+${newVolunteersThisMonth} added` : "Same as last month",      positive: newVolunteersThisMonth > 0, area: AREA.services },
+          { href: "/events",    icon: TicketCheck, label: "Upcoming RSVPs",   value: totalRsvps,         trend: rsvpEventCount > 0 ? `across ${rsvpEventCount} event${rsvpEventCount !== 1 ? "s" : ""}` : "No upcoming events", positive: false, area: AREA.events },
+        ].map(({ href, icon: Icon, label, value, trend, positive, area }) => (
           <Link key={href} href={href}
-            className={`card card-elevated flex flex-col justify-between border-l-4 p-5 no-underline transition duration-200 motion-safe:hover:-translate-y-0.5 active:translate-y-0 ${accent}`}>
+            style={{ background: area.tint, color: area.ink }}
+            className="flex flex-col justify-between rounded-2xl p-5 no-underline transition duration-200 hover:shadow-md motion-safe:hover:-translate-y-0.5 active:translate-y-0">
             <div className="flex items-center justify-between">
-              <p className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)]">{label}</p>
-              <Icon className="h-5 w-5 text-[var(--text-muted)]" />
+              <p className="text-[12px] font-semibold">{label}</p>
+              <Icon className="h-5 w-5 opacity-80" style={{ color: area.mark }} />
             </div>
             <div className="mt-4">
-              <p className="text-2xl font-black tabular-nums text-[var(--text-primary)]">{value.toLocaleString()}</p>
-              <span className={`mt-1.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${positive ? "bg-green-50 text-green-700" : "bg-[var(--surface-2)] text-[var(--text-muted)]"}`}>
+              <p className="text-2xl font-bold tabular-nums">{value.toLocaleString()}</p>
+              <span className="mt-1 inline-flex items-center gap-1 text-[12px] font-medium">
                 {positive && <TrendingUp className="h-3 w-3" />}
                 {trend}
               </span>
@@ -443,13 +445,13 @@ export default function AdminEntryPage() {
               <div className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
                 <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-4">
                   <div className="flex items-center gap-2">
-                    <Bell className="h-4 w-4 text-amber-500" />
+                    <Bell className="h-4 w-4 text-[var(--text-muted)]" />
                     <h2 className="text-sm font-semibold text-[var(--text-primary)]">
                       Pending confirmations
-                      <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-700">{pendingRows.length}</span>
+                      <span className="ml-2 rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-[11px] font-bold text-[var(--text-secondary)]">{pendingRows.length}</span>
                     </h2>
                   </div>
-                  <Link href="/volunteers" className="text-xs font-semibold text-amber-600 transition-colors hover:text-amber-800 no-underline">
+                  <Link href="/volunteers" className="text-xs font-semibold text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)] no-underline">
                     View all →
                   </Link>
                 </div>
@@ -482,7 +484,7 @@ export default function AdminEntryPage() {
                   <Megaphone className="h-4 w-4 text-[var(--text-muted)]" />
                   <h2 className="text-sm font-semibold text-[var(--text-primary)]">Announcements</h2>
                 </div>
-                <Link href="/announcements" className="text-xs font-semibold text-amber-600 transition-colors hover:text-amber-800 no-underline">View all →</Link>
+                <Link href="/announcements" className="text-xs font-semibold text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)] no-underline">View all →</Link>
               </div>
               {announcementPreviews.length === 0 ? (
                 <div className="flex flex-col items-center gap-3 px-6 py-10 text-center">
@@ -541,8 +543,8 @@ function GettingStartedPanel() {
       <div className="grid gap-3 sm:grid-cols-2">
         {steps.map(({ icon: Icon, label, href, desc }) => (
           <Link key={href} href={href}
-            className="group flex items-start gap-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 no-underline transition duration-150 hover:border-amber-200 hover:bg-amber-50 motion-safe:hover:-translate-y-0.5 active:translate-y-0">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-600 transition-colors group-hover:bg-amber-200">
+            className="group flex items-start gap-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 no-underline transition duration-150 hover:border-[var(--outline-variant)] hover:bg-[var(--surface-2)] motion-safe:hover:-translate-y-0.5 active:translate-y-0">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--surface-2)] text-[var(--text-secondary)] transition-colors group-hover:bg-[var(--surface-container-low)]">
               <Icon className="h-5 w-5" />
             </div>
             <div>
@@ -564,7 +566,7 @@ function DashboardSkeleton() {
         <div className="h-10 w-80 rounded-lg bg-[var(--surface-2)]" />
         <div className="h-4 w-64 rounded-full bg-[var(--surface-2)]" />
       </div>
-      <div className="h-52 rounded-3xl bg-amber-100" />
+      <div className="h-52 rounded-3xl bg-[var(--surface-2)]" />
       <div className="h-12 rounded-2xl bg-[var(--surface)]" />
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {[1,2,3].map(i => <div key={i} className="h-36 rounded-2xl bg-[var(--surface)]" />)}

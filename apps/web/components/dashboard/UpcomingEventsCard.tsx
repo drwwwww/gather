@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { eventHue } from "../../lib/areas";
 import { Calendar } from "lucide-react";
 import { formatShortDate } from "../../lib/format";
 import Badge from "../ui/Badge";
@@ -43,13 +44,14 @@ export default function UpcomingEventsCard({
           </div>
         ) : (
           <div className="space-y-4">
-            {items.map((row) => {
+            {items.map((row, index) => {
               const { mon, day } = calendarParts(row.date);
               return (
-                <Link key={row.id} href="/events" className="group flex cursor-pointer items-center gap-4 no-underline">
-                  <div className="flex h-14 w-12 shrink-0 flex-col items-center justify-center rounded-md bg-[var(--nav-pill-active-bg)] transition-colors group-hover:bg-[var(--nav-active-foreground)]">
-                    <span className="text-[10px] font-bold uppercase text-[var(--nav-active-foreground)] group-hover:text-white">{mon}</span>
-                    <span className="text-lg font-black leading-none text-[var(--nav-active-foreground)] group-hover:text-white">{day}</span>
+                <Link key={row.id} href={`/events?open=${row.id}`} className="group flex cursor-pointer items-center gap-4 no-underline">
+                  {/* Each event keeps its own colour (soft amber or a palette hue), same as the Events page. */}
+                  <div className="flex h-14 w-12 shrink-0 flex-col items-center justify-center rounded-xl transition-transform group-hover:-translate-y-0.5" style={{ background: eventHue(index).tint, color: eventHue(index).ink }}>
+                    <span className="text-[10px] font-bold uppercase opacity-80">{mon}</span>
+                    <span className="text-lg font-black leading-none">{day}</span>
                   </div>
                   <div className="min-w-0">
                     <p className="m-0 truncate text-sm font-bold text-[var(--text-primary)]">{row.name}</p>

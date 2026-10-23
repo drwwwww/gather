@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { eventHue } from "../../lib/areas";
 import { format } from "date-fns";
 import { MapPin, Users, MoreHorizontal, Calendar, Search, X } from "lucide-react";
 import EventTemplates, { type EventTemplate } from "./EventTemplates";
@@ -153,8 +154,11 @@ export default function EventsList({
                     <img src={(event as any).image_url} alt="" className="h-full w-full object-cover" />
                   </div>
                 ) : (
-                <div className={`flex h-14 w-12 shrink-0 flex-col items-center justify-center rounded-xl text-center transition-colors ${isSelected ? "bg-amber-500 text-white" : "bg-[var(--surface-container-low)] text-[var(--text-primary)] group-hover:bg-amber-100"}`}>
-                  <span className={`text-[9px] font-bold uppercase leading-none ${isSelected ? "text-white/80" : "text-[var(--text-muted)]"}`}>
+                <div
+                  className="flex h-14 w-12 shrink-0 flex-col items-center justify-center rounded-xl text-center transition-colors"
+                  style={{ background: eventHue(idx).tint, color: eventHue(idx).ink, boxShadow: isSelected ? `0 0 0 2px ${eventHue(idx).mark}` : undefined }}
+                >
+                  <span className="text-[9px] font-bold uppercase leading-none opacity-80">
                     {format(start, "MMM")}
                   </span>
                   <span className="text-lg font-black leading-tight tabular-nums">
