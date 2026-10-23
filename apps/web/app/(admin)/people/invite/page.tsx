@@ -7,6 +7,7 @@ import { ArrowLeft, Copy, Mail, MessageSquare, Printer, Check } from "lucide-rea
 import type { Role } from "@gather/lib";
 import { PageGrid, PageGridFull } from "../../../../components/layout/PageGrid";
 import InviteMembersForm from "../../../../components/people/InviteMembersForm";
+import ImportPeopleCard from "../../../../components/people/ImportPeopleCard";
 import type { InviteEntry } from "../../../../components/people/memberUtils";
 import { buildJoinLink, buildInviteMessage } from "../../../../lib/format";
 import { appendPendingInvites } from "../../../../lib/pendingInvitesStorage";
@@ -212,6 +213,9 @@ export default function PeopleInviteHubPage() {
               )}
             </div>
           </div>
+
+          {/* Spreadsheet import */}
+          <ImportPeopleCard />
 
           {/* Email invite form */}
           <InviteMembersForm

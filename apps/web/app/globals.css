@@ -735,8 +735,15 @@
   font-weight: 600;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--mk-amber-deep);
+  color: var(--mk-ink-soft);
 }
+/* Section labels wear the area they describe (same palette as the product). Amber
+   stays for the brand mark, primary buttons and the recommended plan. */
+.mk-eyebrow-teal { color: var(--area-teal-ink); }
+.mk-eyebrow-blue { color: var(--area-blue-ink); }
+.mk-eyebrow-clay { color: var(--area-clay-ink); }
+.mk-eyebrow-plum { color: var(--area-plum-ink); }
+.mk-eyebrow-olive { color: var(--area-olive-ink); }
 
 /* Benefit chips: plain text with a hairline rule, no pills */
 .mk-chip {

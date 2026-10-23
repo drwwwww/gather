@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { View, Text, ScrollView, StyleSheet } from "react-native";
 import { Icon } from "../components/ui/Icon";
 import {
-  Screen, AppBar, Txt, Eyebrow, Divider, Loader, BrandMark,
+  Screen, AppBar, Txt, Eyebrow, Divider, Loader, Mark,
   palette, font, radius, shadow, space,
 } from "../components/ds";
 import { supabase } from "../supabase";
@@ -49,7 +49,7 @@ export default function ChurchInfoScreen({ navigation }: any) {
         ) : (
           <>
             <View style={styles.hero}>
-              <BrandMark size={68} rounding={22} glow style={{ marginBottom: 16 }} />
+              <Mark height={52} style={{ marginBottom: 16 }} />
               <Text style={styles.churchName}>{church.name}</Text>
               <Eyebrow>Your church</Eyebrow>
             </View>

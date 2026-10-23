@@ -89,7 +89,7 @@ const styles = StyleSheet.create({
   },
   topRow: { paddingHorizontal: 20, paddingTop: 8, height: 52, justifyContent: "center" },
   brand: { alignItems: "center", paddingTop: 4, paddingBottom: 24, flexShrink: 1 },
-  // Aspect of brand-glyph.png (214×172); the mark alone, no amber tile.
+  // Aspect of brand-glyph.png (740×592, 1.25:1); the mark alone, no amber tile.
   glyph: { width: 112, height: 90, tintColor: DAWN_INK },
   // Same face and ink as the tagline, just larger — a quiet name, not a heavy wordmark.
   name: { fontFamily: font.medium, fontSize: 22, letterSpacing: -0.2, color: DAWN_INK, marginTop: 14 },

@@ -26,7 +26,7 @@ export default function FaqAccordion({
                 {item.q}
               </span>
               <Plus
-                className={`h-5 w-5 shrink-0 text-[var(--mk-ink-faint)] transition-transform duration-300 group-hover:text-[var(--mk-amber-deep)] ${
+                className={`h-5 w-5 shrink-0 text-[var(--mk-ink-faint)] transition-transform duration-300 group-hover:text-[var(--mk-ink)] ${
                   isOpen ? "rotate-45" : ""
                 }`}
               />

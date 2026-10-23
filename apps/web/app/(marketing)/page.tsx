@@ -27,7 +27,12 @@ import {
   SpotlightCard,
   WordsReveal,
 } from "../../components/marketing/Motion";
-import { PLANS, PRICING_FAQ } from "../../lib/marketing/plans";
+import { ANNUAL_MONTHS_CHARGED, PLANS, PRICING_FAQ } from "../../lib/marketing/plans";
+import { TESTIMONIALS } from "../../lib/marketing/testimonials";
+import FoundingOffer from "../../components/marketing/FoundingOffer";
+
+// The founding-church spots count refreshes every 10 minutes.
+export const revalidate = 600;
 
 export const metadata: Metadata = {
   title: "Gather — Give your church its time back",
@@ -56,19 +61,21 @@ const STATS = [
   { to: 1, suffix: " place", label: "instead of spreadsheets, texts, and email" },
 ];
 
-const FEATURES = [
+const FEATURES: { id: string; area: "blue" | "teal" | "clay"; icon: typeof CalendarCheck; eyebrow: string; title: string; body: string; chips: string[]; image: string }[] = [
   {
     id: "volunteers",
+    area: "blue",
     icon: CalendarCheck,
     eyebrow: "Volunteer scheduling",
     title: "Scheduling that finishes itself.",
     body:
       "Set the roles a service needs, assign the people you have, and let Gather handle the asking. Volunteers confirm from their phone, backups step in automatically when someone declines, and you stop chasing replies on a Saturday night.",
-    chips: ["Confirm from the app", "Automatic backups", "No more group texts", "Gaps visible at a glance"],
+    chips: ["Confirm from the app", "Backups step in", "No more group texts", "Gaps visible at a glance"],
     image: "/images/congregation-hands.jpg",
   },
   {
     id: "services",
+    area: "teal",
     icon: ClipboardList,
     eyebrow: "Service planning",
     title: "A run of show everyone can see.",
@@ -79,12 +86,13 @@ const FEATURES = [
   },
   {
     id: "communication",
+    area: "clay",
     icon: Megaphone,
     eyebrow: "Announcements & events",
     title: "Reach the right people, not everyone.",
     body:
-      "Write once and choose who hears it — the whole church, just your serving teams, or a single ministry. Events carry RSVPs, so you know who is coming before you order the food.",
-    chips: ["Audience targeting", "Scheduled publishing", "Event RSVPs", "Email and in-app"],
+      "Write once and choose who hears it — the whole church, just your serving teams, or just your staff. Events carry RSVPs and sign-ups carry slots, so you know who is coming and who is bringing what.",
+    chips: ["Audience targeting", "Scheduled publishing", "RSVPs and sign-ups", "Push and in-app"],
     image: "/images/church-window-sunset.jpg",
   },
 ];
@@ -110,38 +118,16 @@ const STEPS = [
   },
 ];
 
-const TESTIMONIALS = [
-  {
-    quote:
-      "Our worship director used to spend two hours every week on scheduling. It's twenty minutes now, and nobody is surprised the morning of.",
-    name: "Michael Kim",
-    role: "Lead Pastor · Crossroads Community Church",
-    initials: "MK",
-  },
-  {
-    quote:
-      "The volunteers actually confirm. That sounds small until you've spent five years texting eleven people every Saturday to ask if they're still coming.",
-    name: "Rachel Adeyemi",
-    role: "Children's Director · Grace Fellowship",
-    initials: "RA",
-  },
-  {
-    quote:
-      "I'm not technical and I didn't need to be. I opened it, understood it, and had our first service plan built before lunch.",
-    name: "Tom Barrett",
-    role: "Church Administrator · Rowan Springs Chapel",
-    initials: "TB",
-  },
-];
 
 const TRUST = [
   { icon: Lock, text: "Encrypted in transit and at rest" },
   { icon: KeyRound, text: "Role-based access for staff, teams, and members" },
   { icon: Eye, text: "We never sell or share your congregation's data" },
-  { icon: Server, text: "Continuous backups with point-in-time recovery" },
+  { icon: Server, text: "Hosted in the United States" },
   { icon: ShieldCheck, text: "Row-level security so churches stay fully separate" },
   { icon: Download, text: "Export your data any time you want it" },
 ];
+
 
 const CHURCH_NAMES = [
   "Crossroads Community",
@@ -184,8 +170,8 @@ export default function LandingPage() {
           <FadeUp>
             <span className="inline-flex items-center gap-2 rounded-full border border-[var(--mk-line)] bg-white/70 px-3.5 py-1.5 text-xs font-medium text-[var(--mk-ink-soft)] backdrop-blur-sm">
               <span className="relative flex h-1.5 w-1.5">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-500 opacity-70" />
-                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-amber-500" />
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--area-teal-mark)] opacity-70" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[var(--area-teal-mark)]" />
               </span>
               Church management software
             </span>
@@ -208,25 +194,42 @@ export default function LandingPage() {
           <FadeUp delay={0.65}>
             <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:items-center">
               <Link
-                href="/demo"
+                href="/auth?tab=signup"
                 className="group inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--mk-amber)] px-6 py-3.5 text-sm font-semibold text-white shadow-[0_10px_30px_-10px_rgba(180,83,9,0.6)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[var(--mk-amber-deep)]"
               >
-                Schedule a demo
+                Start your free trial
                 <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
               </Link>
               <Link
-                href="/pricing"
+                href="/demo"
                 className="inline-flex items-center justify-center rounded-xl border border-[var(--mk-line)] bg-white/70 px-6 py-3.5 text-sm font-semibold text-[var(--mk-ink)] backdrop-blur-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-white"
               >
-                See pricing
+                Book a demo
               </Link>
             </div>
           </FadeUp>
 
           <FadeUp delay={0.75}>
             <p className="mt-8 text-xs text-[var(--mk-ink-faint)]">
-              30-day trial · No card to start · Cancel in one click
+              14 days of everything, Gather AI included · No card to start · 14-day money-back guarantee
             </p>
+            <div className="mt-6 flex items-center gap-3">
+              <div className="flex -space-x-2">
+                {TESTIMONIALS.map((t, i) => (
+                  <span
+                    key={t.name}
+                    className="flex h-8 w-8 items-center justify-center rounded-full text-[10px] font-bold ring-2 ring-white"
+                    style={{ background: `var(--area-${["blue", "plum", "olive"][i % 3]}-tint)`, color: `var(--area-${["blue", "plum", "olive"][i % 3]}-ink)` }}
+                    aria-hidden
+                  >
+                    {t.initials}
+                  </span>
+                ))}
+              </div>
+              <p className="max-w-xs text-xs leading-snug text-[var(--mk-ink-soft)]">
+                &ldquo;It&apos;s twenty minutes now, and nobody is surprised the morning of.&rdquo; — {TESTIMONIALS[0].name}, {TESTIMONIALS[0].role.split(" · ")[0]}
+              </p>
+            </div>
           </FadeUp>
         </div>
       </section>
@@ -320,10 +323,10 @@ export default function LandingPage() {
                 }`}
               >
                 <FadeUp>
-                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--primary-soft)]">
-                    <Icon className="h-5 w-5 text-[var(--mk-amber-deep)]" />
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl" style={{ background: `var(--area-${f.area}-tint)` }}>
+                    <Icon className="h-5 w-5" style={{ color: `var(--area-${f.area}-ink)` }} />
                   </div>
-                  <p className="mk-eyebrow mt-6">{f.eyebrow}</p>
+                  <p className={`mk-eyebrow mk-eyebrow-${f.area} mt-6`}>{f.eyebrow}</p>
                   <h3 className="mk-h3 mt-4 text-[var(--mk-ink)]">{f.title}</h3>
                   <p className="mk-lead mt-5">{f.body}</p>
 
@@ -337,7 +340,7 @@ export default function LandingPage() {
 
                   <Link
                     href="/#how"
-                    className="group mt-9 inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--mk-amber-deep)]"
+                    className="group mt-9 inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--mk-ink)] underline-offset-4 hover:underline"
                   >
                     See how it works
                     <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
@@ -369,7 +372,7 @@ export default function LandingPage() {
 
         <div className="relative z-10 mx-auto max-w-[1180px] px-5 sm:px-8">
           <FadeUp>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-300/90">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/70">
               How it works
             </p>
             <h2 className="mk-h2 mt-5 max-w-2xl text-white">
@@ -380,8 +383,8 @@ export default function LandingPage() {
           <div className="mt-16 grid gap-10 md:grid-cols-3 md:gap-8">
             {STEPS.map((s, i) => (
               <FadeUp key={s.n} delay={i * 0.12}>
-                <div className="group border-t border-white/20 pt-6 transition-colors duration-300 hover:border-amber-300/60">
-                  <span className="text-xs font-semibold tracking-[0.2em] text-amber-300/80">
+                <div className="group border-t border-white/20 pt-6 transition-colors duration-300 hover:border-white/50">
+                  <span className="text-xs font-semibold tracking-[0.2em] text-white/60">
                     {s.n}
                   </span>
                   <h3 className="mt-4 text-xl font-light tracking-tight text-white">
@@ -400,17 +403,17 @@ export default function LandingPage() {
         <div className="mx-auto max-w-[1180px] px-5 py-24 sm:px-8 sm:py-32">
           <div className="grid items-center gap-14 lg:grid-cols-2 lg:gap-20">
             <FadeUp>
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--primary-soft)]">
-                <Smartphone className="h-5 w-5 text-[var(--mk-amber-deep)]" />
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--area-plum-tint)]">
+                <Smartphone className="h-5 w-5 text-[var(--area-plum-ink)]" />
               </div>
-              <p className="mk-eyebrow mt-6">For your congregation</p>
+              <p className="mk-eyebrow mk-eyebrow-plum mt-6">For your congregation</p>
               <h2 className="mk-h2 mt-4 text-[var(--mk-ink)]">
                 The part your church actually holds.
               </h2>
               <p className="mk-lead mt-6">
-                Members get a warm, simple app — this week&apos;s announcements, upcoming
-                events they can RSVP to, and a single tap to confirm they&apos;re serving.
-                No training, no manual, no login they&apos;ll forget.
+                Members get a warm, simple app — this week&apos;s news, events they can
+                RSVP to, sign-ups they can join, and a single tap to say they&apos;re serving.
+                No training, no manual, and they stay signed in.
               </p>
               <ul className="mt-9 grid list-none grid-cols-2 gap-x-8 gap-y-4 p-0">
                 {["Confirm assignments", "RSVP to events", "Read announcements", "See the service plan"].map((c) => (
@@ -450,7 +453,10 @@ export default function LandingPage() {
                       &ldquo;{t.quote}&rdquo;
                     </blockquote>
                     <figcaption className="mt-8 flex items-center gap-3">
-                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--primary-soft)] text-[11px] font-bold text-[var(--mk-amber-deep)]">
+                      <span
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[11px] font-bold"
+                        style={{ background: `var(--area-${["blue", "plum", "olive"][i % 3]}-tint)`, color: `var(--area-${["blue", "plum", "olive"][i % 3]}-ink)` }}
+                      >
                         {t.initials}
                       </span>
                       <span>
@@ -471,7 +477,7 @@ export default function LandingPage() {
         <div className="mx-auto max-w-[1180px] px-5 py-24 sm:px-8 sm:py-32">
           <div className="grid gap-14 lg:grid-cols-[0.9fr_1.1fr] lg:gap-20">
             <FadeUp>
-              <p className="mk-eyebrow">Care and standards</p>
+              <p className="mk-eyebrow mk-eyebrow-teal">Care and standards</p>
               <h2 className="mk-h2 mt-5 text-[var(--mk-ink)]">
                 Your congregation&apos;s data, treated like it matters.
               </h2>
@@ -490,7 +496,7 @@ export default function LandingPage() {
                   const Icon = t.icon;
                   return (
                     <li key={t.text} className="flex items-start gap-3">
-                      <Icon className="mt-0.5 h-4 w-4 shrink-0 text-[var(--mk-amber-deep)]" />
+                      <Icon className="mt-0.5 h-4 w-4 shrink-0 text-[var(--area-teal-mark)]" />
                       <span className="text-sm leading-relaxed text-[var(--mk-ink-soft)]">
                         {t.text}
                       </span>
@@ -518,6 +524,8 @@ export default function LandingPage() {
             </p>
           </FadeUp>
 
+          <FoundingOffer className="mt-10" />
+
           <div className="mt-14 grid gap-6 md:grid-cols-3">
             {PLANS.map((p, i) => (
               <FadeUp key={p.key} delay={i * 0.08}>
@@ -531,16 +539,23 @@ export default function LandingPage() {
                   <div className="flex h-full flex-col p-7">
                     {p.featured && (
                       <span className="mb-4 w-fit rounded-full bg-[var(--primary-soft)] px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-[var(--mk-amber-deep)]">
-                        Most churches
+                        Recommended
                       </span>
                     )}
                     <h3 className="text-lg font-medium text-[var(--mk-ink)]">{p.name}</h3>
                     <p className="mt-1.5 text-sm text-[var(--mk-ink-faint)]">{p.memberCap}</p>
-                    <p className="mt-6 flex items-baseline gap-1.5">
+                    <p className="mt-6 flex items-baseline gap-2">
+                      <span className="text-lg font-light text-[var(--mk-ink-faint)] line-through" aria-label={`was $${p.monthly}`}>
+                        ${p.monthly}
+                      </span>
                       <span className="text-4xl font-light tracking-tight text-[var(--mk-ink)]">
-                        <CountUp to={p.monthly} prefix="$" />
+                        <CountUp to={p.annual} prefix="$" />
                       </span>
                       <span className="text-sm text-[var(--mk-ink-faint)]">/month</span>
+                    </p>
+                    <p className="mt-1.5 text-xs text-[var(--mk-ink-faint)]">
+                      Billed yearly ·{" "}
+                      <span className="font-semibold text-[var(--area-teal-ink)]">save ${p.monthly * (12 - ANNUAL_MONTHS_CHARGED)} a year</span>
                     </p>
                     <p className="mt-3 text-sm leading-relaxed text-[var(--mk-ink-soft)]">
                       {p.tagline}
@@ -563,8 +578,8 @@ export default function LandingPage() {
 
           <FadeUp>
             <p className="mt-8 text-center text-sm text-[var(--mk-ink-soft)]">
-              Every plan includes a 30-day trial.{" "}
-              <Link href="/pricing" className="font-semibold text-[var(--mk-amber-deep)] hover:underline">
+              Start with 14 days of everything, no card needed, and a 14-day money-back guarantee after that. Student organizations get a discount.{" "}
+              <Link href="/pricing" className="font-semibold text-[var(--mk-ink)] underline-offset-4 hover:underline">
                 Compare plans in full →
               </Link>
             </p>
@@ -583,7 +598,7 @@ export default function LandingPage() {
                 Still wondering something?{" "}
                 <a
                   href="mailto:support@gatherministry.online"
-                  className="font-semibold text-[var(--mk-amber-deep)] hover:underline"
+                  className="font-semibold text-[var(--mk-ink)] underline underline-offset-4"
                 >
                   Email us
                 </a>{" "}
@@ -607,22 +622,22 @@ export default function LandingPage() {
               Less time on the admin. More time with your people.
             </h2>
             <p className="mk-lead mx-auto mt-7 max-w-lg text-white/70">
-              See Gather with your own services and your own team on the call. Thirty
-              minutes, no pressure, no slide deck.
+              Set up your first service in an afternoon. Or, if you&apos;d rather, we&apos;ll
+              walk you through it with your own services on the screen.
             </p>
             <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Link
-                href="/demo"
+                href="/auth?tab=signup"
                 className="group inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--mk-amber)] px-6 py-3.5 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-[var(--mk-amber-deep)]"
               >
-                Schedule a demo
+                Start your free trial
                 <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
               </Link>
               <Link
-                href="/pricing"
+                href="/demo"
                 className="inline-flex items-center justify-center rounded-xl border border-white/25 bg-white/10 px-6 py-3.5 text-sm font-semibold text-white backdrop-blur-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/20"
               >
-                Start free trial
+                Book a demo
               </Link>
             </div>
           </FadeUp>

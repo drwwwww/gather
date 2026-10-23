@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "../../lib/supabaseClient";
+import { captureAttribution, readAttribution } from "../../lib/attribution";
 import { destinationAfterSignIn, isJoinNextPath, sanitizeNextPath } from "../../lib/postLoginDestination";
 
 type Tab = "signin" | "signup";
@@ -34,6 +35,10 @@ export default function AuthPage() {
   const searchParams = useSearchParams();
   const rawNext = searchParams.get("next");
   const nextUrl = rawNext ?? "/admin";
+
+  useEffect(() => {
+    captureAttribution();
+  }, []);
 
   useEffect(() => {
     const t = searchParams.get("tab");
@@ -114,7 +119,7 @@ export default function AuthPage() {
     const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { full_name: fullName } },
+      options: { data: { full_name: fullName, ...(readAttribution() ? { signup_source: readAttribution() } : {}) } },
     });
 
     if (signUpError) {
@@ -152,7 +157,7 @@ export default function AuthPage() {
       return;
     }
     setForgotLoading(true);
-    const redirectTo = typeof window !== "undefined" ? `${window.location.origin}/login` : undefined;
+    const redirectTo = typeof window !== "undefined" ? `${window.location.origin}/auth/set-password` : undefined;
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(
       trimmed,
       redirectTo ? { redirectTo } : undefined
@@ -196,7 +201,7 @@ export default function AuthPage() {
 
         {/* Logo */}
         <header className="relative z-10 flex shrink-0 items-center gap-3 px-10 pt-10">
-          <img src="/logo.png" alt="Gather" className="h-9 w-9 shrink-0 rounded-xl object-cover select-none" />
+          <img src="/brand/mark-amber.png" alt="" className="h-8 w-10 shrink-0 select-none" />
           <span className="text-xl font-black tracking-tight" style={{ color: "#fff8f0" }}>Gather</span>
         </header>
 
@@ -263,7 +268,7 @@ export default function AuthPage() {
       >
         {/* Mobile logo — only shows when brand panel is hidden */}
         <div className="mb-10 flex items-center gap-2.5 lg:hidden">
-          <img src="/logo.png" alt="Gather" className="h-8 w-8 rounded-xl object-cover select-none" />
+          <img src="/brand/mark-amber.png" alt="" className="h-7 w-[35px] shrink-0 select-none" />
           <span className="text-lg font-black tracking-tight" style={{ color: "#1c1209" }}>Gather</span>
         </div>
 

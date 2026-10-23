@@ -22,7 +22,7 @@ export function ScrollProgress() {
     <motion.div
       aria-hidden
       style={{ scaleX: width, transformOrigin: "0%" }}
-      className="fixed inset-x-0 top-0 z-[60] h-[2px] bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500"
+      className="fixed inset-x-0 top-0 z-[60] h-[2px] bg-[var(--mk-amber)]"
     />
   );
 }

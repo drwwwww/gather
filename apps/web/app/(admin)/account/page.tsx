@@ -200,7 +200,7 @@ export default function AccountPage() {
 
   const handleChangePassword = async () => {
     if (!supabase || !profile?.email) return;
-    const redirectTo = typeof window !== "undefined" ? `${window.location.origin}/login` : undefined;
+    const redirectTo = typeof window !== "undefined" ? `${window.location.origin}/auth/set-password` : undefined;
     const { error: resetError } = await supabase.auth.resetPasswordForEmail(
       profile.email,
       redirectTo ? { redirectTo } : undefined

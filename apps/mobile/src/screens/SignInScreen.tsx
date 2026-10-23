@@ -9,6 +9,7 @@ import DawnLayout, { DAWN_INK_STRONG } from "../components/app/DawnLayout";
 import { RiseIn, usePressScale } from "../components/ds/motion";
 import { supabase } from "../supabase";
 import { toE164, PHONE_AUTH_ENABLED } from "../lib/phone";
+import { WEB_URL } from "../lib/webApi";
 
 type Step = "identifier" | "password" | "forgot";
 type IdentifierMode = "email" | "phone";
@@ -184,7 +185,9 @@ export default function SignInScreen({ navigation }: any) {
     if (!supabase || !forgotEmail.trim()) return;
     setForgotLoading(true);
     setError(null);
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(forgotEmail.trim());
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(forgotEmail.trim(), {
+      redirectTo: `${WEB_URL}/auth/set-password`,
+    });
     setForgotLoading(false);
     if (resetError) {
       setError(friendlySignInError(resetError.message));

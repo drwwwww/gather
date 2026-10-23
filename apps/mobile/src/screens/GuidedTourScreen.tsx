@@ -5,7 +5,7 @@ import {
 } from "react-native";
 import * as Haptics from "expo-haptics";
 import { Icon, type AppIconName } from "../components/ui/Icon";
-import { Screen, Button, BrandMark, palette, font, radius, shadow, space } from "../components/ds";
+import { Screen, Button, Mark, palette, font, radius, shadow, space } from "../components/ds";
 import { MEMBER_TABS, SERVE_TABS, type TabDef } from "../components/app/TabBar";
 import { useAuth } from "../context/AuthContext";
 import { useReduceMotion } from "../hooks/useReduceMotion";
@@ -103,7 +103,7 @@ function SlideView({
         {slide.tab ? (
           <TabPreview tabs={tabs} activeKey={slide.tab} />
         ) : slide.hero === "brand" ? (
-          <BrandMark size={88} rounding={28} />
+          <Mark height={68} />
         ) : slide.hero ? (
           <View style={styles.heroChip}>
             <Icon name={slide.hero} size={40} color={palette.amberInk} />

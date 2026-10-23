@@ -497,7 +497,7 @@ export default function CreateChurchOnboardingPage() {
     <main className="mx-auto flex min-h-dvh max-w-2xl flex-col justify-center px-6 py-12">
       <div className="mb-8 text-center">
         <div className="mb-3 flex items-center justify-center gap-2.5">
-          <img src="/logo.png" alt="Gather" className="h-8 w-8 rounded-xl object-cover select-none" />
+          <img src="/brand/mark-amber.png" alt="" className="h-7 w-[35px] shrink-0 select-none" />
           <span className="text-lg font-black tracking-tight text-[var(--text-primary)]">Gather</span>
         </div>
         <h1 className="text-2xl font-black tracking-tight text-[var(--text-primary)]">

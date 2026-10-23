@@ -125,7 +125,7 @@ const SECTIONS: LegalSection[] = [
   {
     id: "billing",
     title: "Paid plans",
-    plain: "Church plans renew automatically until you cancel. Cancel any time; you keep access through the period you paid for.",
+    plain: "Church plans renew automatically until you cancel. Cancel any time; you keep access through the period you paid for. Your first payment has a 14-day money-back guarantee.",
     body: (
       <>
         <p>
@@ -134,8 +134,9 @@ const SECTIONS: LegalSection[] = [
           effect at the end of the current billing period, and you keep access until then.
         </p>
         <p>
-          Fees aren&apos;t refundable for partial periods, except where the law requires a refund or we decide to
-          give one. We&apos;ll give at least 30 days&apos; notice before a price change affects your plan. Prices
+          <strong>Money-back guarantee:</strong> if you ask within 14 days of your church&apos;s first payment
+          for a plan, we&apos;ll refund that payment in full. Otherwise, fees aren&apos;t refundable for partial
+          periods, except where the law requires a refund or we decide to give one. We&apos;ll give at least 30 days&apos; notice before a price change affects your plan. <strong>Founding churches</strong> (the first 10 churches to start a paid plan) keep the price they signed up at for as long as their subscription stays active, without a break. Prices
           don&apos;t include taxes, which you&apos;re responsible for unless your church is exempt and gives us proof.
           If a payment fails, we&apos;ll let you know and may pause paid features after a reasonable grace period.
         </p>

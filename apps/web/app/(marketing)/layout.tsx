@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import MarketingFooter from "../../components/marketing/MarketingFooter";
+import SiteAnalytics from "../../components/marketing/SiteAnalytics";
 
 /**
  * Marketing shell. The root layout already renders a <main>, so this uses
@@ -12,6 +13,7 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
     <div className="mk min-h-dvh">
       {children}
       <MarketingFooter />
+      <SiteAnalytics />
     </div>
   );
 }

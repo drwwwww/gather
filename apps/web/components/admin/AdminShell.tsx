@@ -11,6 +11,7 @@ import {
 import { supabase } from "../../lib/supabaseClient";
 import Avatar from "../ui/avatar";
 import CommandPalette, { type PaletteDestination } from "./CommandPalette";
+import TrialBanner from "./TrialBanner";
 
 function avatarFromUserMetadata(meta: unknown): string | null {
   if (!meta || typeof meta !== "object") return null;
@@ -192,9 +193,9 @@ export default function AdminShell({ children }: { children: ReactNode }) {
           {/* Church identity */}
           <div className="flex shrink-0 items-center gap-2.5 px-4 pb-2 pt-4">
             <img
-              src="/logo.png"
+              src="/brand/mark-amber.png"
               alt=""
-              className="h-8 w-8 shrink-0 rounded-xl object-cover select-none"
+              className="h-6 w-[30px] shrink-0 select-none"
             />
             <div className="min-w-0">
               <p className="line-clamp-2 text-[13px] font-semibold leading-tight text-[var(--text-primary)]" title={churchName}>{churchName}</p>
@@ -280,7 +281,7 @@ export default function AdminShell({ children }: { children: ReactNode }) {
           className="flex min-h-screen min-w-0 flex-1 flex-col bg-[var(--app-canvas)] font-['Rubik',sans-serif]"
           style={{ marginLeft: "var(--sidebar-w)" }}
         >
-
+          <TrialBanner />
           <div className="flex min-h-0 flex-1 flex-col">{children}</div>
 
           <footer className="mt-auto flex flex-col gap-3 border-t border-[var(--border)] px-6 py-5 text-xs text-[var(--text-muted)] sm:flex-row sm:items-center sm:justify-between sm:px-8">

@@ -11,7 +11,7 @@ const schema = z.object({
   cycle: z.enum(["monthly", "annual"]),
 });
 
-const TRIAL_DAYS = 30;
+const TRIAL_DAYS = 14;
 
 function originOf(request: Request) {
   const envUrl = process.env.NEXT_PUBLIC_SITE_URL;
@@ -60,7 +60,7 @@ export async function POST(request: Request) {
 
   // A signed-in admin is changing their church's plan: tie the subscription to
   // the church so the webhook can apply it, and come back to Account.
-  type ChurchBillingRow = { id: string; stripe_customer_id: string | null; stripe_subscription_id: string | null };
+  type ChurchBillingRow = { id: string; stripe_customer_id: string | null; stripe_subscription_id: string | null; trial_ends_at: string | null };
   let church = null as ChurchBillingRow | null;
   let email: string | null = null;
   const caller = await getRequestUser(request).catch(() => null);
@@ -70,7 +70,7 @@ export async function POST(request: Request) {
     if (profile?.church_id && profile.role === "ADMIN") {
       const { data } = await caller.supabase
         .from("churches")
-        .select("id, stripe_customer_id, stripe_subscription_id")
+        .select("id, stripe_customer_id, stripe_subscription_id, trial_ends_at")
         .eq("id", profile.church_id)
         .maybeSingle();
       church = data as ChurchBillingRow | null;
@@ -84,7 +84,23 @@ export async function POST(request: Request) {
   form.set("mode", "subscription");
   form.set("line_items[0][price]", priceId);
   form.set("line_items[0][quantity]", "1");
-  if (!church?.stripe_subscription_id) form.set("subscription_data[trial_period_days]", String(TRIAL_DAYS));
+  // A church already in its in-app trial keeps the same end date (no second
+  // trial) and enters a card now — choosing a plan is the commitment. A brand-new
+  // purchase from /pricing gets the full 14 days and, so "no card to start" is
+  // true, Stripe only asks for a card if one is needed; a trial that ends without
+  // one cancels instead of charging.
+  const trialEnd = church?.trial_ends_at ? Math.floor(new Date(church.trial_ends_at).getTime() / 1000) : null;
+  const nowSec = Math.floor(Date.now() / 1000);
+  if (church) {
+    // Stripe needs a trial end at least 48 hours out.
+    if (!church.stripe_subscription_id && trialEnd && trialEnd > nowSec + 2 * 86_400) {
+      form.set("subscription_data[trial_end]", String(trialEnd));
+    }
+  } else {
+    form.set("subscription_data[trial_period_days]", String(TRIAL_DAYS));
+    form.set("payment_method_collection", "if_required");
+    form.set("subscription_data[trial_settings][end_behavior][missing_payment_method]", "cancel");
+  }
   if (church) {
     form.set("success_url", `${origin}/account?billing=success`);
     form.set("cancel_url", `${origin}/account?billing=cancelled`);

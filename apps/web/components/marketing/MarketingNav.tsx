@@ -55,7 +55,7 @@ export default function MarketingNav({ overHero = false }: { overHero?: boolean 
       <nav className="mx-auto grid h-16 max-w-[1180px] grid-cols-[1fr_auto_1fr] items-center gap-6 px-5 sm:px-8">
         <Link href="/" className="flex shrink-0 items-center gap-2.5 justify-self-start" aria-label="Gather home">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.png" alt="" className="h-8 w-8 rounded-xl object-cover" />
+          <img src="/brand/mark-amber.png" alt="" className="h-7 w-[35px] shrink-0 select-none" />
           <span className="text-lg font-semibold tracking-tight text-[var(--mk-ink)]">
             Gather
           </span>
@@ -82,10 +82,10 @@ export default function MarketingNav({ overHero = false }: { overHero?: boolean 
               Sign in
             </Link>
             <Link
-              href="/demo"
+              href="/auth?tab=signup"
               className="rounded-full bg-[var(--mk-amber)] px-4 py-1.5 text-sm font-semibold text-white transition-all duration-150 hover:-translate-y-0.5 hover:bg-[var(--mk-amber-deep)]"
             >
-              Schedule a demo
+              Start free trial
             </Link>
           </div>
 
@@ -125,11 +125,11 @@ export default function MarketingNav({ overHero = false }: { overHero?: boolean 
               Sign in
             </Link>
             <Link
-              href="/demo"
+              href="/auth?tab=signup"
               onClick={() => setOpen(false)}
               className="rounded-xl bg-[var(--mk-amber)] px-4 py-3 text-center text-sm font-semibold text-white"
             >
-              Schedule a demo
+              Start free trial
             </Link>
           </div>
         </div>

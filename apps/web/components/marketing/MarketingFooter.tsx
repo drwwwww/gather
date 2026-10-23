@@ -46,7 +46,7 @@ export default function MarketingFooter() {
           <div>
             <Link href="/" className="flex items-center gap-2.5">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo.png" alt="" className="h-8 w-8 rounded-xl object-cover" />
+              <img src="/brand/mark-amber.png" alt="" className="h-7 w-[35px] shrink-0 select-none" />
               <span className="text-lg font-semibold tracking-tight text-[var(--mk-ink)]">Gather</span>
             </Link>
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-[var(--mk-ink-soft)]">
@@ -65,7 +65,7 @@ export default function MarketingFooter() {
                   <li key={l.label}>
                     <Link
                       href={l.href}
-                      className="text-sm text-[var(--mk-ink-soft)] transition-colors hover:text-[var(--mk-amber-deep)]"
+                      className="text-sm text-[var(--mk-ink-soft)] transition-colors hover:text-[var(--mk-ink)]"
                     >
                       {l.label}
                     </Link>

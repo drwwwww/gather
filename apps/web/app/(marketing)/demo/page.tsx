@@ -22,16 +22,19 @@ export const metadata: Metadata = {
 const POINTS = [
   {
     icon: Clock,
+    area: "teal",
     title: "Thirty minutes",
     body: "Long enough to see everything that matters, short enough to fit a Tuesday.",
   },
   {
     icon: MonitorPlay,
+    area: "blue",
     title: "Your services, not a sandbox",
     body: "We set up your actual service times and roles first, so you're looking at your own service.",
   },
   {
     icon: MessageSquareHeart,
+    area: "clay",
     title: "No slide deck, no pressure",
     body: "A working session with a real person. If Gather isn't right for you, we'll say so.",
   },
@@ -68,8 +71,8 @@ export default function DemoPage() {
                 const Icon = p.icon;
                 return (
                   <li key={p.title} className="flex gap-4">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--primary-soft)]">
-                      <Icon className="h-4 w-4 text-[var(--mk-amber-deep)]" />
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: `var(--area-${p.area}-tint)` }}>
+                      <Icon className="h-4 w-4" style={{ color: `var(--area-${p.area}-ink)` }} />
                     </div>
                     <div>
                       <h2 className="text-base font-medium text-[var(--mk-ink)]">{p.title}</h2>

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { View, Text, ScrollView, TextInput, Pressable, StyleSheet } from "react-native";
 import { Icon } from "../components/ui/Icon";
 import {
-  Screen, Txt, Button, BrandMark, Loader, Eyebrow, OnboardingProgress,
+  Screen, Txt, Button, Mark, Loader, Eyebrow, OnboardingProgress,
   palette, font, radius, shadow, space,
 } from "../components/ds";
 import { supabase } from "../supabase";
@@ -79,7 +79,7 @@ export default function ChurchSelectScreen({ route }: any) {
       >
         {/* Brand */}
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 24 }}>
-          <BrandMark size={32} rounding={10} glow />
+          <Mark height={28} />
           <Text style={styles.brand}>Gather</Text>
         </View>
 

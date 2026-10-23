@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
   StyleSheet,
   ViewStyle,
+  ImageStyle,
   TextStyle,
   StyleProp,
   Animated,
@@ -306,6 +307,23 @@ export function Button({
 /* ───────────────────────────────────────────── BrandMark */
 
 const BRAND_MARK = require("../../../assets/brand-mark.png");
+const MARK_GLYPH = require("../../../assets/brand-glyph.png");
+
+/**
+ * The logo mark on its own (heart over three people), no tile — amber by default.
+ * Use it wherever Gather signs a screen; keep the tiled BrandMark for app-icon contexts.
+ * brand-glyph.png is 740×592 (1.25:1).
+ */
+export function Mark({ height = 24, color = palette.amber, style }: { height?: number; color?: string; style?: StyleProp<ImageStyle> }) {
+  return (
+    <Image
+      source={MARK_GLYPH}
+      style={[{ height, width: height * 1.25, tintColor: color }, style]}
+      resizeMode="contain"
+      accessibilityIgnoresInvertColors
+    />
+  );
+}
 
 export function BrandMark({
   size = 34,
