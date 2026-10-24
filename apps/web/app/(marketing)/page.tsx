@@ -1,32 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import {
-  ArrowRight,
-  CalendarCheck,
-  ClipboardList,
-  Megaphone,
-  Smartphone,
-  ShieldCheck,
-  Lock,
-  Server,
-  Download,
-  KeyRound,
-  Eye,
-} from "lucide-react";
+import { ArrowRight, Check, Download, Lock, MessageCircleHeart, ShieldCheck } from "lucide-react";
 
 import MarketingNav from "../../components/marketing/MarketingNav";
 import MediaBackdrop from "../../components/marketing/MediaBackdrop";
 import Reveal from "../../components/marketing/Reveal";
 import FaqAccordion from "../../components/marketing/FaqAccordion";
 import FloatingMotifs from "../../components/marketing/FloatingMotifs";
-import {
-  CountUp,
-  FadeUp,
-  Parallax,
-  ScrollProgress,
-  SpotlightCard,
-  WordsReveal,
-} from "../../components/marketing/Motion";
+import { CountUp, FadeUp, ScrollProgress, SpotlightCard, WordsReveal } from "../../components/marketing/Motion";
+import ProductShowcase, { MockWindow } from "../../components/marketing/ProductShowcase";
+import LandingBento from "../../components/marketing/LandingBento";
+import WorkflowStrip from "../../components/marketing/WorkflowStrip";
+import PersonBadge from "../../components/marketing/PersonBadge";
 import { ANNUAL_MONTHS_CHARGED, PLANS, PRICING_FAQ } from "../../lib/marketing/plans";
 import { TESTIMONIALS } from "../../lib/marketing/testimonials";
 import FoundingOffer from "../../components/marketing/FoundingOffer";
@@ -55,89 +40,32 @@ export const metadata: Metadata = {
   alternates: { canonical: "/" },
 };
 
-const STATS = [
-  { to: 6, suffix: " hrs", label: "saved on a typical service prep week" },
-  { to: 3, suffix: " min", label: "to build a full service plan from a preset" },
-  { to: 1, suffix: " place", label: "instead of spreadsheets, texts, and email" },
+// Only jobs the product really does today.
+const HANDLED = [
+  { job: "Asking everyone if they're still coming", how: "Requests and reminders go out; people answer in one tap." },
+  { job: "Finding a fill-in when someone's sick", how: "Their backup takes the spot and you get a heads-up." },
+  { job: "Remembering who's away", how: "Volunteers mark away dates; Gather won't schedule them." },
+  { job: "Noticing who's been asked too often", how: "Team Health flags who's stretched and who's resting." },
+  { job: "Getting the news to the right people", how: "Choose who sees each post: everyone, teams or staff." },
+  { job: "Keeping the run sheet in sync", how: "One plan with real times that the whole team reads from." },
 ];
 
-const FEATURES: { id: string; area: "blue" | "teal" | "clay"; icon: typeof CalendarCheck; eyebrow: string; title: string; body: string; chips: string[]; image: string }[] = [
-  {
-    id: "volunteers",
-    area: "blue",
-    icon: CalendarCheck,
-    eyebrow: "Volunteer scheduling",
-    title: "Scheduling that finishes itself.",
-    body:
-      "Set the roles a service needs, assign the people you have, and let Gather handle the asking. Volunteers confirm from their phone, backups step in automatically when someone declines, and you stop chasing replies on a Saturday night.",
-    chips: ["Confirm from the app", "Backups step in", "No more group texts", "Gaps visible at a glance"],
-    image: "/images/congregation-hands.jpg",
-  },
-  {
-    id: "services",
-    area: "teal",
-    icon: ClipboardList,
-    eyebrow: "Service planning",
-    title: "A run of show everyone can see.",
-    body:
-      "Build the order of service once, save it as a template, and reuse it every week. Timing, roles, and notes live in one document your worship leader, tech team, and pastor are all reading from.",
-    chips: ["Reusable presets", "Live run times", "Printable run sheets", "One source of truth"],
-    image: "/images/modern-sanctuary.jpg",
-  },
-  {
-    id: "communication",
-    area: "clay",
-    icon: Megaphone,
-    eyebrow: "Announcements & events",
-    title: "Reach the right people, not everyone.",
-    body:
-      "Write once and choose who hears it — the whole church, just your serving teams, or just your staff. Events carry RSVPs and sign-ups carry slots, so you know who is coming and who is bringing what.",
-    chips: ["Audience targeting", "Scheduled publishing", "RSVPs and sign-ups", "Push and in-app"],
-    image: "/images/church-window-sunset.jpg",
-  },
-];
-
-const STEPS = [
-  {
-    n: "01",
-    title: "Bring your people in",
-    body:
-      "Invite your staff and volunteers by email, or share a join code your congregation can use from the app. Roles and permissions are set as they arrive.",
-  },
-  {
-    n: "02",
-    title: "Set your services",
-    body:
-      "Tell Gather when you gather and what each service needs. Build a template once and every following week starts from it instead of a blank page.",
-  },
-  {
-    n: "03",
-    title: "Let the week run",
-    body:
-      "Assignments go out, confirmations come back, and announcements reach the people they're meant for. You watch the gaps close instead of making the calls.",
-  },
-];
-
+const FEATURED = TESTIMONIALS[1];
+const OTHER_QUOTES = [TESTIMONIALS[0], TESTIMONIALS[2]];
 
 const TRUST = [
-  { icon: Lock, text: "Encrypted in transit and at rest" },
-  { icon: KeyRound, text: "Role-based access for staff, teams, and members" },
-  { icon: Eye, text: "We never sell or share your congregation's data" },
-  { icon: Server, text: "Hosted in the United States" },
-  { icon: ShieldCheck, text: "Row-level security so churches stay fully separate" },
-  { icon: Download, text: "Export your data any time you want it" },
+  { icon: ShieldCheck, title: "Private to your church", body: "Members only ever see your church. We never sell or share data." },
+  { icon: Lock, title: "Encrypted, always", body: "In transit and at rest, with role-based access for staff and teams." },
+  { icon: Download, title: "Your data is yours", body: "Import a spreadsheet in minutes. Export everything any time." },
+  { icon: MessageCircleHeart, title: "A person answers", body: "Email us and the people who build Gather reply." },
 ];
-
 
 const CHURCH_NAMES = [
   "Crossroads Community",
   "Grace Fellowship",
   "Rowan Springs Chapel",
   "New Hope Church",
-  "Cornerstone Bible",
   "Redeemer City",
-  "Living Water",
-  "The Table",
 ];
 
 export default function LandingPage() {
@@ -234,278 +162,153 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── TRUST STRIP ────────────────────────────────────────── */}
-      <section className="mk-rule border-t-0 bg-[var(--mk-ground)] py-10">
-        <p className="mb-7 text-center text-xs uppercase tracking-[0.16em] text-[var(--mk-ink-faint)]">
-          Built with and for churches like these
-        </p>
-        <div className="mk-marquee relative overflow-hidden">
-          <div
-            className="pointer-events-none absolute inset-y-0 left-0 z-10 w-24"
-            style={{ background: "linear-gradient(90deg, var(--mk-ground), transparent)" }}
-          />
-          <div
-            className="pointer-events-none absolute inset-y-0 right-0 z-10 w-24"
-            style={{ background: "linear-gradient(270deg, var(--mk-ground), transparent)" }}
-          />
-          <div className="mk-marquee-track gap-14 px-7">
-            {[...CHURCH_NAMES, ...CHURCH_NAMES].map((name, i) => (
-              <span
-                key={`${name}-${i}`}
-                className="whitespace-nowrap text-lg font-light tracking-tight text-[var(--mk-ink-faint)]"
-              >
-                {name}
-              </span>
-            ))}
-          </div>
+      {/* ── CHURCHES ───────────────────────────────────────────── */}
+      <section className="border-y border-[var(--mk-line)] bg-[var(--mk-ground)] px-5 py-7 sm:px-8">
+        <div className="mx-auto flex max-w-[1180px] flex-wrap items-center justify-center gap-x-10 gap-y-3">
+          <span className="text-[13px] text-[var(--mk-ink-soft)]">Built with and for churches like</span>
+          {CHURCH_NAMES.map((name) => (
+            <span key={name} className="whitespace-nowrap text-[17px] font-semibold text-[var(--mk-ink-faint)]">
+              {name}
+            </span>
+          ))}
         </div>
       </section>
 
-      {/* ── PROBLEM / SOLUTION ─────────────────────────────────── */}
-      <section className="relative overflow-hidden">
-        <div className="mk-grid-lines" />
-        <div className="relative mx-auto max-w-[1180px] px-5 py-24 sm:px-8 sm:py-32">
-          <div className="grid gap-14 md:grid-cols-2 md:gap-20">
-            <FadeUp>
-              <p className="mk-eyebrow">The problem</p>
-              <h2 className="mk-h3 mt-5 text-[var(--mk-ink)]">
-                Every service gets coordinated across spreadsheets, group texts, and
-                email threads. Nothing agrees, and the follow-up lands on one person.
-              </h2>
-            </FadeUp>
-            <FadeUp delay={0.1}>
-              <p className="mk-eyebrow">The solution</p>
-              <h2 className="mk-h3 mt-5 text-[var(--mk-ink)]">
-                Gather holds the whole week in one place — who is serving, what the
-                service looks like, and what your church has been told.
-              </h2>
-            </FadeUp>
-          </div>
+      {/* ── STATEMENT ──────────────────────────────────────────── */}
+      <section className="bg-[var(--mk-ground)] px-5 pb-12 pt-24 sm:px-8 sm:pt-28">
+        <FadeUp className="mx-auto max-w-[1180px]">
+          <p className="max-w-[980px] text-[30px] font-medium leading-[1.2] tracking-[-0.02em] text-[var(--mk-ink)] sm:text-[44px] sm:leading-[1.18]">
+            Sunday, without the Saturday-night texts.{" "}
+            <span className="text-[var(--mk-ink-faint)]">
+              Your plan, your team and your news live in one place, so everyone shows up knowing their part and
+              nobody chases anybody.
+            </span>
+          </p>
+        </FadeUp>
+      </section>
 
-          <div className="mk-rule mt-20 grid gap-10 pt-14 sm:grid-cols-3">
-            {STATS.map((s, i) => (
-              <FadeUp key={s.label} delay={i * 0.08}>
-                <p className="text-4xl font-light tracking-tight text-[var(--mk-ink)] sm:text-5xl">
-                  <CountUp to={s.to} suffix={s.suffix} />
-                </p>
-                <p className="mt-3 max-w-[16rem] text-sm leading-relaxed text-[var(--mk-ink-soft)]">
-                  {s.label}
-                </p>
-              </FadeUp>
-            ))}
-          </div>
+      {/* ── PRODUCT TOUR ───────────────────────────────────────── */}
+      <section id="features" className="scroll-mt-24 bg-[var(--mk-ground)] px-5 pb-24 pt-6 sm:px-8 sm:pb-32">
+        <div className="mx-auto max-w-[1180px]">
+          <ProductShowcase />
         </div>
       </section>
 
-      {/* ── WHY GATHER ─────────────────────────────────────────── */}
-      <section id="features" className="scroll-mt-20 bg-[var(--mk-ground)]">
-        <div className="mx-auto max-w-[1180px] px-5 sm:px-8">
+      {/* ── HOW IT WORKS (Calendly-style strip) ─────────────────── */}
+      <section id="how" className="scroll-mt-24 bg-[var(--mk-ground)] px-5 pb-24 sm:px-8 sm:pb-32">
+        <div className="mx-auto max-w-[1180px]">
           <FadeUp>
-            <p className="mk-eyebrow">Why Gather</p>
-            <h2 className="mk-h2 mt-5 max-w-3xl text-[var(--mk-ink)]">
-              One workspace, working together.
-            </h2>
-            <p className="mk-lead mt-6 max-w-xl">
-              Each part of Gather knows about the others. Schedule someone and they see
-              it on their phone. Change the service and the team sees it too.
-            </p>
+            <p className="mk-eyebrow">How it works</p>
+            <h2 className="mk-h2 mt-4 max-w-[720px] text-[var(--mk-ink)]">From an empty Monday to a calm Sunday.</h2>
           </FadeUp>
+          <WorkflowStrip />
         </div>
-
-        {FEATURES.map((f, idx) => {
-          const Icon = f.icon;
-          const flip = idx % 2 === 1;
-          return (
-            <div key={f.id} className="mx-auto max-w-[1180px] px-5 py-16 sm:px-8 sm:py-24">
-              <div
-                className={`grid items-center gap-12 lg:grid-cols-2 lg:gap-20 ${
-                  flip ? "lg:[&>*:first-child]:order-2" : ""
-                }`}
-              >
-                <FadeUp>
-                  <div className="flex h-11 w-11 items-center justify-center rounded-xl" style={{ background: `var(--area-${f.area}-tint)` }}>
-                    <Icon className="h-5 w-5" style={{ color: `var(--area-${f.area}-ink)` }} />
-                  </div>
-                  <p className={`mk-eyebrow mk-eyebrow-${f.area} mt-6`}>{f.eyebrow}</p>
-                  <h3 className="mk-h3 mt-4 text-[var(--mk-ink)]">{f.title}</h3>
-                  <p className="mk-lead mt-5">{f.body}</p>
-
-                  <ul className="mt-9 grid list-none grid-cols-2 gap-x-8 gap-y-4 p-0">
-                    {f.chips.map((c) => (
-                      <li key={c} className="mk-chip">
-                        {c}
-                      </li>
-                    ))}
-                  </ul>
-
-                  <Link
-                    href="/#how"
-                    className="group mt-9 inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--mk-ink)] underline-offset-4 hover:underline"
-                  >
-                    See how it works
-                    <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
-                  </Link>
-                </FadeUp>
-
-                <FadeUp delay={0.1}>
-                  <Parallax distance={26}>
-                    <div className="mk-media relative aspect-[4/3] overflow-hidden rounded-2xl shadow-[0_24px_60px_-24px_rgba(60,45,30,0.35)]">
-                      <MediaBackdrop poster={f.image} scrim="soft" />
-                    </div>
-                  </Parallax>
-                </FadeUp>
-              </div>
-            </div>
-          );
-        })}
       </section>
 
-      {/* ── HOW IT WORKS — dark band ───────────────────────────── */}
-      <section id="how" className="mk-media relative scroll-mt-20 overflow-hidden py-28 sm:py-36">
-        <MediaBackdrop poster="/images/steeple-clouds.jpg" videoSrc="/video/worship-wide.mp4" scrim="deep" />
-        <div className="mk-rays">
-          <span />
-          <span />
-          <span />
-        </div>
-        <FloatingMotifs tone="light" />
-
-        <div className="relative z-10 mx-auto max-w-[1180px] px-5 sm:px-8">
+      {/* ── WHY CHURCHES SWITCH ────────────────────────────────── */}
+      <section id="why" className="scroll-mt-24 bg-[var(--mk-ground)] px-5 pb-24 sm:px-8 sm:pb-32">
+        <div className="mx-auto max-w-[1180px]">
           <FadeUp>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/70">
-              How it works
-            </p>
-            <h2 className="mk-h2 mt-5 max-w-2xl text-white">
-              Set up in an afternoon. Running by your next service.
-            </h2>
+            <p className="mk-eyebrow">Why churches switch</p>
+            <h2 className="mk-h2 mt-4 max-w-[720px] text-[var(--mk-ink)]">The small things that make Sunday morning calm.</h2>
           </FadeUp>
+          <LandingBento />
+        </div>
+      </section>
 
-          <div className="mt-16 grid gap-10 md:grid-cols-3 md:gap-8">
-            {STEPS.map((s, i) => (
-              <FadeUp key={s.n} delay={i * 0.12}>
-                <div className="group border-t border-white/20 pt-6 transition-colors duration-300 hover:border-white/50">
-                  <span className="text-xs font-semibold tracking-[0.2em] text-white/60">
-                    {s.n}
+      {/* ── HANDLED BY GATHER (Beside) ─────────────────────────── */}
+      <section className="bg-[var(--mk-ground)] px-5 pb-24 sm:px-8 sm:pb-32">
+        <div className="mx-auto grid max-w-[1180px] gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:gap-16">
+          <FadeUp>
+            <p className="mk-eyebrow">The jobs nobody signed up for</p>
+            <h2 className="mk-h2 mt-4 text-[var(--mk-ink)]">Gather does the chasing, so you don&apos;t have to.</h2>
+            <p className="mk-lead mt-5 max-w-md">
+              Every church has a list of small jobs that eat the week. These are the ones Gather takes off it.
+            </p>
+            <Link
+              href="/auth?tab=signup"
+              className="group mt-8 inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--mk-ink)] underline-offset-4 hover:underline"
+            >
+              Hand them over, free for 14 days
+              <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
+            </Link>
+          </FadeUp>
+          <ul className="flex list-none flex-col gap-3 p-0">
+            {HANDLED.map((h, i) => (
+              <FadeUp key={h.job} delay={i * 0.04}>
+                <li className="flex items-center gap-4 rounded-2xl border border-[var(--mk-line)] bg-white px-5 py-4 transition-colors hover:border-[#d9cfc1]">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--area-teal-tint)]" aria-hidden>
+                    <Check className="h-4 w-4 text-[var(--area-teal-ink)]" strokeWidth={2.5} />
                   </span>
-                  <h3 className="mt-4 text-xl font-light tracking-tight text-white">
-                    {s.title}
-                  </h3>
-                  <p className="mt-3 text-sm leading-relaxed text-white/65">{s.body}</p>
-                </div>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[15px] font-semibold text-[var(--mk-ink)]">{h.job}</span>
+                    <span className="mt-0.5 block text-sm text-[var(--mk-ink-soft)]">{h.how}</span>
+                  </span>
+                  <span className="hidden shrink-0 rounded-full bg-[var(--area-teal-tint)] px-2.5 py-1 text-xs font-semibold text-[var(--area-teal-ink)] sm:inline">
+                    Handled by Gather
+                  </span>
+                </li>
               </FadeUp>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── MOBILE ─────────────────────────────────────────────── */}
-      <section id="mobile" className="scroll-mt-20 bg-[var(--mk-ground)]">
-        <div className="mx-auto max-w-[1180px] px-5 py-24 sm:px-8 sm:py-32">
-          <div className="grid items-center gap-14 lg:grid-cols-2 lg:gap-20">
-            <FadeUp>
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--area-plum-tint)]">
-                <Smartphone className="h-5 w-5 text-[var(--area-plum-ink)]" />
-              </div>
-              <p className="mk-eyebrow mk-eyebrow-plum mt-6">For your congregation</p>
-              <h2 className="mk-h2 mt-4 text-[var(--mk-ink)]">
-                The part your church actually holds.
-              </h2>
-              <p className="mk-lead mt-6">
-                Members get a warm, simple app — this week&apos;s news, events they can
-                RSVP to, sign-ups they can join, and a single tap to say they&apos;re serving.
-                No training, no manual, and they stay signed in.
-              </p>
-              <ul className="mt-9 grid list-none grid-cols-2 gap-x-8 gap-y-4 p-0">
-                {["Confirm assignments", "RSVP to events", "Read announcements", "See the service plan"].map((c) => (
-                  <li key={c} className="mk-chip">
-                    {c}
-                  </li>
-                ))}
-              </ul>
-            </FadeUp>
-
-            <FadeUp delay={0.1}>
-              <Parallax distance={30}>
-                <div className="mk-media relative aspect-[4/3] overflow-hidden rounded-2xl shadow-[0_24px_60px_-24px_rgba(60,45,30,0.35)]">
-                  <MediaBackdrop poster="/images/praying-woman.jpg" scrim="soft" />
-                </div>
-              </Parallax>
-            </FadeUp>
-          </div>
+          </ul>
         </div>
       </section>
 
       {/* ── TESTIMONIALS ───────────────────────────────────────── */}
-      <section className="mk-rule bg-[var(--mk-ground)]">
-        <div className="mx-auto max-w-[1180px] px-5 py-24 sm:px-8 sm:py-32">
+      <section className="bg-[var(--mk-ground)] px-5 pb-24 sm:px-8 sm:pb-32">
+        <div className="mx-auto max-w-[1180px]">
           <FadeUp>
-            <h2 className="mk-h2 max-w-2xl text-[var(--mk-ink)]">
-              Our product speaks for itself.
-            </h2>
+            <figure className="m-0 grid items-end gap-10 rounded-3xl border border-[var(--mk-line)] bg-white p-8 sm:p-14 lg:grid-cols-[2fr_1fr]">
+              <div>
+                <p className="mk-eyebrow mk-eyebrow-plum">{FEATURED.result}</p>
+                <blockquote className="m-0 mt-4 text-[22px] font-medium leading-[1.4] tracking-[-0.01em] text-[var(--mk-ink)] sm:text-[30px] sm:leading-[1.35]">
+                  &ldquo;{FEATURED.quote}&rdquo;
+                </blockquote>
+              </div>
+              <figcaption className="flex items-center gap-3.5">
+                <PersonBadge t={FEATURED} size={64} area="plum" />
+                <span>
+                  <span className="block text-base font-semibold text-[var(--mk-ink)]">{FEATURED.name}</span>
+                  <span className="block text-sm text-[var(--mk-ink-soft)]">{FEATURED.role.replace(" · ", ", ")}</span>
+                </span>
+              </figcaption>
+            </figure>
           </FadeUp>
-
-          <div className="mt-16 grid gap-8 md:grid-cols-3">
-            {TESTIMONIALS.map((t, i) => (
-              <FadeUp key={t.name} delay={i * 0.1}>
-                <SpotlightCard className="h-full rounded-2xl border border-[var(--mk-line)] bg-white transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_22px_50px_-18px_rgba(60,45,30,0.22)]">
-                  <figure className="flex h-full flex-col justify-between p-7">
-                    <blockquote className="text-base font-light leading-relaxed text-[var(--mk-ink)]">
-                      &ldquo;{t.quote}&rdquo;
-                    </blockquote>
-                    <figcaption className="mt-8 flex items-center gap-3">
-                      <span
-                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[11px] font-bold"
-                        style={{ background: `var(--area-${["blue", "plum", "olive"][i % 3]}-tint)`, color: `var(--area-${["blue", "plum", "olive"][i % 3]}-ink)` }}
-                      >
-                        {t.initials}
-                      </span>
-                      <span>
-                        <span className="block text-sm font-medium text-[var(--mk-ink)]">{t.name}</span>
-                        <span className="block text-xs text-[var(--mk-ink-faint)]">{t.role}</span>
-                      </span>
-                    </figcaption>
-                  </figure>
-                </SpotlightCard>
+          <div className="mt-5 grid gap-5 md:grid-cols-2">
+            {OTHER_QUOTES.map((t, i) => (
+              <FadeUp key={t.name} delay={i * 0.08}>
+                <figure className="m-0 flex h-full flex-col rounded-[20px] border border-[var(--mk-line)] bg-white p-7 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_18px_40px_-22px_rgba(31,20,8,0.25)]">
+                  <p className="text-xl font-semibold leading-snug tracking-[-0.01em] text-[var(--mk-ink)]">{t.result}</p>
+                  <blockquote className="m-0 mt-3 text-base leading-relaxed text-[var(--mk-ink-soft)]">&ldquo;{t.quote}&rdquo;</blockquote>
+                  <figcaption className="mt-auto flex items-center gap-3 pt-6 text-sm text-[var(--mk-ink-soft)]">
+                    <PersonBadge t={t} size={40} area={i === 0 ? "blue" : "olive"} />
+                    <span>
+                      <b className="block font-semibold text-[var(--mk-ink)]">{t.name}</b>
+                      {t.role.replace(" · ", ", ")}
+                    </span>
+                  </figcaption>
+                </figure>
               </FadeUp>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── TRUST / STANDARDS ──────────────────────────────────── */}
-      <section id="about" className="mk-rule scroll-mt-20 bg-[var(--mk-ground)]">
-        <div className="mx-auto max-w-[1180px] px-5 py-24 sm:px-8 sm:py-32">
-          <div className="grid gap-14 lg:grid-cols-[0.9fr_1.1fr] lg:gap-20">
-            <FadeUp>
-              <p className="mk-eyebrow mk-eyebrow-teal">Care and standards</p>
-              <h2 className="mk-h2 mt-5 text-[var(--mk-ink)]">
-                Your congregation&apos;s data, treated like it matters.
-              </h2>
-              <p className="mk-lead mt-6">
-                A church directory holds real names, real families, and real trust. We
-                build like that&apos;s true, because it is.
-              </p>
-              <div className="mk-media relative mt-10 aspect-[16/10] overflow-hidden rounded-2xl">
-                <MediaBackdrop poster="/images/sanctuary-doorway-light.jpg" scrim="soft" />
+      {/* ── TRUST ──────────────────────────────────────────────── */}
+      <section id="about" className="scroll-mt-24 bg-[var(--mk-ground)] px-5 pb-24 sm:px-8 sm:pb-32">
+        <div className="mx-auto grid max-w-[1180px] gap-7 border-y border-[var(--mk-line)] py-9 sm:grid-cols-2 lg:grid-cols-4">
+          {TRUST.map((t) => {
+            const Icon = t.icon;
+            return (
+              <div key={t.title}>
+                <p className="flex items-center gap-2 text-[15px] font-semibold text-[var(--mk-ink)]">
+                  <Icon className="h-4 w-4 text-[var(--area-teal-mark)]" aria-hidden />
+                  {t.title}
+                </p>
+                <p className="mt-1.5 text-sm leading-relaxed text-[var(--mk-ink-soft)]">{t.body}</p>
               </div>
-            </FadeUp>
-
-            <FadeUp delay={0.1}>
-              <ul className="grid list-none gap-x-10 gap-y-5 p-0 sm:grid-cols-2">
-                {TRUST.map((t) => {
-                  const Icon = t.icon;
-                  return (
-                    <li key={t.text} className="flex items-start gap-3">
-                      <Icon className="mt-0.5 h-4 w-4 shrink-0 text-[var(--area-teal-mark)]" />
-                      <span className="text-sm leading-relaxed text-[var(--mk-ink-soft)]">
-                        {t.text}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
-            </FadeUp>
-          </div>
+            );
+          })}
         </div>
       </section>
 
@@ -612,36 +415,45 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── FINAL CTA — dark band ──────────────────────────────── */}
-      <section className="mk-media relative overflow-hidden py-32 sm:py-40">
-        <MediaBackdrop poster="/images/worship-hands-raised.jpg" videoSrc="/video/worship-close.mp4" scrim="deep" />
-        <FloatingMotifs tone="light" />
-        <div className="relative z-10 mx-auto max-w-[1180px] px-5 text-center sm:px-8">
-          <FadeUp>
-            <h2 className="mk-h2 mx-auto max-w-3xl text-white">
-              Less time on the admin. More time with your people.
-            </h2>
-            <p className="mk-lead mx-auto mt-7 max-w-lg text-white/70">
-              Set up your first service in an afternoon. Or, if you&apos;d rather, we&apos;ll
-              walk you through it with your own services on the screen.
+      {/* ── FINAL CTA ──────────────────────────────────────────── */}
+      <section className="bg-[var(--mk-ground)] px-5 pb-24 sm:px-8 sm:pb-32">
+        <FadeUp className="mx-auto grid max-w-[1180px] items-center gap-12 rounded-[28px] bg-[#FFF4DC] px-7 py-14 sm:px-14 sm:py-[72px] lg:grid-cols-[1.2fr_1fr]">
+          <div>
+            <h2 className="text-[34px] font-semibold leading-[1.1] tracking-[-0.02em] text-[var(--mk-ink)] sm:text-[44px]">Plan this Sunday in Gather.</h2>
+            <p className="mt-4 max-w-lg text-[17px] leading-relaxed text-[var(--mk-ink-soft)]">
+              Most churches set up in an afternoon. Import your people from a spreadsheet, add your service times, and
+              send your first schedule today.
             </p>
-            <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row">
               <Link
                 href="/auth?tab=signup"
-                className="group inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--mk-amber)] px-6 py-3.5 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:bg-[var(--mk-amber-deep)]"
+                className="group inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--mk-amber)] px-6 py-3.5 text-sm font-semibold text-white shadow-[0_10px_30px_-10px_rgba(180,83,9,0.6)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[var(--mk-amber-deep)]"
               >
                 Start your free trial
                 <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
               </Link>
               <Link
                 href="/demo"
-                className="inline-flex items-center justify-center rounded-xl border border-white/25 bg-white/10 px-6 py-3.5 text-sm font-semibold text-white backdrop-blur-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/20"
+                className="inline-flex items-center justify-center rounded-xl border border-[var(--mk-line)] bg-white px-6 py-3.5 text-sm font-semibold text-[var(--mk-ink)] transition-all duration-200 hover:-translate-y-0.5"
               >
                 Book a demo
               </Link>
             </div>
-          </FadeUp>
-        </div>
+            <p className="mt-3.5 text-[13px] text-[var(--mk-ink-soft)]">14 days free · No card to start · 14-day money-back guarantee</p>
+          </div>
+          <div className="rotate-[1.5deg]" aria-hidden>
+            <MockWindow label="Service plans">
+              <div className="flex flex-col gap-3 px-5 py-4">
+                <p className="flex justify-between text-sm">
+                  <span className="font-semibold text-[var(--mk-ink)]">Sunday Morning</span>
+                  <span className="font-semibold text-[#15803d]">All set</span>
+                </p>
+                <span className="h-2 rounded-full bg-[#16a34a]" />
+                <p className="text-[13px] text-[var(--mk-ink-soft)]">12 of 12 confirmed · reminders sent</p>
+              </div>
+            </MockWindow>
+          </div>
+        </FadeUp>
       </section>
     </>
   );

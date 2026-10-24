@@ -7,7 +7,7 @@ const COLUMNS = [
       { href: "/#features", label: "Volunteer scheduling" },
       { href: "/#features", label: "Service planning" },
       { href: "/#features", label: "Announcements & events" },
-      { href: "/#mobile", label: "Mobile app" },
+      { href: "/#features", label: "Mobile app" },
     ],
   },
   {

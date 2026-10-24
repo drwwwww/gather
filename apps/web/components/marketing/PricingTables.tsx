@@ -12,6 +12,7 @@ import {
   type PlanKey,
 } from "../../lib/marketing/plans";
 import { TESTIMONIALS } from "../../lib/marketing/testimonials";
+import PersonBadge from "./PersonBadge";
 
 /** "about 30¢ per member a month" — the same price, counted the way churches think about it. */
 function perMember(p: (typeof PLANS)[number], price: number) {
@@ -219,14 +220,10 @@ export default function PricingTables() {
       <div className="mt-14 grid gap-5 md:grid-cols-3">
         {TESTIMONIALS.map((t, i) => (
           <figure key={t.name} className="m-0 rounded-2xl border border-[var(--mk-line)] bg-white p-6">
-            <blockquote className="m-0 text-sm leading-relaxed text-[var(--mk-ink)]">&ldquo;{t.quote}&rdquo;</blockquote>
+            <p className="text-base font-semibold leading-snug text-[var(--mk-ink)]">{t.result}</p>
+            <blockquote className="m-0 mt-2.5 text-sm leading-relaxed text-[var(--mk-ink-soft)]">&ldquo;{t.quote}&rdquo;</blockquote>
             <figcaption className="mt-5 flex items-center gap-3">
-              <span
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
-                style={{ background: `var(--area-${["blue", "plum", "olive"][i % 3]}-tint)`, color: `var(--area-${["blue", "plum", "olive"][i % 3]}-ink)` }}
-              >
-                {t.initials}
-              </span>
+              <PersonBadge t={t} size={32} area={(["blue", "plum", "olive"] as const)[i % 3]} />
               <span>
                 <span className="block text-sm font-medium text-[var(--mk-ink)]">{t.name}</span>
                 <span className="block text-xs text-[var(--mk-ink-faint)]">{t.role}</span>
