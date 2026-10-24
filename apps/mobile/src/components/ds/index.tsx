@@ -2,6 +2,7 @@
  * Gather DS — "Aurora" primitives.
  * Ambient gradient screen, glass controls, floating cards, amber accent.
  */
+import BrandArt from "../app/BrandArt";
 import React from "react";
 import {
   View,
@@ -741,6 +742,8 @@ export type ToastPayload = {
   accent?: { tint: string; ink: string };
   /** A thumbnail (remote `{ uri }` or a `require()`d asset). */
   image?: ImageSourcePropType;
+  /** No photo: the post's default brand art (BrandArt), seeded by its id. */
+  artSeed?: string;
   /** A calendar tile instead of a thumbnail. */
   date?: { month: string; day: string };
   icon?: AppIconName;
@@ -893,6 +896,8 @@ function ToastHost({ toast, onDismiss }: { toast: QueuedToast | null; onDismiss:
       >
         {rendered.image ? (
           <Image source={rendered.image} style={styles.toastThumb} resizeMode="cover" accessibilityIgnoresInvertColors />
+        ) : rendered.artSeed ? (
+          <BrandArt seed={rendered.artSeed} style={styles.toastThumb} compact />
         ) : rendered.date ? (
           <View style={[styles.toastThumb, styles.toastDate, { backgroundColor: accent.tint }]}>
             <Text style={[styles.toastDateMonth, { color: accent.ink }]}>{rendered.date.month}</Text>

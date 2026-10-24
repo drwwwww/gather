@@ -5,7 +5,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Avatar, GlassIconButton, palette, font, space } from "../components/ds";
 import { Icon } from "../components/ui/Icon";
-import { newsFallback } from "../lib/churchImagery";
+import BrandArt from "../components/app/BrandArt";
 import { supabase } from "../supabase";
 import { useAuth } from "../context/AuthContext";
 import { addToCalendar, eventAddress, eventWhen, openDirections } from "../lib/events";
@@ -127,7 +127,11 @@ export default function AnnouncementsDetailScreen({ navigation, route }: any) {
     <View style={styles.root}>
       <StatusBar barStyle="light-content" />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: bar ? 24 : insets.bottom + space.xxl }}>
-        <Image source={a.image_url ? { uri: a.image_url } : newsFallback(a.id || a.title)} style={styles.hero} resizeMode="cover" accessibilityIgnoresInvertColors />
+        {a.image_url ? (
+          <Image source={{ uri: a.image_url }} style={styles.hero} resizeMode="cover" accessibilityIgnoresInvertColors />
+        ) : (
+          <BrandArt seed={a.id || a.title} style={styles.hero} />
+        )}
         <View style={styles.content}>
           <View style={styles.metaRow}>
             <View style={[styles.tag, { backgroundColor: meta.area.tint }]}><Text style={[styles.tagTxt, { color: meta.area.ink }]}>{meta.label}</Text></View>

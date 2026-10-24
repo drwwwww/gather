@@ -24,13 +24,12 @@ import {
 } from "../components/ds";
 import { RiseIn, Shimmer, usePressScale } from "../components/ds/motion";
 import {
-  eventFallback,
-  newsFallback,
   WORSHIP_HANDS,
   CONGREGATION_SERVICE,
   WELCOME_EMBRACE,
   SANCTUARY_PEWS,
 } from "../lib/churchImagery";
+import BrandArt from "../components/app/BrandArt";
 import { supabase } from "../supabase";
 import { useAuth } from "../context/AuthContext";
 import { AREA, eventHue } from "../theme/areas";
@@ -512,11 +511,11 @@ function NextUpCard({ event, onPress }: { event: EventPreview; onPress: () => vo
     <Animated.View style={press.style}>
       <Pressable onPress={onPress} onPressIn={press.onPressIn} onPressOut={press.onPressOut}>
         <View style={styles.heroCard}>
-          <Image
-            source={event.image_url ? { uri: event.image_url } : eventFallback(event.id)}
-            style={[StyleSheet.absoluteFill as any, styles.fillImg]}
-            resizeMode="cover"
-          />
+          {event.image_url ? (
+            <Image source={{ uri: event.image_url }} style={[StyleSheet.absoluteFill as any, styles.fillImg]} resizeMode="cover" />
+          ) : (
+            <BrandArt seed={event.id} style={StyleSheet.absoluteFill} />
+          )}
           <LinearGradient
             colors={["rgba(28,14,2,0.15)", "rgba(28,14,2,0.82)"]}
             style={StyleSheet.absoluteFill}
@@ -656,11 +655,11 @@ function NewsCard({ item, onPress }: { item: AnnouncementPreview; onPress: () =>
     <Animated.View style={press.style}>
       <Pressable onPress={onPress} onPressIn={press.onPressIn} onPressOut={press.onPressOut} style={styles.newsCard}>
         <View style={styles.newsMedia}>
-          <Image
-            source={item.image_url ? { uri: item.image_url } : newsFallback(item.id)}
-            style={[StyleSheet.absoluteFill as any, styles.fillImg]}
-            resizeMode="cover"
-          />
+          {item.image_url ? (
+            <Image source={{ uri: item.image_url }} style={[StyleSheet.absoluteFill as any, styles.fillImg]} resizeMode="cover" />
+          ) : (
+            <BrandArt seed={item.id} style={StyleSheet.absoluteFill} />
+          )}
           <LinearGradient
             colors={["rgba(24,12,2,0.02)", "rgba(24,12,2,0.68)"]}
             style={StyleSheet.absoluteFill}

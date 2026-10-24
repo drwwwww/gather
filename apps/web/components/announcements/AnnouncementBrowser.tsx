@@ -163,15 +163,31 @@ export default function AnnouncementBrowser({
    full-bleed 3:2 photo with floating back + share, then on white the type tag and
    date, the title, the church byline, and per type: the event's date/place rows
    and "I'm going" bar, sign-up slots, the "I'm praying" button. Then "Know before
-   you go" and who to ask. No photo → the same church photo the app picks (same
-   images, same hash). Keep in step with the app. */
+   you go" and who to ask. No photo → the same brand art the app draws (BrandArt: same
+   colours, same hash). Keep in step with the app. */
 
-const APP_FALLBACKS = ["congregation-service", "welcome-embrace", "worship-hands", "sanctuary-pews"]; // lib/churchImagery NEWS_FALLBACKS
+// Mirrors apps/mobile/src/components/app/BrandArt.tsx: same colours, same hash.
+const BRAND_ART_COLORS = [
+  { bg: "#6B2F6A", glow: "#A0529F" },
+  { bg: "#0B5E57", glow: "#009B90" },
+  { bg: "#8A3A12", glow: "#D46A2E" },
+  { bg: "#1E447F", glow: "#3466B8" },
+  { bg: "#7A4508", glow: "#F59E0B" },
+  { bg: "#44591A", glow: "#6E8F2E" },
+] as const;
 
-function appFallback(id: string) {
+function AppBrandArt({ seed }: { seed: string }) {
   let h = 0;
-  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
-  return `/images/app/${APP_FALLBACKS[h % APP_FALLBACKS.length]}.jpg`;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  const c = BRAND_ART_COLORS[h % BRAND_ART_COLORS.length];
+  return (
+    <div className="relative h-full w-full overflow-hidden" style={{ background: c.bg }} aria-hidden>
+      <span className="absolute aspect-square w-[75%] rounded-full opacity-55" style={{ background: c.glow, right: "-14%", top: "-30%" }} />
+      <span className="absolute inset-0 flex items-center justify-end pr-[11%]">
+        <img src="/brand/mark-white.png" alt="" className="h-[40%] w-auto opacity-90" />
+      </span>
+    </div>
+  );
 }
 
 type PreviewData = {
@@ -245,7 +261,7 @@ function AppAnnouncementPreview({ announcement, status }: { announcement: Announ
       <div className="mx-auto w-full max-w-[340px] overflow-hidden rounded-[28px] border border-[var(--border)] bg-white shadow-[0_16px_40px_-24px_rgba(28,25,23,0.35)]">
         <div className="max-h-[640px] overflow-y-auto">
           <div className="relative aspect-[3/2] bg-[#EEEDEB]">
-            <img src={a.image_url || appFallback(a.id)} alt="" className="h-full w-full object-cover" />
+            {a.image_url ? <img src={a.image_url} alt="" className="h-full w-full object-cover" /> : <AppBrandArt seed={a.id} />}
             <div className="absolute inset-x-3 top-3 flex justify-between" aria-hidden>
               <span className="flex h-9 w-9 items-center justify-center rounded-full border border-white/75 bg-white/85"><ChevronLeft className="h-5 w-5 text-[#1C1917]" /></span>
               <span className="flex h-9 w-9 items-center justify-center rounded-full border border-white/75 bg-white/85"><Share className="h-4 w-4 text-[#1C1917]" /></span>

@@ -4,7 +4,7 @@ import * as Haptics from "expo-haptics";
 import { useFocusEffect } from "@react-navigation/native";
 import { Icon } from "../components/ui/Icon";
 import { Screen, EmptyState, Loader, palette, font, radius, shadow, space } from "../components/ds";
-import { newsFallback } from "../lib/churchImagery";
+import BrandArt from "../components/app/BrandArt";
 import { supabase } from "../supabase";
 import { useAuth } from "../context/AuthContext";
 import { eventWhen } from "../lib/events";
@@ -141,7 +141,11 @@ export default function AnnouncementsScreen({ navigation }: any) {
       const isGoing = extras.myRsvp[ev.id] === "GOING";
       return (
         <Pressable key={a.id} onPress={() => open(a)} accessibilityRole="button" style={({ pressed }: { pressed: boolean }) => [styles.card, pressed && styles.pressed]}>
-          <Image source={a.image_url ? { uri: a.image_url } : newsFallback(a.id)} style={styles.cardImg} resizeMode="cover" accessibilityIgnoresInvertColors />
+          {a.image_url ? (
+            <Image source={{ uri: a.image_url }} style={styles.cardImg} resizeMode="cover" accessibilityIgnoresInvertColors />
+          ) : (
+            <BrandArt seed={a.id} style={styles.cardImg} />
+          )}
           <View style={styles.cardBody}>
             <Tag a={a} />
             <Text style={styles.cardTitle}>{a.title}</Text>
@@ -204,7 +208,11 @@ export default function AnnouncementsScreen({ navigation }: any) {
     }
     return (
       <Pressable key={a.id} onPress={() => open(a)} accessibilityRole="button" style={({ pressed }: { pressed: boolean }) => [styles.card, styles.rowCard, pressed && styles.pressed]}>
-        <Image source={a.image_url ? { uri: a.image_url } : newsFallback(a.id)} style={styles.thumb} resizeMode="cover" accessibilityIgnoresInvertColors />
+        {a.image_url ? (
+          <Image source={{ uri: a.image_url }} style={styles.thumb} resizeMode="cover" accessibilityIgnoresInvertColors />
+        ) : (
+          <BrandArt seed={a.id} style={styles.thumb} compact />
+        )}
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={[styles.when, { color: KIND_META.UPDATE.area.ink, fontFamily: font.semibold }]}>Update · {relativeLabel(a.publish_at, a.created_at)}</Text>
           <Text style={styles.rowTitle} numberOfLines={2}>{a.title}</Text>

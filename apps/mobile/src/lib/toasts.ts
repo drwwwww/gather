@@ -1,6 +1,5 @@
 import type { ToastPayload } from "../components/ds";
 import { navigate } from "../navigation/navigationRef";
-import { newsFallback } from "./churchImagery";
 import { AREA } from "../theme/areas";
 
 /**
@@ -19,7 +18,8 @@ export function announcementToast(a: AnnouncementLike): ToastPayload {
     accent: AREA.news,
     title: a.title || "New announcement",
     subtitle: oneLine(a.body) || undefined,
-    image: a.image_url ? { uri: a.image_url } : newsFallback(a.id),
+    image: a.image_url ? { uri: a.image_url } : undefined,
+    artSeed: a.image_url ? undefined : a.id,
     onPress: () =>
       navigate("AnnouncementsDetail", {
         announcement: { id: a.id, title: a.title, body: a.body ?? "", publish_at: a.publish_at, image_url: a.image_url },

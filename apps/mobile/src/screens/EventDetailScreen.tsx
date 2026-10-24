@@ -7,7 +7,7 @@ import {
   Screen, AppBar, Txt, Card, Pill, Eyebrow, Loader,
   palette, font, radius, space, type,
 } from "../components/ds";
-import { eventFallback } from "../lib/churchImagery";
+import BrandArt from "../components/app/BrandArt";
 import { eventWhen, eventPhase, eventAddress, openDirections, addToCalendar, shareEvent } from "../lib/events";
 import { supabase } from "../supabase";
 import { useAuth } from "../context/AuthContext";
@@ -174,12 +174,11 @@ export default function EventDetailScreen({ navigation, route }: any) {
     <Screen>
       <AppBar onBack={() => navigation.goBack()} />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: space.xxl }}>
-        <Image
-          source={event.image_url ? { uri: event.image_url } : eventFallback(event.id)}
-          style={styles.hero}
-          resizeMode="cover"
-          accessibilityIgnoresInvertColors
-        />
+        {event.image_url ? (
+          <Image source={{ uri: event.image_url }} style={styles.hero} resizeMode="cover" accessibilityIgnoresInvertColors />
+        ) : (
+          <BrandArt seed={event.id} style={styles.hero} />
+        )}
         <View style={{ paddingHorizontal: space.gutter, paddingTop: 18 }}>
           <View style={styles.pillRow}>
             {event.is_cancelled ? <Pill label="Cancelled" tone="danger" />

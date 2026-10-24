@@ -15,7 +15,7 @@ import * as Location from "expo-location";
 import { Icon } from "../components/ui/Icon";
 import { Screen, LinearGradient, palette, font, gradient, radius, shadow, space } from "../components/ds";
 import { RiseIn, Shimmer, usePressScale } from "../components/ds/motion";
-import { eventFallback } from "../lib/churchImagery";
+import BrandArt from "../components/app/BrandArt";
 import { distanceMiles, formatDistance } from "../lib/geo";
 import { supabase } from "../supabase";
 import { eventWhen, eventPhase, eventAddress, shareEvent, loadSavedEvents, setEventSaved, soonLabel } from "../lib/events";
@@ -400,11 +400,11 @@ function EventCard({
           accessibilityLabel={`${event.title}, ${dateLine}, ${timeLine}`}
         >
           <View style={styles.media}>
-            <Image
-              source={event.image_url ? { uri: event.image_url } : eventFallback(event.id)}
-              style={[StyleSheet.absoluteFill as any, styles.fillImg]}
-              resizeMode="cover"
-            />
+            {event.image_url ? (
+              <Image source={{ uri: event.image_url }} style={[StyleSheet.absoluteFill as any, styles.fillImg]} resizeMode="cover" />
+            ) : (
+              <BrandArt seed={event.id} style={StyleSheet.absoluteFill} />
+            )}
             <LinearGradient
               colors={["rgba(24,12,2,0.30)", "rgba(24,12,2,0.05)"]}
               style={StyleSheet.absoluteFill}
