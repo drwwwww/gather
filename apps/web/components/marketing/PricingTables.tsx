@@ -92,7 +92,7 @@ export default function PricingTables() {
             Switch to yearly and save up to ${(PLANS[PLANS.length - 1].monthly * (12 - ANNUAL_MONTHS_CHARGED)).toLocaleString("en-US")} a year →
           </button>
         )}
-        <p className="text-xs text-[var(--mk-ink-faint)]">Under 150 people? Parish. Growing, with several ministry teams? Congregation.</p>
+        <p className="text-xs text-[var(--mk-ink-faint)]">Under 150 people? Community. Growing, with several ministry teams? Congregation.</p>
       </div>
 
       {/* Plan cards */}

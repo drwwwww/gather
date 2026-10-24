@@ -20,7 +20,7 @@ export const ANNUAL_MONTHS_CHARGED = 10;
 export const PLANS: Plan[] = [
   {
     key: "parish",
-    name: "Parish",
+    name: "Community",
     tagline: "For smaller churches getting Sunday off a spreadsheet.",
     monthly: 74,
     annual: 62,
@@ -43,7 +43,7 @@ export const PLANS: Plan[] = [
     memberCap: "Up to 500 members",
     featured: true,
     highlights: [
-      "Everything in Parish",
+      "Everything in Community",
       "Gather AI: fill open roles in one click",
       "Unlimited ministry teams and roles",
       "Service presets and templates",

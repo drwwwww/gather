@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getRequestUser } from "../../../../lib/apiAuth";
-import { PRICE_ENV, stripeApi } from "../../../../lib/stripeServer";
+import { priceIdFor, stripeApi } from "../../../../lib/stripeServer";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
   const parsed = schema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Unknown plan." }, { status: 400 });
   const { plan, cycle } = parsed.data;
-  const priceId = process.env[PRICE_ENV[`${plan}:${cycle}`]];
+  const priceId = priceIdFor(plan, cycle);
   if (!priceId) return NextResponse.json({ error: "That plan isn't available yet. Email support@gatherministry.online." }, { status: 503 });
 
   const { data: me } = await caller.supabase.from("profiles").select("church_id, role, email").eq("id", caller.user.id).maybeSingle();

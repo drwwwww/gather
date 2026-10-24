@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { getRequestUser } from "../../../lib/apiAuth";
-import { PRICE_ENV } from "../../../lib/stripeServer";
+import { PRICE_ENV, priceIdFor } from "../../../lib/stripeServer";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
 
   const { plan, cycle } = parsed.data;
   const envKey = PRICE_ENV[`${plan}:${cycle}`];
-  const priceId = envKey ? process.env[envKey] : undefined;
+  const priceId = priceIdFor(plan, cycle);
 
   if (!priceId) {
     console.error(`[checkout] missing price id env var: ${envKey}`);

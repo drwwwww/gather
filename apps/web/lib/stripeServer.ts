@@ -1,20 +1,38 @@
 import crypto from "node:crypto";
 import type { ChurchPlan } from "@gather/lib";
 
-/** Price IDs live in env so one build works against test and live keys. */
+/**
+ * Price IDs live in env so one build works against test and live keys. The
+ * smallest plan is called Community (internal key "parish"); its variables are
+ * STRIPE_PRICE_COMMUNITY_*, with the older STRIPE_PRICE_PARISH_* still accepted.
+ */
 export const PRICE_ENV: Record<string, string> = {
-  "parish:monthly": "STRIPE_PRICE_PARISH_MONTHLY",
-  "parish:annual": "STRIPE_PRICE_PARISH_ANNUAL",
+  "parish:monthly": "STRIPE_PRICE_COMMUNITY_MONTHLY",
+  "parish:annual": "STRIPE_PRICE_COMMUNITY_ANNUAL",
   "congregation:monthly": "STRIPE_PRICE_CONGREGATION_MONTHLY",
   "congregation:annual": "STRIPE_PRICE_CONGREGATION_ANNUAL",
   "network:monthly": "STRIPE_PRICE_NETWORK_MONTHLY",
   "network:annual": "STRIPE_PRICE_NETWORK_ANNUAL",
 };
 
+const LEGACY_ENV: Record<string, string> = {
+  "parish:monthly": "STRIPE_PRICE_PARISH_MONTHLY",
+  "parish:annual": "STRIPE_PRICE_PARISH_ANNUAL",
+};
+
+/** The Stripe price ID for a plan + cycle, or undefined when it isn't configured. */
+export function priceIdFor(plan: string, cycle: string): string | undefined {
+  const key = `${plan}:${cycle}`;
+  const env = PRICE_ENV[key];
+  const legacy = LEGACY_ENV[key];
+  return (env && process.env[env]) || (legacy && process.env[legacy]) || undefined;
+}
+
 export function planForPrice(priceId: string | null | undefined): ChurchPlan | null {
   if (!priceId) return null;
-  for (const [key, env] of Object.entries(PRICE_ENV)) {
-    if (process.env[env] === priceId) return key.split(":")[0] as ChurchPlan;
+  for (const key of Object.keys(PRICE_ENV)) {
+    const [plan, cycle] = key.split(":");
+    if (priceIdFor(plan, cycle) === priceId) return plan as ChurchPlan;
   }
   return null;
 }

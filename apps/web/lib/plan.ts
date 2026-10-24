@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import type { ChurchPlan } from "@gather/lib";
 import { supabase } from "./supabaseClient";
 
-/** Gather AI ships with Congregation and Network — never Parish. */
+/** Gather AI ships with Congregation and Network — never Community (internal key "parish"). */
 export const AI_PLANS: ChurchPlan[] = ["congregation", "network"];
 
 export const planHasAi = (plan: ChurchPlan | null | undefined) => !!plan && AI_PLANS.includes(plan);
@@ -33,7 +33,7 @@ export function trialDaysLeft(trialEndsAt: string | null): number {
 }
 
 export const PLAN_LABEL: Record<ChurchPlan, string> = {
-  parish: "Parish",
+  parish: "Community",
   congregation: "Congregation",
   network: "Network",
 };

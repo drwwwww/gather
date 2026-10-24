@@ -33,7 +33,7 @@ What you can offer in the room:
 - **Free 14-day trial**, Gather AI included, no card.
 - **14-day money-back guarantee** after the first payment.
 - **Yearly = 2 months free.**
-- **Reduced pricing** for church plants, churches under 50 people, and tight budgets; **student organizations always get a discount.** Decide the numbers before you go out and give every rep the same ones. Suggested: student orgs 50% off Parish; church plants and churches under 50, 30% off for the first year. Create them as Stripe promotion codes (checkout already accepts codes) so reps hand out a code instead of negotiating.
+- **Reduced pricing** for church plants, churches under 50 people, and tight budgets; **student organizations always get a discount.** Decide the numbers before you go out and give every rep the same ones. Suggested: student orgs 50% off Community; church plants and churches under 50, 30% off for the first year. Create them as Stripe promotion codes (checkout already accepts codes) so reps hand out a code instead of negotiating.
 - **Free setup help:** "I'll sit with your admin for 30 minutes and we'll build next Sunday together." This is the most persuasive thing you have. Use it.
 - **Pay by invoice, ACH or check** for churches whose treasurer won't put software on a card.
 
@@ -176,7 +176,7 @@ Personalize the first line of email 1 whenever you can ("Saw you just launched a
 | "We use Planning Center." | "Lots of churches do. What do you like about it? … Gather is for teams that find it's more than they need: one screen for the service and the team, nothing to train. If you're happy, great; if your volunteers find it confusing, try ours side by side for 14 days." |
 | "We don't have the budget." | "Totally understand. Most churches pay for it out of the time the admin saves. But if budget's tight, we have reduced pricing for church plants and smaller churches, and the first 14 days are free. Want me to check what you'd qualify for?" |
 | "Our volunteers won't download an app." | "They don't have to for it to help. You still plan everything in one place, and they get reminder emails. In practice, once they see 'tap to confirm' most of them do." |
-| "We're too small." | "How many people serve on a typical Sunday? … Even with 10 volunteers, the Saturday texting is the same. That's who the Parish plan is for." |
+| "We're too small." | "How many people serve on a typical Sunday? … Even with 10 volunteers, the Saturday texting is the same. That's who the Community plan is for." |
 | "Send me some information." | "Happy to. So I send the right thing: what's the one part of Sunday prep you'd most like to stop doing?" Then send exactly that, with the link. |
 | "I need to talk to the board / elders." | "Of course. Would it help to start the free trial so you have something real to show them? Nothing is charged, and there's a money-back guarantee if they say no after you pay." |
 | "Is our data safe?" | "Yes. It's private to your church, you can export all of it any time, and we never sell or share it. The privacy policy is on the site in plain words." |
