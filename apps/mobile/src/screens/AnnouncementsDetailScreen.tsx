@@ -128,7 +128,12 @@ export default function AnnouncementsDetailScreen({ navigation, route }: any) {
       <StatusBar barStyle="light-content" />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: bar ? 24 : insets.bottom + space.xxl }}>
         {a.image_url ? (
-          <Image source={{ uri: a.image_url }} style={styles.hero} resizeMode="cover" accessibilityIgnoresInvertColors />
+          // The box takes the 3:2 shape and the photo fills it. On a phone, an Image sized
+          // by aspectRatio alone can fall back to the photo's own pixel size (1800×1197)
+          // and fill most of the screen; a View always honours aspectRatio.
+          <View style={styles.hero}>
+            <Image source={{ uri: a.image_url }} style={[StyleSheet.absoluteFill as any, styles.fill]} resizeMode="cover" accessibilityIgnoresInvertColors />
+          </View>
         ) : (
           <BrandArt seed={a.id || a.title} style={styles.hero} />
         )}
@@ -308,6 +313,7 @@ export default function AnnouncementsDetailScreen({ navigation, route }: any) {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: palette.surface },
   hero: { width: "100%", aspectRatio: 3 / 2, backgroundColor: palette.sunken },
+  fill: { width: "100%", height: "100%" },
   content: { paddingHorizontal: space.gutter, paddingTop: space.lg },
   metaRow: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 8 },
   tag: { borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },

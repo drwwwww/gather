@@ -15,7 +15,7 @@ Store rules change often. Before each big step, check the linked Apple or Google
 | ☐ | Deploy the web app, so `/privacy`, `/terms`, `/delete-account` and the new API routes (`/api/account/delete`, `/api/moderation/report`) are live at gatherministry.online. The mobile app calls them. | `git push` → Vercel |
 | ☐ | Make sure `support@gatherministry.online` actually receives mail. Apple, Google, the privacy policy and report emails all point there. | Your email host |
 | ☐ | Add `CRON_SECRET` in Vercel if you ever want scheduled reminders. The dispatch route now rejects anyone who isn't a church admin or the cron. | Vercel → Settings → Env |
-| ☐ | Choose a reviewer account. Apple and Google both need a login that shows everything. Use an existing **SERVICE-role** Grace Community demo account, so the reviewer sees the Plan and Serve tabs too. The password is in team notes; don't put it in the repo. | — |
+| ☐ | Choose a reviewer account. Apple and Google both need a login that shows everything. Use `pastor@hillside.test` from the **Hillside Community Church** demo (an admin who is also on the serving schedule), so the reviewer sees every tab including Plan and Serve. The password is in team notes; don't put it in the repo. | — |
 | ✅ | iPad off (`supportsTablet: false`) — no iPad screenshots or iPad review needed. | `apps/mobile/app.json` |
 | ✅ | App icon is 1024×1024 with no alpha channel (Apple rejects alpha). | `apps/mobile/assets/icon.png` |
 | ✅ | Web deployed with the legal pages and API routes (`/privacy`, `/terms`, `/delete-account`, `/api/account/delete`, `/api/moderation/report`). | Vercel |
@@ -89,7 +89,7 @@ Answer the questionnaire honestly. The relevant questions are user-generated con
 ### Step 9: App Review information
 - **Sign-in:** the SERVICE demo account email and password.
 - **Notes** (paste and adjust):
-  > Gather is a church-management app. Members join their own church and see its announcements, events and volunteer schedule. The demo account is a service-team volunteer at our sample church "Grace Community Church".
+  > Gather is a church-management app. Members join their own church and see its announcements, events and volunteer schedule. The demo account is a pastor (and volunteer) at our sample church "Hillside Community Church".
   > Account deletion: Profile (tap the avatar on Home) → "Delete account".
   > Report/block another member: Profile → View members → tap a member → Report profile / Block.
   > Church subscriptions are sold to church administrators on our website. The app has no purchases.
@@ -155,7 +155,7 @@ JS-only fixes use `eas update --channel production`. The runtime policy is now `
 ### The decision that matters: personal vs organization developer account
 - **Personal accounts** (new since late 2023) must run a **closed test with at least 12 testers who stay opted in for 14 days in a row** before Google lets you apply for production. Testers must opt in through the Play link with their Google accounts.
 - **Organization accounts** skip that requirement, but need a D-U-N-S number, the same one you'll get for Apple.
-- **Recommendation:** if the LLC is weeks away, open the Play account as the **organization** once you have the D-U-N-S, and skip the 12-tester wait. If you want Android out sooner, open a personal account now and start the 14-day test immediately. Grace Community's real members are the natural testers.
+- **Recommendation:** if the LLC is weeks away, open the Play account as the **organization** once you have the D-U-N-S, and skip the 12-tester wait. If you want Android out sooner, open a personal account now and start the 14-day test immediately. Your first churches' members are the natural testers.
 
 ### Steps
 1. **Create the account:** play.google.com/console, $25 one time, identity verification. You'll also verify an Android phone through the Play Console app.

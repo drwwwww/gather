@@ -44,15 +44,19 @@ Only the iPhone app can be shown (no web admin screens).
 | 6 | **TAKE** a week off, guilt-free | **Serve** scrolled to "Can’t make it?" away days | 1–2 away days selected | Volunteers' biggest worry is letting people down — this says stepping back is easy |
 | 7 *(optional)* | **CELEBRATE** every yes | The confirmation celebration | Captured right after tapping Confirm | Delight closer; only if the capture looks clean |
 
-Not used: sign-in, profile, settings, tour, empty states, nearby churches (the only
-neighbour is the "Hope Fellowship (demo)" church), anything admin-only.
+Not used: sign-in, profile, settings, tour, empty states, nearby churches (empty until
+other real churches are discoverable), anything admin-only.
 
 ## Capturing the screens (on your iPhone, from the TestFlight build)
 
 1. Phone in **light mode**, text size default, Wi-Fi on, battery charged, no
    Focus/Do Not Disturb. (The status bar gets replaced anyway, but keep it clean.)
-2. Sign in to **Grace Community** with a volunteer account that has assignments
-   (Claude stages the data for #1–#3 and #6 first and puts it back afterwards).
+2. Sign in to the demo church **Hillside Community Church** as `pastor@hillside.test`
+   (an admin who is also on the serving schedule: one request awaiting reply, a backup
+   spot, a confirmed spot). Password: `.seed-tmp/seed_hillside.mjs`. #3 needs a service
+   under way, so capture it during a service or ask Claude to stage one.
+   Any iPhone works (an iPhone 17's 1206 × 2622 is fine): the screenshot goes inside the
+   frame and the finished image is resized to 1320 × 2868.
 3. Take each screenshot with **side button + volume up**. Scroll so the part named
    in the table sits in the top two-thirds of the screen — the bottom gets cropped by
    the frame.

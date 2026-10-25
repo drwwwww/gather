@@ -95,7 +95,7 @@ export default function DemoForm() {
           <input
             id="demo-church"
             className={field}
-            placeholder="Grace Community Church"
+            placeholder="Your church's name"
             value={church}
             onChange={(e) => setChurch(e.target.value)}
             autoComplete="organization"

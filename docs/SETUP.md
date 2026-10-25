@@ -53,7 +53,7 @@ After adding a native mobile package: `node apps/mobile/scripts/ensure-hoisted-m
 
 ## Demo data
 
-Grace Community Church (`grace-community`) with ~98 members; demo password is in team notes. Admin `pastor@gracecommunity.test`, volunteer `rosalind.kaczmarek@gracecommunity.test`, member `isaac.winterbourne@gracecommunity.test`. A demo neighbor church powers "Nearby churches" — remove before launch: `node .seed-tmp/nearby_seed.mjs undo`.
+Hillside Community Church (`hillside-community`) with 96 people (about a third with stock profile photos); demo password is in team notes. Admin `pastor@hillside.test` (also on the serving schedule), admin `admin@hillside.test`, volunteer `marcus.torres@hillside.test`, member `wesley.patel@hillside.test`. Seeded by `.seed-tmp/seed_hillside.mjs`.
 
 ## Shipping
 

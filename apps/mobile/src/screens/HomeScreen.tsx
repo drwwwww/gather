@@ -303,9 +303,11 @@ export default function HomeScreen({ navigation }: any) {
       <View style={styles.topRow}>
         <Pressable onPress={() => navigation.navigate("ProfileMenu")} style={styles.identity}>
           <Avatar imageUri={profile?.avatar_url} name={profile?.full_name ?? user?.user_metadata?.full_name} tone="amber" size={40} />
-          <View style={{ minWidth: 0 }}>
+          {/* flex: 1 lets the name take only the room left beside the action pill;
+              without it a long name ran underneath the search button. */}
+          <View style={{ flex: 1, minWidth: 0 }}>
             <Text style={styles.eyebrow}>{greetingFor(hour)}</Text>
-            <Text style={styles.churchName} numberOfLines={1}>
+            <Text style={styles.churchName} numberOfLines={2}>
               {churchName ?? "Your church"}
             </Text>
           </View>
@@ -695,9 +697,10 @@ const styles = StyleSheet.create({
   },
   identity: { flexDirection: "row", alignItems: "center", gap: 11, flex: 1, minWidth: 0 },
   eyebrow: { fontFamily: font.medium, fontSize: 11.5, color: palette.inkMuted },
-  churchName: { fontFamily: font.bold, fontSize: 15, color: palette.ink, marginTop: 1 },
+  churchName: { fontFamily: font.bold, fontSize: 15, lineHeight: 19, color: palette.ink, marginTop: 1 },
 
   actionPill: {
+    flexShrink: 0,
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: palette.glassStrong,
