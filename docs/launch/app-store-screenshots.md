@@ -40,7 +40,7 @@ Only the iPhone app can be shown (no web admin screens).
 | 2 | **SAY YES** to serving in one tap | **Serve** ("Your schedule") | 3–4 upcoming assignments across different dates: one *awaiting reply* at the top, the rest confirmed, service names visible ("9:00 Service · 9:00 AM") | The core volunteer job, shown as effortless |
 | 3 | **KNOW** when you’re up next | **Plan** tab on a service day, mid-service | A plan dated today with the first 2–3 steps done, "Now" on the next step, and the personal line "You’re up next" | Unique — no other church app shows the service live |
 | 4 | **NEVER MISS** what’s happening | **Events** list | 4+ upcoming events with real photos, at least one "You’re going" | Members use this every week |
-| 5 | **CATCH UP** on church news | **News** (announcements) | A featured announcement with a photo plus 3–4 more below | Shows the app is alive and personal |
+| 5 | **Catch up** on church news | **News** (announcements) | A featured announcement with a photo plus 3–4 more below | Shows the app is alive and personal |
 | 6 | **TAKE** a week off, guilt-free | **Serve** scrolled to "Can’t make it?" away days | 1–2 away days selected | Volunteers' biggest worry is letting people down — this says stepping back is easy |
 | 7 *(optional)* | **CELEBRATE** every yes | The confirmation celebration | Captured right after tapping Confirm | Delight closer; only if the capture looks clean |
 
@@ -72,6 +72,20 @@ python "$HOME/.claude/skills/aso-appstore-screenshots/resize.py" --width 1320 --
 
 Approved images go to `screenshots/final/01-stay.png` … and are uploaded to
 App Store Connect → the app → 1.0 → **iPhone 6.9" Display**.
+
+## Built (October 25, 2026)
+
+Two versions, each five images at 1320 × 2868 for App Store Connect → iPhone 6.9" Display: `screenshots/final/popout/` (key card enlarged over the phone) and `screenshots/final/clean/` (phone only). Pick one set; don't mix them. Headlines use the app's own type (Rubik Bold from `node_modules/@expo-google-fonts/rubik`, sentence case, about -2% tracking, ink #1C1917, action words in the app's amber ink #B45309). Order:
+
+1. `01-stay.png`: **Stay** in the loop (Home)
+2. `02-say-yes.png`: **Say yes** with one tap (Serve)
+3. `03-know.png`: **Know** your part before you arrive (Plan, before the service; the "up next" mid-service shot is still optional)
+4. `04-never-miss.png`: **Never miss** what's happening (Events)
+5. `05-catch-up.png`: **CATCH UP** on church news (News)
+
+**Style (v2, Oct 25):** the amber-only first pass was rejected as too plain. `screenshots/compose_gather.py` now does the skill's enhancement step locally (no Gemini, no repaint): the landing-hero backdrop (church photo under the dawn wash, yellow/orange/pink glows, faint cross/note/sun/heart glyphs, hairline grid, deepening to amber at the bottom), ink headline with amber-brown descriptor (balanced line breaks), Apple's real iPhone bezel (Apple Design Resources, from the `app-store-screenshots` skill's `template/public/frames/iphone-portrait.png`, installed with `npx skills add ParthJadhav/app-store-screenshots`; Apple licenses bezels for mock-ups of apps for Apple platforms) with a soft shadow, and a breakout: the key card cropped from the real screenshot, enlarged to 1180px and floating over the phone (Home reply card, Serve request, Plan ticket, News notice; none on Events). Run `python compose_gather.py` then the skill's `resize.py --width 1320 --height 2868`.
+
+Captured on an iPhone 17 as `pastor@hillside.test`. `screenshots/clean_status_bar.py` swaps the real status bar for 9:41 / full signal / full battery (only that strip is repainted); `screenshots/source/` holds the cleaned captures. Captions were shortened from the plan so none leaves one word on its own line. #6 (away dates) not captured yet.
 
 ## Open decisions
 

@@ -11,3 +11,7 @@ dist
 .DS_Store
 .seed-tmp/
 .next-verify/
+
+# Generated App Store images (rebuild with screenshots/compose_gather.py)
+screenshots/final/
+screenshots/showcase*.png
