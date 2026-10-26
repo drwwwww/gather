@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Modal, View, Text, Pressable, TextInput, StyleSheet, KeyboardAvoidingView, Platform } from "react-native";
+import { Modal, View, Text, Pressable, TextInput, StyleSheet, KeyboardAvoidingView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Icon } from "../ui/Icon";
 import { Avatar, Button, palette, font, radius, space } from "../ds";
@@ -70,17 +70,25 @@ export function MemberSafetySheet({
 
   return (
     <Modal visible transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
-      <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel="Close" />
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.anchor} pointerEvents="box-none">
+      <KeyboardAvoidingView behavior="padding" style={styles.anchor}>
+        {/* Tap outside to close. Inside the avoiding view (not behind it), so the
+            full-screen layer above can never swallow the tap. */}
+        <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel="Close" accessibilityRole="button" />
         <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, space.lg) }]}>
-          <View style={styles.grabber} />
-
           <View style={styles.head}>
+            {step === "report" ? (
+              <Pressable onPress={() => setStep("menu")} style={styles.iconBtn} hitSlop={6} accessibilityRole="button" accessibilityLabel="Back">
+                <Icon name="chevronLeft" size={22} color={palette.ink} />
+              </Pressable>
+            ) : null}
             <Avatar imageUri={member.avatar_url} name={member.full_name} email={member.email} seed={member.id} size={44} />
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text style={styles.name} numberOfLines={1}>{name}</Text>
               {member.email ? <Text style={styles.sub} numberOfLines={1}>{member.email}</Text> : null}
             </View>
+            <Pressable onPress={onClose} style={styles.iconBtn} hitSlop={6} accessibilityRole="button" accessibilityLabel="Close">
+              <Icon name="close" size={20} color={palette.inkSoft} />
+            </Pressable>
           </View>
 
           {step === "menu" && (
@@ -170,9 +178,10 @@ const styles = StyleSheet.create({
   anchor: { flex: 1, justifyContent: "flex-end" },
   sheet: {
     backgroundColor: palette.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24,
-    paddingHorizontal: space.gutter, paddingTop: 10,
+    paddingHorizontal: space.gutter, paddingTop: 16,
   },
-  grabber: { alignSelf: "center", width: 40, height: 5, borderRadius: 3, backgroundColor: palette.line, marginBottom: 14 },
+  // 44pt round button: a visible way out (the old grab handle looked swipeable but wasn't).
+  iconBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: palette.sunken, alignItems: "center", justifyContent: "center" },
   head: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 14 },
   name: { fontFamily: font.bold, fontSize: 17, color: palette.ink },
   sub: { fontFamily: font.regular, fontSize: 13, color: palette.inkMuted, marginTop: 2 },
